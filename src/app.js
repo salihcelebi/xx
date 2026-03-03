@@ -8,6 +8,8 @@ import { createToastManager } from './ui/components/toasts.js';
 import { setupModalEscape } from './ui/components/modals.js';
 import { renderPageHeader } from './ui/components/pageHeader.js';
 import { dictionaries } from './config/i18n.js';
+import { mountTopbar } from './ui/shell/topbar.js';
+import { mountSidebar } from './ui/shell/sidebar.js';
 
 const commandBus = new Map();
 
@@ -31,6 +33,8 @@ function getEls() {
     lang: document.querySelector('#language-switcher'),
     adminLink: document.querySelector('#admin-nav-link'),
     statusBar: document.querySelector('#status-bar'),
+    topbar: document.querySelector('#topbar'),
+    sidebar: document.querySelector('#sidebar'),
   };
 }
 
@@ -88,6 +92,7 @@ function setupModeSwitch(els) {
 }
 
 async function refreshModelPicker(els) {
+  if (!els.modelList) return;
   const { currentMode } = getRouterState();
   const models = await listModelsWithCache(currentMode);
   els.modelList.innerHTML = models
@@ -193,6 +198,23 @@ function renderFromState(els) {
   const { currentMode } = getRouterState();
   renderPageHeader(els.pageHeader, currentMode === 'video' ? 'Video' : 'Chat', 'NISAI.MD gereksinimlerine uygun standart başlık alanı.');
   els.statusBar.textContent ||= dictionaries[state.app.language]?.queueIdle ?? dictionaries.tr.queueIdle;
+
+  mountTopbar({
+    root: els.topbar,
+    state,
+    mode: getRouterState().currentMode,
+    onModelChange: (modelId) => dispatch({ type: 'app/setFeatureFlags', payload: { selectedModelId: modelId } }),
+    onToolsChange: () => {},
+    onTempChange: (value) => dispatch({ type: 'app/setFeatureFlags', payload: { temporaryChat: value } }),
+  });
+
+  mountSidebar({
+    root: els.sidebar,
+    state,
+    onNewChat: () => dispatch({ type: 'chat/newThread', payload: { title: 'Yeni Sohbet' } }),
+    onOpenThread: (threadId) => dispatch({ type: 'chat/setActiveThread', payload: { threadId } }),
+    onSearch: () => {},
+  });
 }
 
 async function init() {
@@ -202,8 +224,6 @@ async function init() {
   setupModalEscape([els.searchModal, els.errorModal, els.paywallModal]);
   setupGlobalErrorHandling(els, toast);
   setupSearchPalette(els);
-  setupModeSwitch(els);
-  setupModelPicker(els);
   setupLanguageSwitcher(els, toast);
   setupUserMenu(els);
   setupCommandBus(els);
@@ -230,7 +250,6 @@ async function init() {
     },
     onModeChanged: async (mode) => {
       dispatch(appActions.setMode(mode));
-      await refreshModelPicker(els);
       renderFromState(els);
     },
     onWarning: (message) => {
@@ -241,7 +260,6 @@ async function init() {
     },
   });
 
-  await refreshModelPicker(els);
   renderFromState(els);
 }
 
