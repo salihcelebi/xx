@@ -351,3 +351,103 @@ Bu bölüm mevcut repo taraması üstüne, router odaklı son geliştirme turunu
 8) **Neden:** Router/app entegrasyonu sade olmalıydı. **Ne:** `mountRouter` kullanımı app bootstrap’e taşındı. **Dosyalar:** `/src/app.js`, `/src/router.js`.
 9) **Neden:** No-op navigate eksikti. **Ne:** Aynı route’a gidişte tekrar render engellendi. **Dosyalar:** `/src/router.js`.
 10) **Neden:** Parser güveni test edilmeliydi. **Ne:** normalize/isValid/getCurrent için smoke assert eklendi. **Dosyalar:** `/tests/smoke.mjs`.
+
+---
+
+## EK RAPOR — STORE.JS YENİDEN YAPILANDIRMA
+
+### A) GENEL TIMELINE
+- [Bu güncelleme] (Commit/PR: bu-güncelleme) Store çekirdeği `src/store/store.js` altında tek global kaynak olacak şekilde yeniden kuruldu.
+  - Etkilenen ana dosyalar: `src/store/store.js`, `src/store/index.js`, `src/store/slices/*.js`, `src/app.js`, `tests/smoke.mjs`, `src/services/translationService.js`
+  - Risk/Not: Query-param, feature flag kaynağı ve selectedModel alanı için NISAI.MD’de netleştir.
+
+### B) DOSYA KATALOĞU (DOSYA DOSYA)
+- DOSYA: /src/store/store.js
+  - ROLÜ: Global store çekirdeği (`createStore`, `dispatch`, `getState`, `subscribe`, selectors, persistence).
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> rootReducer combine, referans koruma, namespace action akışı ve persist v1 anahtarları eklendi.
+  - BAĞLANTILAR: /src/app.js, /src/store/slices/*, /tests/smoke.mjs
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: selectedModel persistence konumu, featureFlags kaynağı.
+  - TEST/SMOKE: `npm test`, `node --check src/store/store.js`.
+
+- DOSYA: /src/store/index.js
+  - ROLÜ: App için tek giriş export noktası.
+  - İLK EKLENME: önceki sürümde mevcuttu.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> `store.js` exportlarını yeniden dışa açacak şekilde sadeleştirildi.
+  - BAĞLANTILAR: /src/app.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Yok.
+  - TEST/SMOKE: `npm test` dolaylı doğrulama.
+
+- DOSYA: /src/store/slices/appSlice.js
+  - ROLÜ: app state (mode/language/role/flags/route/busy/error) reducer + action + async helper.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> mutate yerine immutable reducer ve namespace action yapısı kuruldu.
+  - BAĞLANTILAR: /src/store/store.js, /src/app.js, /src/services/{translationService,usageService}.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: featureFlags yönetim kaynağı.
+  - TEST/SMOKE: `node --check src/store/slices/appSlice.js`.
+
+- DOSYA: /src/store/slices/chatSlice.js
+  - ROLÜ: chat threads/messages/streaming/errors alanlarını yönetir.
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> chat reducer modüler olarak ayrıldı.
+  - BAĞLANTILAR: /src/store/store.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: thread model detayları.
+  - TEST/SMOKE: store smoke içinde dolaylı.
+
+- DOSYA: /src/store/slices/videoSlice.js
+  - ROLÜ: video jobs/progress/gallery/retry/errors alanlarını yönetir.
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> video reducer modüler olarak ayrıldı.
+  - BAĞLANTILAR: /src/store/store.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: progress şema ayrıntıları.
+  - TEST/SMOKE: store smoke içinde dolaylı.
+
+- DOSYA: /src/store/slices/billingSlice.js
+  - ROLÜ: usage/remaining/diff/paywall/alerts/errors alanlarını yönetir.
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> billing reducer modüler olarak ayrıldı.
+  - BAĞLANTILAR: /src/store/store.js, /src/store/slices/appSlice.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: diff hesap pipeline detayları.
+  - TEST/SMOKE: store smoke içinde dolaylı.
+
+- DOSYA: /src/store/slices/adminSlice.js
+  - ROLÜ: admin model catalog/usage monitoring/settings/errors snapshot alanlarını yönetir.
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> admin reducer modüler olarak ayrıldı.
+  - BAĞLANTILAR: /src/store/store.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: admin settings şema detayları.
+  - TEST/SMOKE: store smoke içinde dolaylı.
+
+- DOSYA: /src/app.js
+  - ROLÜ: UI bootstrap, store subscribe, router hook ve event koordinasyonu.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> mutator dispatch kaldırıldı, namespace action dispatch’e geçildi.
+  - BAĞLANTILAR: /src/store/index.js, /src/router.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: title/meta sorumluluk dağılımı.
+  - TEST/SMOKE: `node --check src/app.js`.
+
+- DOSYA: /src/services/translationService.js
+  - ROLÜ: dil seçimi ve çeviri cache işlemleri.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> Node ortamı için localStorage güvenli fallback eklendi.
+  - BAĞLANTILAR: /src/store/slices/appSlice.js, /src/app.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: dış çeviri sağlayıcısı.
+  - TEST/SMOKE: `npm test`.
+
+- DOSYA: /tests/smoke.mjs
+  - ROLÜ: store init/dispatch/subscribe ve router parser kritik smoke doğrulaması.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> createStore deterministik akış ve reducer referans koruma kontrolü eklendi.
+  - BAĞLANTILAR: /src/store/store.js, /src/router.js, /src/services/usageService.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: unit test framework seçimi.
+  - TEST/SMOKE: `npm test`.
+
+### C) GÖRSEL TIMELAPSE METNİ
+1) Neden: Store tek kaynak olmalıydı. Ne: `src/store/store.js` ile merkez store çekirdeği kuruldu. Dosyalar: `/src/store/store.js`.
+2) Neden: State şeması dar kalıyordu. Ne: app/chat/video/billing/admin alanları minimal ama genişleyebilir hale getirildi. Dosyalar: `/src/store/store.js`, `/src/store/slices/*`.
+3) Neden: Slice ayrımı net değildi. Ne: chat/video/billing/admin reducer dosyaları ayrıldı. Dosyalar: `/src/store/slices/chatSlice.js`, `/src/store/slices/videoSlice.js`, `/src/store/slices/billingSlice.js`, `/src/store/slices/adminSlice.js`.
+4) Neden: Action sözleşmesi sade olmalıydı. Ne: `app/setLanguage` benzeri namespace action yapısı benimsendi. Dosyalar: `/src/store/slices/appSlice.js`, `/src/store/store.js`.
+5) Neden: Persist gereksiz büyüyordu. Ne: sadece language/lastRoute/uiPrefs için version’lı anahtar tutuldu. Dosyalar: `/src/store/store.js`.
+6) Neden: App-store kontratı net değildi. Ne: app.js içinde mutator dispatch yerine action dispatch’e geçildi. Dosyalar: `/src/app.js`.
+7) Neden: Node testlerinde localStorage hatası vardı. Ne: translation service’e güvenli storage fallback eklendi. Dosyalar: `/src/services/translationService.js`.
+8) Neden: Store akışı test edilmeliydi. Ne: smoke teste createStore + subscribe + reducer referans kontrolü eklendi. Dosyalar: `/tests/smoke.mjs`.

@@ -4,8 +4,14 @@ import { DEFAULT_LANGUAGE, dictionaries, SUPPORTED_STATIC_LANGUAGES } from '../c
 const memoryCache = new Map();
 const CACHE_KEY = 'nisai.translation.cache.v1';
 
+function getStorage() {
+  if (typeof localStorage !== 'undefined') return localStorage;
+  return { getItem: () => null, setItem: () => {} };
+}
+
+
 function loadPersistedCache() {
-  const raw = localStorage.getItem(CACHE_KEY);
+  const raw = getStorage().getItem(CACHE_KEY);
   if (!raw) return;
   try {
     const parsed = JSON.parse(raw);
@@ -17,17 +23,17 @@ function loadPersistedCache() {
 
 function persistCache() {
   const obj = Object.fromEntries(memoryCache.entries());
-  localStorage.setItem(CACHE_KEY, JSON.stringify(obj));
+  getStorage().setItem(CACHE_KEY, JSON.stringify(obj));
 }
 
 loadPersistedCache();
 
 export function getInitialLanguage() {
-  return localStorage.getItem('nisai.lang') || DEFAULT_LANGUAGE;
+  return getStorage().getItem('nisai.lang') || DEFAULT_LANGUAGE;
 }
 
 export function setLanguage(lang) {
-  localStorage.setItem('nisai.lang', lang);
+  getStorage().setItem('nisai.lang', lang);
 }
 
 export async function translateText(key, lang) {
