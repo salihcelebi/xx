@@ -1,5 +1,5 @@
 # RepoSync_Fixed_PS5_Compatible.ps1
-# Kisa aciklama (~15 kelime): PS5 uyumlu, UI + konsol fallback, zip yedek, sync + GHONDER/GHCEK.
+# Kisa aciklama (~15 kelime): PS5 uyumlu, UI + konsol fallback, zip yedek, sync + GHONDER/GHCEK detayli.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -19,8 +19,14 @@ $Root = Split-Path -Parent $ScriptPath
 
 # ---------------- CONFIG ----------------
 $BaseUrl     = "https://github.com/salihcelebi"
-$DefaultRepo = "XX"   # <-- REVIZE: Default repo adi XX, UI/konsolda degistirilebilir.
-$BackupDir   = Join-Path $Root "backups"
+$DefaultRepo = "XX"   # Default repo adi XX, UI/konsolda degistirilebilir.
+
+# REVIZE: Backup klasoru repo disina alindi (Codex/GitHub'a gitmemesi icin)
+$LocalAppData = [Environment]::GetFolderPath("LocalApplicationData")
+if (-not $LocalAppData) { $LocalAppData = $env:LocalAppData }
+if (-not $LocalAppData) { $LocalAppData = $Root }
+
+$BackupDir = Join-Path $LocalAppData "RepoSync_backups"
 if (-not (Test-Path $BackupDir)) {
     New-Item -ItemType Directory -Path $BackupDir | Out-Null
 }
@@ -153,12 +159,46 @@ function Get-OverwriteCount([string]$Source, [string]$Dest) {
     return $over
 }
 
-function Robocopy-Mirror([string]$From, [string]$To) {
+# Ustune yazilan dosya isimlerini listele
+function Get-OverwriteList([string]$Source, [string]$Dest) {
+    $list = New-Object System.Collections.Generic.List[string]
+    $srcFiles = Get-ChildItem -Path $Source -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch '\\\.git($|\\)' }
+    foreach ($f in $srcFiles) {
+        $rel = $f.FullName.Substring($Source.Length).TrimStart('\','/')
+        $d   = Join-Path $Dest $rel
+        if (Test-Path $d) {
+            $h1 = Get-FileHashSafe $f.FullName
+            $h2 = Get-FileHashSafe $d
+            if ($h1 -and $h2 -and ($h1 -ne $h2)) {
+                [void]$list.Add($rel)
+            }
+        }
+    }
+    return $list
+}
+
+function Robocopy-Mirror([string]$From, [string]$To, [string[]]$ExtraXD) {
     $robo = Get-Command robocopy -ErrorAction SilentlyContinue
     if (-not $robo) { throw "robocopy bulunamadi." }
 
+    $xd = @(".git")
+
+    # REVIZE: Backuplar asla repoya kopyalanmasin (her ihtimale karsi)
+    $xd += @("backups", "RepoSync_backups")
+
+    # REVIZE: temp klasorleri de kopyalamayi engelle
+    $xd += @("_tmp_push", "_tmp_pull")
+
+    if ($ExtraXD) {
+        foreach ($x in $ExtraXD) {
+            if ($x -and ($xd -notcontains $x)) { $xd += $x }
+        }
+    }
+
     # /MIR: ayna, /R:0 /W:0 hizli, /NFL /NDL daha az gurultu, /NP yuzde yok
-    & $robo.Source $From $To /MIR /R:0 /W:0 /NFL /NDL /NP /XD ".git" 1>$null
+    $args = @($From, $To, "/MIR", "/R:0", "/W:0", "/NFL", "/NDL", "/NP", "/XD")
+    $args += $xd
+    & $robo.Source @args 1>$null
 }
 
 function GHONDER([string]$Repo) {
@@ -184,9 +224,11 @@ function GHONDER([string]$Repo) {
             $br = Get-DefaultBranch $gitExe
             & $gitExe checkout $br 1>$null
 
-            $overwrite = Get-OverwriteCount $src $tmp
+            $overwriteList = Get-OverwriteList $src $tmp
+            $overwrite = $overwriteList.Count
 
-            Robocopy-Mirror $src $tmp
+            # REVIZE: yedek/temp klasorleri asla kopyalanmaz
+            Robocopy-Mirror $src $tmp $null
 
             & $gitExe add -A 1>$null
             $status = (& $gitExe status --porcelain)
@@ -195,6 +237,23 @@ function GHONDER([string]$Repo) {
                 & $gitExe commit -m $msg 1>$null
                 & $gitExe push origin $br 1>$null
                 Log ("GHONDER OK: {0} klasor, {1} dosya repoya gonderildi; {2} dosyanin ustune yazildi." -f $counts.Dirs, $counts.Files, $overwrite)
+
+                if ($overwrite -gt 0) {
+                    Log "USTUNE YAZILAN DOSYALAR:"
+                    $maxShow = 200
+                    $shown = 0
+                    foreach ($p in $overwriteList) {
+                        $shown++
+                        if ($shown -le $maxShow) {
+                            Log (" - {0}" -f $p)
+                        } else {
+                            break
+                        }
+                    }
+                    if ($overwrite -gt $maxShow) {
+                        Log ("... (toplam {0} dosya, ilk {1} gosterildi)" -f $overwrite, $maxShow)
+                    }
+                }
             } else {
                 Log ("GHONDER OK: Degisiklik yok. {0} klasor, {1} dosya kontrol edildi." -f $counts.Dirs, $counts.Files)
             }
@@ -230,12 +289,31 @@ function GHCEK([string]$Repo) {
             & $gitExe checkout $br 1>$null
         } finally { Pop-Location }
 
-        $counts   = Get-Counts $tmp
-        $overwrite = Get-OverwriteCount $tmp $dest
+        $counts = Get-Counts $tmp
+        $overwriteList = Get-OverwriteList $tmp $dest
+        $overwrite = $overwriteList.Count
 
-        Robocopy-Mirror $tmp $dest
+        # REVIZE: yedek/temp klasorleri asla kopyalanmaz
+        Robocopy-Mirror $tmp $dest $null
 
         Log ("GHCEK OK: Repodan {0} klasor, {1} dosya cekildi; {2} dosyanin ustune yazildi." -f $counts.Dirs, $counts.Files, $overwrite)
+
+        if ($overwrite -gt 0) {
+            Log "USTUNE YAZILAN DOSYALAR:"
+            $maxShow = 200
+            $shown = 0
+            foreach ($p in $overwriteList) {
+                $shown++
+                if ($shown -le $maxShow) {
+                    Log (" - {0}" -f $p)
+                } else {
+                    break
+                }
+            }
+            if ($overwrite -gt $maxShow) {
+                Log ("... (toplam {0} dosya, ilk {1} gosterildi)" -f $overwrite, $maxShow)
+            }
+        }
     } finally {
         if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
     }
@@ -251,7 +329,7 @@ try {
     $form.Size = New-Object System.Drawing.Size(800, 520)
     $form.StartPosition = "CenterScreen"
 
-    # REVIZE: Form asla kapanmasin.
+    # Form asla kapanmasin.
     $form.ControlBox = $false
     $form.Add_FormClosing({
         $_.Cancel = $true
@@ -261,7 +339,7 @@ try {
     $txtRepo = New-Object System.Windows.Forms.TextBox
     $txtRepo.Location = New-Object System.Drawing.Point(20, 20)
     $txtRepo.Size = New-Object System.Drawing.Size(500, 25)
-    $txtRepo.Text = $DefaultRepo   # <-- REVIZE: default repo XX
+    $txtRepo.Text = $DefaultRepo
     $form.Controls.Add($txtRepo)
 
     $btnRun = New-Object System.Windows.Forms.Button
@@ -270,7 +348,6 @@ try {
     $btnRun.Size = New-Object System.Drawing.Size(120, 28)
     $form.Controls.Add($btnRun)
 
-    # REVIZE: 2 buton ekle (isimler bilerek bu sekilde)
     $btnGHONDER = New-Object System.Windows.Forms.Button
     $btnGHONDER.Text = "GHONDER"
     $btnGHONDER.Location = New-Object System.Drawing.Point(540, 50)
@@ -284,8 +361,8 @@ try {
     $form.Controls.Add($btnGHCEK)
 
     $txtLog = New-Object System.Windows.Forms.TextBox
-    $txtLog.Location = New-Object System.Drawing.Point(20, 90)   # <-- REVIZE: butonlar icin asagi alindi
-    $txtLog.Size = New-Object System.Drawing.Size(740, 360)      # <-- REVIZE: boy ayari
+    $txtLog.Location = New-Object System.Drawing.Point(20, 90)
+    $txtLog.Size = New-Object System.Drawing.Size(740, 360)
     $txtLog.Multiline = $true
     $txtLog.ScrollBars = "Vertical"
     $txtLog.ReadOnly = $true
