@@ -8,6 +8,9 @@
   <!-- Puter.js (AI + FS + Auth). Gerekirse sürümü/URL’yi Puter dokümanına göre güncelle. -->
   <script src="https://js.puter.com/v2/"></script>
 
+  <!-- senin yazdığın kod -->
+  <script defer src="/static/kame-ui.js"></script>
+
   <style>
     :root{
       --bg:#f6f7f9;
@@ -891,142 +894,145 @@ def merhaba_dünya():
     </aside>
   </div>
 
-  <!-- Tools Menu (Popover) -->
-  <div class="backdrop" id="toolsBackdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-label="Araçlar">
-      <div class="modal-head">
-        <div style="font-weight:800;">Araçlar aktifleştirildi.</div>
-        <button class="iconbtn" id="closeToolsBtn" aria-label="Kapat">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="card">
-          <h3>Kullanılabilir Araçlar:</h3>
-          <div class="field">
-            <label><input type="checkbox" data-tool="web" /> Web Araması</label>
-            <label><input type="checkbox" data-tool="files" /> Dosya/Knowledge Araması</label>
-            <label><input type="checkbox" data-tool="image" /> Görsel Üretimi</label>
-            <label><input type="checkbox" data-tool="video" /> Video Üretimi</label>
-            <label><input type="checkbox" data-tool="tts" /> Ses Üretimi</label>
-            <label><input type="checkbox" data-tool="dubbing" /> Dublaj</label>
-            <label><input type="checkbox" data-tool="coding" /> Kodlama</label>
-          </div>
+  <!-- Modals mount point -->
+  <div id="modals">
+    <!-- Tools Menu (Popover) -->
+    <div class="backdrop" id="toolsBackdrop" aria-hidden="true">
+      <div class="modal" role="dialog" aria-label="Araçlar">
+        <div class="modal-head">
+          <div style="font-weight:800;">Araçlar aktifleştirildi.</div>
+          <button class="iconbtn" id="closeToolsBtn" aria-label="Kapat">✕</button>
         </div>
-
-        <div class="card">
-          <h3>Durum</h3>
-          <div style="color:var(--muted); font-size:13px; line-height:1.45;">
-            İhtiyacınız olan fonksiyonları seçebilirsiniz.<br />
-            Seçimler sohbet bazında kaydedilir.
-          </div>
-
-          <div class="field">
-            <label>Hızlı Model Seçim (5’li)</label>
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">
-              <button class="pill" data-featured="mistralai/mistral-small-3.2-24b-instruct">Mistral Small</button>
-              <button class="pill" data-featured="google/gemma-2-27b-it">Gemma 2</button>
-              <button class="pill" data-featured="openai/gpt-5.1">GPT-5.1</button>
-              <button class="pill" data-featured="x-ai/grok-4">Grok-4</button>
-              <button class="pill" data-featured="openai/gpt-5.2-pro">GPT-5.2 Pro</button>
+        <div class="modal-body">
+          <div class="card">
+            <h3>Kullanılabilir Araçlar:</h3>
+            <div class="field">
+              <label><input type="checkbox" data-tool="web" /> Web Araması</label>
+              <label><input type="checkbox" data-tool="files" /> Dosya/Knowledge Araması</label>
+              <label><input type="checkbox" data-tool="image" /> Görsel Üretimi</label>
+              <label><input type="checkbox" data-tool="video" /> Video Üretimi</label>
+              <label><input type="checkbox" data-tool="tts" /> Ses Üretimi</label>
+              <label><input type="checkbox" data-tool="dubbing" /> Dublaj</label>
+              <label><input type="checkbox" data-tool="coding" /> Kodlama</label>
             </div>
           </div>
 
-          <div class="field">
-            <label>Hafıza</label>
-            <button class="toggle" id="memoryToggle" aria-pressed="false" aria-label="Hafıza Açık/Kapalı" style="width:fit-content;">
-              <span class="switch" aria-hidden="true"></span>
-              <span id="memoryToggleText">Hafıza Kapalı</span>
-            </button>
+          <div class="card">
+            <h3>Durum</h3>
+            <div style="color:var(--muted); font-size:13px; line-height:1.45;">
+              İhtiyacınız olan fonksiyonları seçebilirsiniz.<br />
+              Seçimler sohbet bazında kaydedilir.
+            </div>
+
+            <div class="field">
+              <label>Hızlı Model Seçim (5’li)</label>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button class="pill" data-featured="mistralai/mistral-small-3.2-24b-instruct">Mistral Small</button>
+                <button class="pill" data-featured="google/gemma-2-27b-it">Gemma 2</button>
+                <button class="pill" data-featured="openai/gpt-5.1">GPT-5.1</button>
+                <button class="pill" data-featured="x-ai/grok-4">Grok-4</button>
+                <button class="pill" data-featured="openai/gpt-5.2-pro">GPT-5.2 Pro</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Hafıza</label>
+              <button class="toggle" id="memoryToggle" aria-pressed="false" aria-label="Hafıza Açık/Kapalı" style="width:fit-content;">
+                <span class="switch" aria-hidden="true"></span>
+                <span id="memoryToggleText">Hafıza Kapalı</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="modal-foot">
-        <button class="ghost" id="toolsDoneBtn">Tamam</button>
+        <div class="modal-foot">
+          <button class="ghost" id="toolsDoneBtn">Tamam</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Ayarlar / Ödeme / Kullanım Modal -->
-  <div class="backdrop" id="settingsBackdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-label="Ayarlar">
-      <div class="modal-head">
-        <div style="font-weight:800;" id="settingsTitle">Ayarlar</div>
-        <button class="iconbtn" id="closeSettingsBtn" aria-label="Kapat">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="card">
-          <h3>Görünüm</h3>
-          <div class="field">
-            <label>Tema</label>
-            <select id="themeSelect">
-              <option value="light">Açık</option>
-              <option value="dark">Koyu</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Vurgu rengi</label>
-            <select id="accentSelect">
-              <option value="#2563eb">Mavi</option>
-              <option value="#16a34a">Yeşil</option>
-              <option value="#7c3aed">Mor</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Yazı boyutu</label>
-            <select id="fontSelect">
-              <option value="small">Küçük</option>
-              <option value="medium" selected>Orta</option>
-              <option value="large">Büyük</option>
-            </select>
-          </div>
+    <!-- Ayarlar / Ödeme / Kullanım Modal -->
+    <div class="backdrop" id="settingsBackdrop" aria-hidden="true">
+      <div class="modal" role="dialog" aria-label="Ayarlar">
+        <div class="modal-head">
+          <div style="font-weight:800;" id="settingsTitle">Ayarlar</div>
+          <button class="iconbtn" id="closeSettingsBtn" aria-label="Kapat">✕</button>
         </div>
 
-        <div class="card">
-          <h3>Veri Denetimleri</h3>
-          <div class="field">
-            <button class="toggle" id="saveHistoryToggle" aria-pressed="true" aria-label="Sohbet geçmişini kaydet">
-              <span class="switch" aria-hidden="true"></span>
-              <span>Sohbet geçmişini kaydet</span>
-            </button>
-          </div>
-          <div class="field">
-            <button class="toggle" id="telemetryToggle" aria-pressed="false" aria-label="Telemetri / hata raporu">
-              <span class="switch" aria-hidden="true"></span>
-              <span>Telemetri / hata raporu</span>
-            </button>
-          </div>
-          <div class="field">
-            <button class="toggle" id="includeFilesToggle" aria-pressed="false" aria-label="Dosyaları model bağlamına dahil et">
-              <span class="switch" aria-hidden="true"></span>
-              <span>Dosyaları model bağlamına dahil et</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:1 / -1;">
-          <h3>Ödeme Ayarları</h3>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div class="card" style="box-shadow:none;">
-              <h3 style="margin:0 0 6px;">Fiyat gösterimi</h3>
-              <div style="color:var(--muted); font-size:13px; line-height:1.45;">
-                Tüm fiyatlar TL + USD birlikte gösterilir.<br />
-                Örnek: <b>₺12,90 (≈ $0.40)</b>
-              </div>
+        <div class="modal-body">
+          <div class="card">
+            <h3>Görünüm</h3>
+            <div class="field">
+              <label>Tema</label>
+              <select id="themeSelect">
+                <option value="light">Açık</option>
+                <option value="dark">Koyu</option>
+              </select>
             </div>
-            <div class="card" style="box-shadow:none;">
-              <h3 style="margin:0 0 6px;">Ödeme kanalları</h3>
-              <div style="color:var(--muted); font-size:13px; line-height:1.55;">
-                <b>Türkiye:</b> iyzico, PayTR, Param, Shopier<br/>
-                <b>Global:</b> PayPal, Stripe
-              </div>
+            <div class="field">
+              <label>Vurgu rengi</label>
+              <select id="accentSelect">
+                <option value="#2563eb">Mavi</option>
+                <option value="#16a34a">Yeşil</option>
+                <option value="#7c3aed">Mor</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Yazı boyutu</label>
+              <select id="fontSelect">
+                <option value="small">Küçük</option>
+                <option value="medium" selected>Orta</option>
+                <option value="large">Büyük</option>
+              </select>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="modal-foot">
-        <button class="ghost" id="settingsSaveBtn">Kaydet</button>
+          <div class="card">
+            <h3>Veri Denetimleri</h3>
+            <div class="field">
+              <button class="toggle" id="saveHistoryToggle" aria-pressed="true" aria-label="Sohbet geçmişini kaydet">
+                <span class="switch" aria-hidden="true"></span>
+                <span>Sohbet geçmişini kaydet</span>
+              </button>
+            </div>
+            <div class="field">
+              <button class="toggle" id="telemetryToggle" aria-pressed="false" aria-label="Telemetri / hata raporu">
+                <span class="switch" aria-hidden="true"></span>
+                <span>Telemetri / hata raporu</span>
+              </button>
+            </div>
+            <div class="field">
+              <button class="toggle" id="includeFilesToggle" aria-pressed="false" aria-label="Dosyaları model bağlamına dahil et">
+                <span class="switch" aria-hidden="true"></span>
+                <span>Dosyaları model bağlamına dahil et</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card" style="grid-column:1 / -1;">
+            <h3>Ödeme Ayarları</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="card" style="box-shadow:none;">
+                <h3 style="margin:0 0 6px;">Fiyat gösterimi</h3>
+                <div style="color:var(--muted); font-size:13px; line-height:1.45;">
+                  Tüm fiyatlar TL + USD birlikte gösterilir.<br />
+                  Örnek: <b>₺12,90 (≈ $0.40)</b>
+                </div>
+              </div>
+              <div class="card" style="box-shadow:none;">
+                <h3 style="margin:0 0 6px;">Ödeme kanalları</h3>
+                <div style="color:var(--muted); font-size:13px; line-height:1.55;">
+                  <b>Türkiye:</b> iyzico, PayTR, Param, Shopier<br/>
+                  <b>Global:</b> PayPal, Stripe
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-foot">
+          <button class="ghost" id="settingsSaveBtn">Kaydet</button>
+        </div>
       </div>
     </div>
   </div>

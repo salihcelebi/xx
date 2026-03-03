@@ -1,0 +1,651 @@
+
+# ElevenLabs Benzeri Tek Sayfadan Yönetilen Yapay Zeka Platformu Tasarımı ve Puter.js ile Maliyet–Kredi–Kalite Optimizasyonu
+
+## Amaç, kapsam ve kritik kısıtlar
+
+ElevenLabs Benzeri Tek Sayfadan Yönetilen Yapay Zeka Platformu Tasarımı ve Puter.js ile Maliyet–Kredi–Kalite Optimizasyonu
+Amaç, kapsam ve kritik kısıtlar
+Bu proje; tek bir “uygulama kabuğu” (single-page shell) içinde çok modüllü bir üretim stüdyosu kurmayı hedefliyor: “TXT→Chat” ve “TXT→Video” aynı ürün altında; ileride “TXT→Voice (TTS)”, “TXT→Image”, “IMG→TXT (OCR)”, “Speech→TXT (STT)”, “Speech→Speech (voice changer)” gibi Puter.js AI modülleri de eklenerek ölçeklenecek. Puter.js’nin “User-Pays” (kullanıcı öder) modeli sayesinde geliştirici olarak altyapı/AI maliyetini kullanıcıların Puter hesabına taşıyıp, ürün maliyetini dramatik biçimde düşürmek mümkün. 
+
+Bununla birlikte, “ElevenLabs görünümünü birebir kopyalama” hedefi marka/arayüz benzerliği (trade dress), telif, haksız rekabet ve kullanıcıyı yanıltma riskleri doğurabilir. Puter App Developer Agreement; geliştiricinin gönderdiği uygulamanın üçüncü taraf fikri mülkiyetini ihlal etmeyeceğini taahhüt etmesini açıkça şart koşar. 
+ Ayrıca, gerçek dünyada “resmî uygulamaya benzeyen sahte uygulamalar” kullanıcıları yanıltıp platformlarda güvenlik sorunlarına yol açabiliyor; bu da “birebir klon” stratejisinin pratik riskini artırır. 
+ Bu rapor bu yüzden birebir kopya üretmeyi değil; ElevenLabs benzeri “tek panel / üretim stüdyosu” mantığını, bilgi mimarisini ve etkileşim desenlerini yasal ve sürdürülebilir şekilde yeniden tasarlamayı hedefler.
+
+ElevenLabs tarafında, ürünün kapsadığı yetenekler güncel olarak; sentez/TTS, dubbing, müzik, ses tasarımı (SFX), voice yönetimi ve analitik gibi başlıklara yayılmış durumda (ElevenCreative yetenek özeti). 
+ Bu, senin üründe “modül modül genişleme” yaklaşımını doğrular: çekirdekte Chat+Video; yan modüllerde Voice/Image/Transcribe.
+
+## ElevenLabs benzeri tek panel stüdyo için UX haritası ve tasarım rehberi
+
+### Bilgi mimarisi ve yan menü kurgusu
+
+ElevenLabs benzeri tek panel stüdyo için UX haritası ve tasarım rehberi
+Bilgi mimarisi ve yan menü kurgusu
+ElevenLabs/benzeri ürünlerde kullanıcı; tek bir sol sidebar üzerinden “üretim yüzeylerine” (TTS, Dubbing, Voice Library, vb.) ve “yönetim yüzeylerine” (API keys, usage, billing) gider. ElevenLabs’te örneğin “Voice Library” ayrı bir “katalog keşif” ekranıdır. 
+ Ayrıca API kullanımına başlamak için kullanıcıyı dashboard’dan API key üretmeye yönlendiren akışlar bulunur (ElevenLabs dokümantasyon quickstart ve dubbing cookbook’ta dashboard’dan API key üretimi vurgulanır). 
+
+Senin ürün için önerilen sidebar topolojisi (iki ana mod: Chat ve Video; ek modüller genişleyebilir):
+
+Create
+Chat (TXT→Chat)
+Video (TXT→Video)
+Voice (TXT→Voice) (sonra)
+Image (TXT→Image / IMG→TXT) (sonra)
+Audio Tools (STT / Voice Changer) (sonra; Puter speech2txt & speech2speech ile uyumlu) 
+Library
+History (tüm modüller ortak geçmiş)
+Assets (prompt şablonları, yüklenen referans görseller, indirilen çıktıların “link” listesi)
+Manage
+Models (model kataloğu + karşılaştırma)
+Usage & Credits (kredi/harcama)
+Billing (Stripe/PayPal)
+Settings
+Admin (yalnız admin rolü; ayrı route)
+Bu yapı, ElevenLabs’in “platform yetenekleri + yönetim” ayrımını taklit ederken birebir isim/ikonografi kopyalamadan aynı zihinsel modeli taşır. 
+
+### Uygulama kabuğu şeması (Header + Sidebar + çalışma alanı)
+
+Uygulama kabuğu şeması (Header + Sidebar + çalışma alanı)
+Aşağıdaki şema, tek sayfa stüdyo kabuğunun minimum iskeletidir (UI bileşen hiyerarşisi):
+
+php-template
+Kopyala
+<AppShell>
+  <TopBar>
+    <Brand/>
+    <GlobalSearch/>         (⌘/Ctrl+K)
+    <ModeSwitch/>           (Chat | Video)
+    <ModelQuickPicker/>     (seçili modun varsayılan modeli)
+    <CreditsIndicator/>     (kalan allowance + “Top up / Upgrade”)
+    <UserMenu/>             (Profile, Settings, Admin)
+  </TopBar>
+
+  <Sidebar>
+    <NavSection title="Create">...</NavSection>
+    <NavSection title="Library">...</NavSection>
+    <NavSection title="Manage">...</NavSection>
+  </Sidebar>
+
+  <Main>
+    <RouteOutlet/>
+    <Toasts/>
+    <GlobalModals/>         (Sign-in, Paywall, Error details)
+  </Main>
+</AppShell>
+Kritik nokta: CreditsIndicator tek bir metrik göstermemeli; Puter kullanıcılarının “aylık allowance” ve kalanını uygulama bazında alabiliyorsun; ölçü birimi Puter ekosisteminde microcents olarak tanımlanıyor (örn. $0.50 = 50,000,000 microcents). 
+
+### Görsel sistem (renk, tipografi, spacing) için “klon değil, denk ritim” yaklaşımı
+
+Görsel sistem (renk, tipografi, spacing) için “klon değil, denk ritim” yaklaşımı
+Birebir renk kodu/typography kopyalamak yerine aynı “stüdyo” hissini veren ama özgün bir tasarım sistemi kurgula:
+
+Renk tokenları: bg/surface/elevated, text/primary/secondary, border, accent, danger, warning, success.
+Spacing ölçeği: 4-8-12-16-24-32-48.
+Tipografi: 12/14/16 body; 20/24/32 heading; monospace “token & cost” alanlarında.
+ElevenLabs UI’nin açık kaynak “ElevenLabs UI” bileşen kitaplığı (MIT) özellikle agent/audio bileşenlerinde (orb, waveform, conversation) hız kazandırabilir; bu, “ElevenLabs görünümü” yerine “üretim stüdyosu hissi”ni hızla yakalamaya yarar. 
+
+### Mikro kopya, boş durumlar, hatalar, loading
+
+Mikro kopya, boş durumlar, hatalar, loading
+Birebir kopya mikrocopy yerine; aynı fonksiyonel mesajları kısa, ölçümlü, eylem odaklı yaz:
+
+Boş durum (History): “Henüz çıktı yok. Chat veya Video’da ilk üretimini başlat.”
+Boş durum (Assets): “Referans görsel ekle: Video’yu daha tutarlı yapar.” (TXT→Video’da input_reference desteklenir.) 
+Kredi uyarısı: “Bu üretim tahmini X maliyet. Kalan allowance: Y.” (allowance/remaining Puter monthly usage’dan). 
+Hata (network/timeout): “İstek tamamlanamadı. Kuyruk yoğun olabilir; tekrar dene veya daha düşük kalite seç.” (Sora render süresi dakikaları bulabilir; UI responsive kalmalı.) 
+Klavye odağı: ⌘/Ctrl+K global arama; G (Generate), Esc modal kapatma; “Model seçici” için ok tuşları + Enter; “Generate” butonuna Enter/Space. (Bu bölüm tasarım standardı olarak dokümante edilmeli; kopya değil, ürün kalitesi için.)
+
+## Sora tarzı TXT→Video akışını doğru konumlandırma
+
+### Sora’nın (uygulama) kullanıcı akışı: ayarlar, varyasyon, kütüphane
+
+Sora tarzı TXT→Video akışını doğru konumlandırma
+Sora’nın (uygulama) kullanıcı akışı: ayarlar, varyasyon, kütüphane
+OpenAI’nin Sora yardım dokümanı, üretimde kullanıcıya aspect ratio, resolution, duration ve varyasyon sayısı gibi ayarları değiştirme imkânı verdiğini; üretim sonrasında da kütüphanede varyasyonları hover ile karşılaştırıp tekil videoya girerek “edit & build upon” (üzerine inşa) yapabildiğini söyler. 
+ Bu, UI’da “tek sefer üret → galeride karşılaştır → seç → tekrar türet” döngüsünü zorunlu kılar.
+
+### Puter.js ile Sora benzeri ayar eşlemesi
+
+Puter.js ile Sora benzeri ayar eşlemesi
+Puter puter.ai.txt2vid() dokümantasyonu, OpenAI sağlayıcısı için doğrudan model, seconds, size/resolution ve opsiyonel input_reference (image reference) alanlarını destekler. 
+ Ayrıca “testMode” ile UI’ı krediler harcamadan deneme imkânı vardır. 
+
+Sora 2 tarafında OpenAI’nin model sayfası; sora-2’nin 720p (720×1280 / 1280×720) için $0.10/s olduğunu belirtir. 
+ Sora 2 Pro model sayfası ise daha pahalı bir fiyat bandı (ör. $0.30–$0.50/s) ve daha yüksek çıktılarla konumlanır; Puter tarafında size seçenekleri 1024×1792 ve 1792×1024 gibi yüksek çözünürlükleri destekleyecek şekilde dokümante edilmiştir. 
+
+### Önerilen TXT→Video ekran düzeni: “Prompt sol, ayarlar sağ, çıktı aşağı”
+
+Önerilen TXT→Video ekran düzeni: “Prompt sol, ayarlar sağ, çıktı aşağı”
+Sora benzeri bir UI’da en iyi çalışan yerleşim:
+
+Sol ana panel (Prompt Editor)
+
+Prompt textarea (çok satır)
+Prompt şablon seçici (dropdown)
+“Negatif prompt / avoid” (provider destekliyorsa; TogetherAI opsiyonlarında var) 
+“Reference image” uploader / picker (input_reference) 
+Sağ panel (Settings Drawer / Inspector)
+
+Model: sora-2 (Default) / sora-2-pro (Pro) 
+Süre: 4 / 8 / 12 sn (OpenAI opsiyonları) 
+Çözünürlük: 720×1280, 1280×720; Pro’da 1024×1792, 1792×1024 (UI’da koşullu) 
+“Varyasyon sayısı” (UI özelliği): Puter/OpenAI çağrısında doğrudan varyasyon parametresi görünmüyorsa, UI bunu batch job olarak uygulama katmanında çoğaltabilir (aynı prompt ile N istek). Burada kullanıcıya “N adet üretim = maliyet N×” etiketi net gösterilmeli. (Sora uygulaması varyasyon kavramını kütüphane içinde karşılaştırma olarak sunuyor.) 
+Alt bölüm (Queue + Output Gallery)
+
+“Kuyruk” listesi (job id, started, ETA, cancel)
+“Çıktı galerisi”: her kartta
+thumbnail
+model, res, süre
+tahmini maliyet etiketi
+Download / Share (Puter UI API’da socialShare() gibi paylaşım yardımcıları da var; Puter environment’a göre koşullu) 
+
+### Doğru “Pro” konumlandırma: pahalı kaliteyi kontrollü açma
+
+Doğru “Pro” konumlandırma: pahalı kaliteyi kontrollü açma
+Kullanıcıyı önce en az harcayan seçeneklere yönlendirmek için:
+
+Varsayılan: sora-2, 4s, 720p. (En ucuz başlangıç; $0.10/s) 
+“Pro” açılımı: sora-2-pro ve yüksek çözünürlükler; UI’da kilit ikon + “Pro plan gerekli” (veya “Advanced toggles”) akışı. 
+Her ayar değişiminde sağ panelde “Tahmini maliyet: $X” hesaplanır (süre×fiyat/s). Fiyat kaynağı OpenAI model fiyatı; ayrıca Puter monthly usage microcents ile fiili harcama doğrulaması yapılabilir. 
+
+## Puter.js ile model kataloğu, maliyet, kredi ve kaliteyi metrikle yönetme
+
+### User-Pays modeli: maliyet optimizasyonunun temeli
+
+Puter.js ile model kataloğu, maliyet, kredi ve kaliteyi metrikle yönetme
+User-Pays modeli: maliyet optimizasyonunun temeli
+Puter dokümantasyonu ve tanıtım metinleri; Puter.js ile geliştiricinin “backend/API key/billing” yükünü taşımadan, kullanıcının kendi Puter hesabı üzerinden kaynak tükettiğini vurgular. 
+ Bu, senin ürününde “maliyet düşürme” hedefinin omurgasıdır: senin operasyonel giderin (AI inference) yerine, kullanıcı allowance/overage ile yönetilir.
+
+### Kredi/harcama ölçümü: MonthlyUsage ve microcents
+
+Kredi/harcama ölçümü: MonthlyUsage ve microcents
+puter.auth.getMonthlyUsage() çağrısı uygulama kapsamlı aylık kullanım/allowance bilgisini verir. 
+ MonthlyUsage objesi; allowance (aylık limit), remaining (kalan) ve uygulama toplamları gibi alanlar içerir ve ölçüm birimi microcents olarak tanımlanır. 
+
+UI gereksinimi olarak “CreditsIndicator” şu üç katmanı göstermeli:
+
+Kalan allowance (remaining) → “bugün kaç üretim kaldı” hissi
+Bu uygulamanın tüketimi (appTotals) → kullanıcı güveni
+Son işlem maliyeti (diff) → eğitim/şeffaflık
+
+### Chat modelleri: dinamik listeleme + fiyat sinyali
+
+Chat modelleri: dinamik listeleme + fiyat sinyali
+Puter puter.ai.listModels() dokümantasyonunda; model listesinin id/provider yanında bağlama penceresi ve cost (usd-cents, tokens, input/output maliyeti) gibi alanları içerebileceği belirtilir. 
+ Örnek model girdisi; 1M token başına input/output cent maliyetini açıkça gösterir. 
+
+Bu sayede “TXT→Chat model seçici” şu şekilde tasarlanabilir:
+
+Kategoriler (UI label): “Ucuza En Yakın”, “Hızlı”, “Uzun Kontext”, “Kod Odaklı”, “Premium”.
+Varsayılan sıralama: cost.input + cost.output en düşük → en üste. (Kullanıcıya “En az token harcayanlar” filtresi sunulur.)
+Her model kartı:
+Bağlam (context), max çıktı (max_tokens)
+Streaming desteği (options.stream) 
+“Tahmini maliyet” etiketi: girdiyi token tahmini ile çarp (bu rapor kod üretmez; metrik tanımı verilir).
+
+### Video modelleri: Puter txt2vid + çoklu sağlayıcı
+
+Video modelleri: Puter txt2vid + çoklu sağlayıcı
+Puter puter.ai.txt2vid() hem OpenAI hem Together sağlayıcısını destekler; Together tarafında seed, fps, guidance_scale, negative_prompt ve reference_images gibi “Sora benzeri gelişmiş kontrol” parametreleri dokümante edilmiştir. 
+ Bu, ürün stratejisi için çok değerlidir:
+
+En ucuz/kolay: OpenAI Sora 2 (az sayıda, belirli seçenek). 
+Daha ileri kontrol: Together tabanlı T2V modelleri (seed, fps, negative prompt vb.). 
+UI’da bu ikisini aynı ayar panelinde değil; “Basic” ve “Advanced (Pro)” sekmeleriyle ayırmak kullanıcıyı yormaz.
+
+### Ücretsiz kredi pazarlaması: “miktar” değil, “mekanizma” üzerinden doğru vaat
+
+Ücretsiz kredi pazarlaması: “miktar” değil, “mekanizma” üzerinden doğru vaat
+Puter tarafında her kullanıcı oturum açtığında “pre-allocated resources (storage, database, AI credits, vb.)” aldığı ve aşınca Puter’a ödeme yaptığı anlatılır; ancak bu free tier miktarı herkes için sabit bir sayı olarak dokümante edilmeyebilir. 
+ Bu yüzden pazarlama dilinde:
+
+Yanlış vaat: “Herkese X kredi bedava.” (doğrulanamaz)
+Doğru vaat: “Puter hesabınla ücretsiz allowance ile başla; harcamanı panelden canlı gör. Aşınca Puter üzerinden artırabilirsin.” (UI bunu gerçek zamanlı gösterebilir.) 
+
+## Tek index.html mi, modüler dosya yapısı mı
+
+### Puter App’lerde “indexURL” gerçekliği
+
+Tek index.html mi, modüler dosya yapısı mı
+Puter App’lerde “indexURL” gerçekliği
+Puter Apps API’de puter.apps.create(name, indexURL) parametresi “uygulamanın index sayfasının URL’si” olarak tanımlanır ve uygulama başlangıcında gösterilecek sayfadır. 
+ Bu, pratikte şu anlama gelir:
+
+Evet, bir “entry” sayfan var (index.html veya route).
+Hayır, tüm uygulama tek HTML dosyası olmak zorunda değil: entry sayfa; ES module import’larıyla app.js, store.js, routes/*, components/* gibi modülleri yükleyebilir.
+Puter “Framework Integrations” sayfası, Puter.js’in framework-agnostic olduğunu ve NPM ile farklı framework’lerde kullanılabildiğini söyler. 
+ Bu da modüler yapıyı teşvik eder.
+
+### Önerilen dosya ağacı (index kabuk, modüller ayrı)
+
+Önerilen dosya ağacı (index kabuk, modüller ayrı)
+Aşağıdaki yapı; “tek sayfa” hedefiyle çelişmeden, kod bakımını kolaylaştırır:
+
+bash
+Kopyala
+/index.html               (yalnız shell + root containers + script imports)
+ /src/
+   app.js                 (bootstrap, router init)
+   router.js              (route registry)
+   store/
+     store.js             (global state)
+     slices/              (chatSlice, videoSlice, billingSlice, adminSlice)
+   services/
+     puterAuth.js
+     puterUsage.js        (getMonthlyUsage, cost diff)
+     modelCatalog.js      (listModels + caching)
+     generation/
+       chatService.js
+       videoService.js    (txt2vid wrapper; job queue)
+       ttsService.js      (txt2speech wrapper)
+       imageService.js    (txt2img/img2txt)
+   ui/
+     shell/TopBar.js
+     shell/Sidebar.js
+     components/...
+   pages/
+     ChatPage.js
+     VideoPage.js
+     HistoryPage.js
+     BillingPage.js
+     AdminPage.js
+Bu yapı; “index.html tek olsun mu?” sorusunu şöyle çözer: index.html kabuk kalır, asıl iş JS modüllerinde sürer.
+
+### Performans: cache, versioning, lazy load
+
+Performans: cache, versioning, lazy load
+Model kataloğu: puter.ai.listModels() maliyetli olabilir; sonuçları KV store’da (user bazlı) kısa TTL ile cache’lemek mantıklı. (KV store Puter’de mevcut.) 
+Video sayfası: ağır bileşenleri lazy-load; çünkü Sora render beklerken UI “responsive” olmalı. 
+
+## Monetizasyon: Puter teşvikleri + Stripe/PayPal ile sürdürülebilir gelir, paketler ve marj
+
+### Puter Incentive Program: “kullanım üzerinden gelir paylaşımı”
+
+Monetizasyon: Puter teşvikleri + Stripe/PayPal ile sürdürülebilir gelir, paketler ve marj
+Puter Incentive Program: “kullanım üzerinden gelir paylaşımı”
+Puter “Earn with Puter” sayfası; kullanıcıların Puter servisleriyle etkileşiminde (storage/AI vb.) harcamanın bir kısmının geliştiriciyle paylaşıldığını ve aylık PayPal ile ödeme yapıldığını açıklar. 
+ Bu, senin için “arka planda çalışan” ek gelir hattıdır ve “maliyet optimizasyonu” stratejisiyle uyumludur.
+
+Dev Center ekranında da Incentive Program ve PayPal payout formu akışı görünür. 
+
+### Kendi ürün paketlerin: Stripe/PayPal ile 4 katman
+
+Kendi ürün paketlerin: Stripe/PayPal ile 4 katman
+Senin hedefin: Puter kullanıcı allowance’ı bittiğinde (veya premium özellik ihtiyacı doğduğunda) 4 paketle ücretlendirmek. Burada iki ayrı gerçek var:
+
+Puter kullanım maliyeti: kullanıcıya ait (User-Pays). 
+Senin ürün gelir modelin: premium özellik (yüksek kalite preset’leri, daha iyi queue politikası, ekip yönetimi, depolama, prompt kütüphanesi, watermark kaldırma gibi ürün katmanı) üzerinden olmalı.
+Önerilen paket çerçevesi (örnek; “kredi” burada senin ürün içi hakların ve/veya “Pro model kilidi” anlamına gelir):
+
+FREE: Chat+Video temel; düşük seviye preset; sınırlı history; “Advanced models” kilitli.
+BASIC: daha uzun geçmiş + daha fazla preset + export organizasyonu.
+PRO: sora-2-pro ve yüksek çözünürlük preset’leri + batch/varyasyon + öncelikli kuyruk. 
+ENTERPRISE: takım, RBAC, SLA, audit log, özel storage politikası.
+
+### Stripe akışı: abonelik yaşam döngüsü ve webhooks
+
+Stripe akışı: abonelik yaşam döngüsü ve webhooks
+Stripe dokümantasyonu; abonelik olaylarını webhook ile yönetmeyi, ödeme başarısızlığı ve durum değişimlerini yakalamayı önerir. 
+ İptal, plan değişikliği, prorasyon ve portal davranışları için resmi rehberler mevcut. 
+
+UI/Flow gereksinimleri:
+
+Plan seçimi → Checkout → invoice.paid geldiğinde plan aktif (özellikleri aç) 
+invoice.payment_failed → kullanıcıya “Ödeme başarısız, kartını güncelle” + grace period 
+Downgrade/upgrade → proration politikası (immediate vs end-of-period vs none) açıkça belirlenir. 
+“Customer portal” bazı kısıtlar taşır; ör. portal içinde müşteri yeni abonelik oluşturamaz, sadece güncelleyebilir/iptal edebilir. 
+
+### PayPal akışı: plan, abonelik ve webhook olayları
+
+PayPal akışı: plan, abonelik ve webhook olayları
+PayPal Subscriptions API; planlarda fiyat/billing cycle tanımlayıp abonelik yaratmayı destekler. 
+ PayPal Subscriptions webhooks listesinde BILLING.SUBSCRIPTION.PAYMENT.FAILED gibi “abonelik ödeme başarısız” olayları yer alır. 
+ PayPal webhook teslimatında retry/failed davranışları ve webhook yönetimi için resmi rehber bulunur. 
+
+Uygulama içinde başarısız ödeme senaryoları için “dunning” metinleri standardize edilmeli (örn. 1. deneme, 3. deneme, askıya alma).
+
+### Marj modeli: senaryolara bölünmüş net kâr mantığı
+
+Marj modeli: senaryolara bölünmüş net kâr mantığı
+Puter User-Pays sayesinde “AI inference marjı” senin için birincil marj kalemi değildir; marjın çoğu ürün katmanı ücreti – ödeme sağlayıcı komisyonları – operasyon (destek/infra, webhook worker vb.) üzerinden hesaplanır. (Puter Incentive Program geliri, ayrıca ek katkı sağlar.) 
+ Puter App Developer Agreement ayrıca geliştiricinin uygulama fiyatını belirleyebileceğini belirtir. 
+
+Bu nedenle admin panelinde mutlaka şu KPI’lar olmalı:
+
+ARPU / MRR / churn
+“Ücretsiz allowance sonrası dönüşüm”
+Modül bazında kullanım: Chat vs Video vs Voice vb. (MonthlyUsage usage alanı API bazında cost/count verir) 
+
+## Admin dashboard tasarımı ve GPT’ye verilecek talimat şablonu
+
+### Admin dashboard: modül, yetki, audit ve canlı ayar
+
+Admin dashboard tasarımı ve GPT’ye verilecek talimat şablonu
+Admin dashboard: modül, yetki, audit ve canlı ayar
+Admin panel; ürünün en kritik “kontrol kulesi” olmalı:
+
+Kullanıcı yönetimi: plan, durum, risk/abuse flag
+Model kataloğu yönetimi: varsayılan model, “Recommended/Least cost” rozetleri, Pro kilitleri (chat modellerinde listModels maliyet datasına göre otomatik) 
+Video preset yönetimi: Sora 2 (0.10/s) default preset’ler; Sora 2 Pro advanced preset’ler. 
+Ödeme izleme: Stripe/PayPal webhook logları, retry, payment_failed, chargeback
+Audit log: admin değişiklikleri (model default değişti, fiyat değişti, vb.)
+A/B test: “ucuz model first” vs “kalite first” dönüşüm testi
+Teknik olarak Stripe ve PayPal webhook’ları için bir “server” gerekir; Puter’ın Serverless Workers altyapısı bu iş için uygun bir seçenek olabilir (worker oluşturma dokümanı). 
+
+## Kabul kriterleri: “ElevenLabs benzeri” hedefi için ölçülebilir metrikler
+
+Kabul kriterleri: “ElevenLabs benzeri” hedefi için ölçülebilir metrikler
+“Birebir klon” yerine ölçülebilir UX hedefleri:
+
+Tek panel hissi: Chat↔Video geçişinde context korunur (model seçimi, kullanıcı profili, credits indicator, history).
+Maliyet şeffaflığı: her generate aksiyonunda tahmini maliyet + kalan allowance görünür; işlem sonrası “fiilî maliyet” (microcents diff) history kaydına eklenir. 
+Cheap-first kuralı: ilk kez gelen kullanıcıya en düşük maliyetli presetler otomatik seçili gelir; Pro seçenekleri kullanıcı açık onayıyla açılır.
+Sora UX eşleşmesi: çözünürlük/süre/varyasyon, queue, kütüphane/galeri, download/share akışları tamdır. 
+
+## GPT’ye verilecek talimat şablonu (kod üretmeden, sadece araştırma+tasarım)
+
+GPT’ye verilecek talimat şablonu (kod üretmeden, sadece araştırma+tasarım)
+Aşağıdaki metni doğrudan GPT’ye “talimat” olarak verebilirsin (bu şablon özellikle senin “net, uygulanabilir ve tutarlı” istek ihtiyacına göre yazıldı):
+
+text
+Kopyala
+ROL: Ürün araştırmacısı + UX mimarı + tasarım sistem editörü gibi davran.
+AMAÇ: ElevenLabs benzeri, ancak özgün markalı bir “tek panel AI stüdyosu” için araştırma ve tasarım spesifikasyonu üretmek.
+
+KAPSAM:
+- Tek ürün içinde iki ana mod: TXT→Chat ve TXT→Video.
+- Altyapı: Puter.js (User-Pays). Model ve maliyet verisi için Puter dokümantasyonundaki:
+  - puter.ai.listModels() (chat modelleri, cost metadata)
+  - puter.auth.getMonthlyUsage() ve MonthlyUsage (allowance/remaining, microcents)
+  - puter.ai.txt2vid() (OpenAI: sora-2 / sora-2-pro; seconds, size, input_reference; testMode)
+- Sora tarzı video üretim akışı: prompt + ayarlar + queue + varyasyon + çıktı galerisi + download/share.
+
+ÇIKTI KURALLARI:
+- UYGULAMA KODU ÜRETME. Sadece: araştırma bulgusu, bilgi mimarisi, UX akışı, UI bileşen listesi, tasarım tokenları, hata/boş durum metinleri, kabul kriterleri.
+- Hiçbir üçüncü taraf UI’ını “birebir kopyalama” önermeyeceksin. Sadece benzer problemlere benzer çözümler ve özgün tasarım dili.
+- Her kritik iddia için kaynak zorunlu: Puter docs, OpenAI Sora docs/help, Stripe docs, PayPal dev docs, ElevenLabs docs. Kaynaksız iddia yazma.
+- Çıktıda şu bölümler zorunlu:
+  1) IA + Sidebar/Topbar şeması (ASCII)
+  2) Chat ekranı: model seçici, stream, maliyet etiketi, prompt şablonları
+  3) Video ekranı: prompt, ayarlar (model/seconds/size), queue, gallery
+  4) Credits/Usage ekranı: allowance, kalan, mikrocent açıklaması
+  5) Monetizasyon: FREE/BASIC/PRO/ENTERPRISE; Stripe+PayPal webhook durumları; kullanıcı mesajları
+  6) Admin dashboard: model kataloğu, default seçimler, webhook log, RBAC, audit log
+  7) Kabul kriterleri + test checklist (UI, maliyet, kredi, kalite)
+
+TERİM SÖZLÜĞÜ:
+- “Allowance”: Puter aylık kullanım hakkı
+- “Microcents”: Puter kaynak ölçüm birimi (örn. $0.50 = 50,000,000)
+- “Preset”: Video/Chat için kayıtlı ayar seti (model + kalite + limit)
+- “Pro kilidi”: Yalnız ücretli planda açılan gelişmiş seçenekler
+
+BAŞARI TANIMI:
+- Kullanıcı ilk 5 dakikada ücretsiz allowance ile Chat ve Video üretebilmeli.
+- Her üretimde tahmini maliyet + kalan allowance görünmeli.
+- Pro seçenekleri kullanıcı açık onayı olmadan görünür/aktif olmamalı.
+- Stripe/PayPal ödeme başarısızlığında kullanıcıya net ve eylem odaklı hata metni gösterilmeli.
+Bu şablon; Puter’nin ölçüm/allowance yapısını (MonthlyUsage, microcents) 
+, model maliyet metadata’sını (listModels) 
+ ve video üretim parametrelerini (txt2vid: model/seconds/size/input_reference/testMode) 
+ “delil zorunluluğu” ile birlikte GPT’ye bağlar.
+
+**BAĞLANTILI**
+
+```md
+# Puter.js AI API Referans Rehberi (Tek Panel AI Stüdyosu İçin — Chat + Video + Voice + Image + Speech)
+
+Puter.js; tek bir birleşik API ile **500+ AI modele** (OpenAI, Anthropic, Google, DeepSeek vb.) erişim sağlayan, **tarayıcı tarafında** çalışabilen bir SDK’dır. Bu rehber **Chrome eklentisi** gibi kısıtlar için değil; yukarıda tasarladığımız **ElevenLabs benzeri tek panel / single-page AI stüdyosu** için yazılmıştır: çekirdekte **TXT→Chat** + **TXT→Video**, sonra **Voice / Image / Speech** modülleriyle ölçek.
+
+---
+
+## 0) En kritik gerçek: “500+ model” = “her modülde aynı şekilde tam liste” DEĞİL
+
+Bu projede Puter.js ile gerçekten şunları yapabiliyoruz:
+
+- **Chat:** `puter.ai.chat()` ile metin/sohbet üretimi  
+- **Video:** `puter.ai.txt2vid()` ile metinden video üretimi  
+- **Image:** `puter.ai.txt2img()` ile metinden görsel, `img2txt` ile görselden metin (OCR/caption)  
+- **Voice (TTS):** `puter.ai.txt2speech()` ile metinden ses  
+- **Speech:** `speech2txt` (STT) ve `speech2speech` (voice changer) gibi iş akışları (SDK ekosistem örneklerinde)  
+
+**Ama katalog yönetimi açısından:**
+- **Chat modelleri** için Puter doğrudan **listeleme** sağlar: `puter.ai.listModels()` “chat/completion” modellerini ve (varsa) fiyat/yetenek metadata’sını döndürür.  
+- **Video / Voice / Image / Speech** tarafında ise “tüm sağlayıcıların tüm modellerini aynı şekilde tek endpoint’ten listelerim” yaklaşımı her zaman güvenilir değildir. Bu modüllerde doğru yöntem:  
+  1) **Popüler/önerilen Preset’ler** (kürasyon)  
+  2) **Gelişmiş (Advanced) seçim** (desteklendiği kadar)  
+  3) **Maliyet metriği modüle göre** (token değilse token diye zorlamamak)
+
+Bu ayrım doğru yapılmazsa UI “500+ model var” diye başlar ama video/voice/image tarafında veri kaynağı eksik kalır ve ürün tutarsızlaşır.
+
+---
+
+## 1) Ürün hedefi (doğru): Her modül için “katalog + filtre + sıralama” aynı zihinsel modelde olmalı
+
+Evet: **Chat / Video / Voice / Image / Speech** modüllerinin her birinde kullanıcıya:
+
+- **Popüler**
+- **En ucuz**
+- **En güçlü / en kaliteli**
+- **En hızlı**
+- **En yeni / en eski**
+- **Sağlayıcı (provider)**
+- **Özellik (streaming / i2v / dil / çözünürlük / vs.)**
+
+gibi filtre/sıralama seçenekleri sunmak doğru kurgudur.
+
+Ancak “En ucuz” hesaplaması her modülde **farklı metrikle** yapılmalıdır:
+
+- **Chat:** token tabanlı (input/output maliyeti)  
+- **Video:** saniye × çözünürlük × model profili (preset)  
+- **Voice (TTS):** karakter (veya süre) × voice/engine profili  
+- **Image:** çözünürlük/piksel × kalite profili  
+- **Speech (STT/S2S):** dakika × model profili
+
+**Altın kural:** UI aynı kalsın, maliyet metriği modüle göre değişsin.
+
+---
+
+## 2) Tek Panel Mimari: “Modül Kataloğu” = Preset + Model birleştirme katmanı
+
+Bu projede “Model Catalog” iki parçaya ayrılmalı:
+
+### 2.1 Global Model Verisi (Sadece Chat için: listModels)
+
+- Kaynak: `puter.ai.listModels()`
+- Kapsam: Chat/completion modelleri
+- Metadata: provider, context, cost (varsa), capability (varsa)
+
+### 2.2 Modül Preset Kataloğu (Video/Voice/Image/Speech için: senin ürün verin)
+
+Her modül için **Preset** kavramı:
+
+**Preset = (provider + model + quality tier + UI param default’ları + fiyatlandırma metriği)**
+
+Örnek:
+- Video / “Draft”: `sora-2`, 4s, 720p
+- Video / “Pro”: `sora-2-pro`, 8s, 1792×1024
+- TTS / “Fast”: default engine, kısa latency
+- TTS / “Studio”: daha doğal voice/engine
+- Image / “Fast”: düşük çözünürlük
+- Image / “HiRes”: yüksek çözünürlük
+- STT / “Realtime”: hızlı
+- STT / “Accurate”: daha pahalı ama daha doğru
+
+Bu sayede “500+ model” iddiasını **ürün tasarımında gerçek** hale getirirsin:
+- Chat’te tam katalog (listModels)
+- Diğerlerinde katalog = preset + advanced
+
+---
+
+## 3) Modül Bazlı Katalog Tasarımı (Filtre & Sorting Standartları)
+
+Aşağıdaki tablo “tek stüdyo zihinsel modeli”nin omurgasıdır.
+
+### 3.1 Chat (TXT→Chat)
+
+**Kaynak:** `puter.ai.listModels()`  
+**Gösterim:**
+- Popüler (senin telemetry’n)
+- En ucuz (cost.input + cost.output)
+- En hızlı (heuristic: küçük model / “fast” etiketin)
+- En uzun context (context window)
+- En güçlü (heuristic: premium / büyük model)
+
+**Filtreler:**
+- Provider (OpenAI/Anthropic/Google/DeepSeek/…)
+- Streaming destekli
+- Uzun context
+- Kod odaklı (senin etiketin)
+
+**Sıralama:**
+- Fiyat artan/azalan
+- Popüler artan/azalan
+- Yeni/eski (model metadata varsa; yoksa “catalog updatedAt”)
+
+### 3.2 Video (TXT→Video)
+
+**Kaynak:** `puter.ai.txt2vid()` + senin preset kataloğun  
+**UI kurgusu:** “Basic Presets” + “Advanced”  
+- Basic: 4s/720p/draft
+- Advanced: Pro modeller + yüksek res + referans image
+
+**Filtreler:**
+- En ucuz: (seconds × preset unit cost)
+- En hızlı: (draft profiller)
+- En kaliteli: (pro profiller / yüksek res)
+- Format: portrait/landscape
+- Reference image destekli
+
+**Sıralama:**
+- Tahmini maliyet
+- Popüler
+- Yeni/eski (preset version)
+
+> Video üretimi dakikalar sürebilir: UI mutlaka queue + spinner + cancel/ retry akışına sahip olmalı.
+
+### 3.3 Voice (TXT→Voice / TTS)
+
+**Kaynak:** `puter.ai.txt2speech()` + senin voice/preset kataloğun  
+**Filtreler:**
+- Dil (tr-TR/en-US/…)
+- Doğallık (studio vs fast)
+- En ucuz (karakter/süre tahmini)
+- En hızlı (low-latency preset)
+
+**Sıralama:**
+- Tahmini maliyet
+- Popüler
+- Yeni/eski (preset version)
+
+> Ürün standardı: metin uzunluğu sınırları (ör. 3000 karakter gibi) UI’da açık uyarı olmalı.
+
+### 3.4 Image (TXT→Image + IMG→TXT)
+
+**Kaynak:** `txt2img / img2txt` + senin preset kataloğun  
+**Filtreler:**
+- En ucuz (resolution tier)
+- Stil (realistic / illustration / 3D)
+- En kaliteli (hi-res)
+- OCR modu: hızlı / doğru
+
+**Sıralama:**
+- Tahmini maliyet
+- Popüler
+- Yeni/eski
+
+### 3.5 Speech (STT + Speech→Speech)
+
+**Kaynak:** `speech2txt / speech2speech` + senin preset kataloğun  
+**Filtreler:**
+- Dil
+- En doğru (accurate)
+- En hızlı (realtime)
+- En ucuz (dakika)
+
+**Sıralama:**
+- Tahmini maliyet
+- Popüler
+- Yeni/eski
+
+---
+
+## 4) Maliyet–Kredi–Kalite: Tek “Usage Engine” ile tüm modüllerde aynı şeffaflık
+
+### 4.1 MonthlyUsage + microcents standardı
+
+Bu uygulamada “gerçek harcama” şu mantıkla ölçülür:
+
+- İşlem öncesi MonthlyUsage snapshot
+- İşlem sonrası MonthlyUsage snapshot
+- **Diff** hesapla → History’ye yaz
+
+UI’da tek bir “CreditsIndicator” **3 katman** gösterir:
+
+1) Kalan allowance (remaining)
+2) Bu uygulama tüketimi (appTotals)
+3) Son işlem fiilî maliyeti (lastDiff)
+
+> Bu 3 katman yoksa kullanıcı “User-Pays” modelinde kontrol hissini kaybeder.
+
+### 4.2 Tahmini maliyet (Estimate) standardı: modüle göre metrik
+
+- Chat: token estimate
+- Video: seconds × resolution tier × model tier
+- Voice: char/süre estimate
+- Image: resolution/pixel tier
+- Speech: minutes estimate
+
+Her generate aksiyonunda UI şu üçlüyü göstermelidir:
+
+- Tahmini maliyet (estimate)
+- Kalan allowance (remaining)
+- İşlem sonrası fiilî maliyet (diff)
+
+---
+
+## 5) “Models” Ekranı = 5 ayrı katalog, tek tasarım sistemi
+
+Sol menüde **Manage → Models** ekranı açıldığında:
+
+- Üstte modül sekmeleri: **Chat / Video / Voice / Image / Speech**
+- Her sekme aynı layout:
+  - Solda filtreler
+  - Üstte sorting
+  - Ortada kart liste (preset/model)
+  - Sağda detay panel (capability + cost + limit + “set default”)
+
+### 5.1 Kart içeriği standardı
+
+Her kartta şu alanlar olmalı:
+
+- İsim (preset adı veya model id)
+- Provider
+- “Tier”: Draft / Standard / Pro / Studio / Accurate
+- Tahmini maliyet metriği (token/s/char/min/pixel)
+- Etiketler: Popular / Cheapest / New / Fast / Best Quality
+- “Set as default” (admin/plan yetkisine göre)
+
+---
+
+## 6) En güncel “doğru” ürün stratejisi (tek cümle)
+
+**Chat’te listModels ile tam katalog + güçlü filtreleme; Video/Voice/Image/Speech’te preset kataloğu + advanced seçenekler + modüle göre maliyet metriği; hepsinde aynı filtre/sıralama UX’i ve MonthlyUsage diff ile fiilî maliyet doğrulaması.**
+```
+
+Kaynak doğrulama notu (kısa):
+
+* `puter.ai.listModels()` chat/completion modellerini listeler ve metadata taşıyabilir. ([Puter.js][1])
+* MonthlyUsage ve microcents ölçümü (örn. $0.50 = 50,000,000 microcents). ([Puter.js][2])
+* `puter.ai.txt2vid()` için “render birkaç dakika sürebilir” ve UI responsive olmalı notu. ([Puter.js][3])
+* `puter.ai.txt2speech()` metin limiti/testMode gibi davranışlar. ([Puter.js][4])
+
+[1]: https://docs.puter.com/AI/listModels/?utm_source=chatgpt.com "puter.ai.listModels ()"
+[2]: https://docs.puter.com/Objects/monthlyusage/?utm_source=chatgpt.com "MonthlyUsage - docs.puter.com"
+[3]: https://docs.puter.com/AI/txt2vid/?utm_source=chatgpt.com "puter.ai.txt2vid ()"
+[4]: https://docs.puter.com/AI/txt2speech/?utm_source=chatgpt.com "puter.ai.txt2speech()"
+
+
+---
+
+```
+```

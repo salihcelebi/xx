@@ -1,0 +1,15 @@
+export const en = Object.freeze({
+  'ui.yeniSohbet': 'New Chat',
+  'ui.sohbetlerdeAra': 'Search chats…',
+  'ui.modelSec': 'Select Model',
+  'ui.araclar': 'Tools',
+  'ui.geciciSohbet': 'Temporary Chat',
+  'ui.gonder': 'Send',
+  'ui.dosyaEkle': 'Attach File',
+  'ui.sesliMod': 'Voice Mode',
+  'ui.kaynaklar': 'Sources',
+  'ui.yaziyor': 'Typing…',
+  'ui.videoUretiliyor': 'Generating video…',
+  'ui.odemeAyarlari': 'Payment Settings',
+  'ui.kullanimMaliyet': 'Usage & Cost',
+});
