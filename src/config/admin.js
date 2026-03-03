@@ -40,3 +40,7 @@ export function initAdmin() {
     testModeEnabled = stored === 'true';
   }
 }
+
+export function isAdmin() {
+  return !!isAdminLoggedIn;
+}

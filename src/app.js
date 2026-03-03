@@ -12,10 +12,13 @@ import { mountTopbar } from './ui/shell/topbar.js';
 import { mountSidebar } from './ui/shell/sidebar.js';
 import { initAdmin } from './config/admin.js';
 import { initAdminToggle } from './ui/components/AdminToggle.js';
+import { installGlobalGuardsV2 } from './utils/guard.js';
+import { isAdmin } from './config/admin.js';
 
 const commandBus = new Map();
 
 initAdmin();
+installGlobalGuardsV2({ overlayRequiresAdmin: true, isAdmin, watchdogEnabled: false });
 
 function getEls() {
   return {
