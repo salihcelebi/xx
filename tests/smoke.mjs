@@ -15,6 +15,10 @@ import {
 import { adminActions, adminReducer, initialAdminState, selectAdminActiveTab, selectAdminForbidden } from '../src/store/slices/adminSlice.js';
 import { beginBaseline, computeDiff as computeUsageDiff, microcentsToTlText } from '../src/services/puterUsage.js';
 
+import { createVideoJob, getJobSnapshot } from '../src/services/generation/videoService.js';
+import { synthesizeSpeech } from '../src/services/generation/ttsService.js';
+import { generateImage } from '../src/services/generation/imageService.js';
+
 assert.equal(microcentsToUsd(100_000_000), '$1.00');
 beginDiff({ appTotalsMicrocents: 10 });
 assert.equal(computeDiff({ appTotalsMicrocents: 25 }), 15);
@@ -105,5 +109,20 @@ assert.equal(selectAdminActiveTab({ admin: adminState }), 'Ayarlar');
 beginBaseline(null);
 assert.equal(computeUsageDiff({ totalMicrocents: 10 }).microcentsDelta, null);
 assert.equal(microcentsToTlText(1000, null), '₺—');
+
+
+
+// generation service minimum scenarios
+const createdVideo = createVideoJob({ prompt: 'test', modelId: 'video-fast', options: { duration: 4 }, testMode: true });
+assert.equal(createdVideo.ok, true);
+assert.equal(getJobSnapshot({ jobId: createdVideo.job.id }).status, 'queued');
+
+const tts = await synthesizeSpeech({ text: 'Merhaba', options: { engine: 'standard' }, testMode: true });
+assert.equal(tts.ok, true);
+assert.ok(tts.meta.requestType === 'tts');
+
+const image = await generateImage({ prompt: 'dağ manzarası', modelId: 'image-fast', testMode: true });
+assert.equal(image.ok, true);
+assert.ok(image.meta.requestType === 'image');
 
 console.log('smoke tests passed');
