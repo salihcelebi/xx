@@ -4,6 +4,16 @@ import { DEFAULT_ROUTE, normalizeRoute, isValidRoute, getCurrentRoute } from '..
 import { createStore, rootReducer, selectLanguage, selectMode } from '../src/store/store.js';
 import { chatActions, chatReducer, initialChatState, selectChatBusy } from '../src/store/slices/chatSlice.js';
 import { videoActions, videoReducer, initialVideoState, selectGallery } from '../src/store/slices/videoSlice.js';
+import {
+  billingActions,
+  billingReducer,
+  initialBillingState,
+  ODEME_KANALLARI_TR,
+  ODEME_KANALLARI_GLOBAL,
+  selectPaymentProviders,
+} from '../src/store/slices/billingSlice.js';
+import { adminActions, adminReducer, initialAdminState, selectAdminActiveTab, selectAdminForbidden } from '../src/store/slices/adminSlice.js';
+import { beginBaseline, computeDiff as computeUsageDiff, microcentsToTlText } from '../src/services/puterUsage.js';
 
 assert.equal(microcentsToUsd(100_000_000), '$1.00');
 beginDiff({ appTotalsMicrocents: 10 });
@@ -21,8 +31,8 @@ const preloaded = {
   },
   chat: initialChatState,
   video: initialVideoState,
-  billing: { monthlyUsage: null, remaining: '-', appTotals: '-', diff: '-', plan: { name: 'free', paywallOpen: false }, alerts: [], errors: null },
-  admin: { modelCatalogSnapshot: null, usageMonitoringSnapshot: null, settings: {}, errors: null },
+  billing: initialBillingState,
+  admin: initialAdminState,
 };
 
 const store = createStore(preloaded);
@@ -63,5 +73,37 @@ videoState = videoReducer(videoState, videoActions.setJobResult({ jobId: 'j1', r
 assert.equal(selectGallery({ video: videoState }).length, 1);
 videoState = videoReducer(videoState, videoActions.setJobError({ jobId: 'j1', error: { code: 'E', retryable: true } }));
 assert.equal(videoState.jobs[0].status, 'failed');
+
+// billing reducer minimum scenarios
+let billingState = billingReducer(initialBillingState, billingActions.beginDiff({ baselineMicrocents: 1000, baselineTs: 1 }));
+assert.equal(billingState.diff.baselineMicrocents, 1000);
+billingState = billingReducer(billingState, billingActions.setMonthlyUsage({ totalMicrocents: 2500, remainingMicrocents: 500 }));
+billingState = billingReducer(billingState, billingActions.setDiff({ microcentsDelta: 1500, sinceTs: 2, remainingMicrocents: 500 }));
+assert.equal(billingState.diff.microcentsDelta, 1500);
+assert.ok(billingState.amounts.diffTLText.includes('₺'));
+assert.ok(billingState.amounts.diffUSDText.includes('$'));
+billingState = billingReducer(billingState, billingActions.addAlert({ level: 'warn', code: 'BILLING_WARN' }));
+billingState = billingReducer(billingState, billingActions.addAlert({ level: 'warn', code: 'BILLING_WARN' }));
+assert.equal(billingState.alerts.length, 1);
+const providers = selectPaymentProviders({ billing: billingState });
+assert.deepEqual(providers.tr, ODEME_KANALLARI_TR);
+assert.deepEqual(providers.global, ODEME_KANALLARI_GLOBAL);
+
+// admin reducer minimum scenarios
+let adminState = adminReducer(initialAdminState, adminActions.checkAccess({ isAdmin: false }));
+assert.equal(selectAdminForbidden({ admin: adminState }), true);
+adminState = adminReducer(adminState, adminActions.setModelCatalog({ items: [{ id: 'm1' }], lastFetchedAt: 5 }));
+assert.equal(adminState.modelCatalog.items.length, 1);
+adminState = adminReducer(adminState, adminActions.setLoadingFlags({ modelsLoading: true }));
+adminState = adminReducer(adminState, adminActions.setError({ code: 'ADMIN_ERR' }));
+assert.equal(adminState.ui.lastError.code, 'ADMIN_ERR');
+adminState = adminReducer(adminState, adminActions.setActiveTab({ tab: 'Ayarlar' }));
+assert.equal(selectAdminActiveTab({ admin: adminState }), 'Ayarlar');
+
+
+// puterUsage minimum scenarios
+beginBaseline(null);
+assert.equal(computeUsageDiff({ totalMicrocents: 10 }).microcentsDelta, null);
+assert.equal(microcentsToTlText(1000, null), '₺—');
 
 console.log('smoke tests passed');

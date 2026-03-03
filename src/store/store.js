@@ -134,8 +134,8 @@ export const subscribe = store.subscribe;
 export const selectMode = (state) => state.app.mode;
 export const selectLanguage = (state) => state.app.language;
 export const selectCredits = (state) => ({
-  remaining: state.billing.remaining,
-  appTotals: state.billing.appTotals,
-  diff: state.billing.diff,
+  remaining: state.billing.amounts?.remainingText || '-',
+  appTotals: state.billing.amounts?.totalText || '-',
+  diff: state.billing.amounts?.diffText || '-',
 });
 export const selectBusy = (state) => state.app.busy;
