@@ -451,3 +451,63 @@ Bu bölüm mevcut repo taraması üstüne, router odaklı son geliştirme turunu
 6) Neden: App-store kontratı net değildi. Ne: app.js içinde mutator dispatch yerine action dispatch’e geçildi. Dosyalar: `/src/app.js`.
 7) Neden: Node testlerinde localStorage hatası vardı. Ne: translation service’e güvenli storage fallback eklendi. Dosyalar: `/src/services/translationService.js`.
 8) Neden: Store akışı test edilmeliydi. Ne: smoke teste createStore + subscribe + reducer referans kontrolü eklendi. Dosyalar: `/tests/smoke.mjs`.
+
+---
+
+## EK RAPOR — CHATSLICE + VIDEOSLICE GELİŞTİRME TURU
+
+### A) GENEL TIMELINE
+- [Bu güncelleme] (Commit/PR: bu-güncelleme) `chatSlice` ve `videoSlice` dosyaları state şeması, async effect ve selector bazında genişletildi.
+  - Etkilenen ana dosyalar: `src/store/slices/chatSlice.js`, `src/store/slices/videoSlice.js`, `src/services/generation/chatService.js`, `src/services/generation/videoService.js`, `tests/smoke.mjs`
+  - Risk/Not: Queue politikası, retry limiti, gerçek servis endpoint detayları için NISAI.MD’de netleştir.
+
+### B) DOSYA KATALOĞU (DOSYA DOSYA)
+- DOSYA: /src/store/slices/chatSlice.js
+  - ROLÜ: Chat thread/messages/stream/send/history state ve effect yönetimi.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> `messagesByThread`, `ui` flag’leri, stream action’ları, `sendMessage` ve `loadThreadHistoryEffect` eklendi.
+  - BAĞLANTILAR: /src/services/generation/chatService.js, /src/store/store.js, /src/app.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: active thread auto-create politikası, model kaynağı, stream çakışma queue/reject kararı.
+  - TEST/SMOKE: `tests/smoke.mjs` chat reducer senaryoları.
+
+- DOSYA: /src/store/slices/videoSlice.js
+  - ROLÜ: Video job lifecycle (submit/poll/progress/result/retry/cancel) state ve effect yönetimi.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> status whitelist, progress clamp, gallery üretimi, polling cleanup ve retry/cancel effect’leri eklendi.
+  - BAĞLANTILAR: /src/services/generation/videoService.js, /src/store/store.js, /src/router.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: polling interval, retry limiti, local/remote job mapping kalıcılığı.
+  - TEST/SMOKE: `tests/smoke.mjs` video reducer senaryoları.
+
+- DOSYA: /src/services/generation/chatService.js
+  - ROLÜ: Chat üretim ve history yükleme servis katmanı stub’ı.
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> chunk callback destekli `sendChatCompletion` ve `loadThreadHistory` eklendi.
+  - BAĞLANTILAR: /src/store/slices/chatSlice.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: gerçek sağlayıcı endpoint, token/cost mapping.
+  - TEST/SMOKE: smoke testte dolaylı kullanım.
+
+- DOSYA: /src/services/generation/videoService.js
+  - ROLÜ: Video submit/poll/cancel servis katmanı stub’ı.
+  - İLK EKLENME: bu-güncelleme.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> `submitTxt2Vid`, `fetchJobStatus`, `cancelRemoteJob` eklendi.
+  - BAĞLANTILAR: /src/store/slices/videoSlice.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: gerçek txt2vid API ve sonuç URL standardı.
+  - TEST/SMOKE: smoke testte dolaylı kullanım.
+
+- DOSYA: /tests/smoke.mjs
+  - ROLÜ: Reducer ve store davranışlarını hızlı doğrular.
+  - İLK EKLENME: önceki commitlerde eklendi.
+  - ÖNEMLİ DEĞİŞİMLER: bu-güncelleme -> chat stream buffer/finish ve video progress clamp/result/error senaryoları eklendi.
+  - BAĞLANTILAR: /src/store/slices/chatSlice.js, /src/store/slices/videoSlice.js, /src/store/store.js
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: async effect testleri için framework kararı.
+  - TEST/SMOKE: `npm test`.
+
+### C) “GÖRSEL TIMELAPSE” METNİ
+1) Neden: Chat state yüzeyseldi. Ne: thread + messagesByThread + ui flag şeması kuruldu. Dosyalar: `/src/store/slices/chatSlice.js`.
+2) Neden: Chat gönderim akışı parçalıydı. Ne: `sendMessage` effect ile user->stream->assistant zinciri tanımlandı. Dosyalar: `/src/store/slices/chatSlice.js`, `/src/services/generation/chatService.js`.
+3) Neden: Stream yönetimi belirsizdi. Ne: start/append/finish/cancel action akışı netleştirildi. Dosyalar: `/src/store/slices/chatSlice.js`.
+4) Neden: Video job state eksikti. Ne: whitelist status, progress clamp ve result modeli eklendi. Dosyalar: `/src/store/slices/videoSlice.js`.
+5) Neden: Video polling/cleanup davranışı gerekiyordu. Ne: poll timer map + route dışı cleanup kuralı eklendi. Dosyalar: `/src/store/slices/videoSlice.js`.
+6) Neden: Retry ve cancel akışı yoktu. Ne: `retryVideo` ve `cancelJob` effect’leri yazıldı. Dosyalar: `/src/store/slices/videoSlice.js`, `/src/services/generation/videoService.js`.
+7) Neden: UI’nın servis çağırmaması gerekiyordu. Ne: Chat/Video servis çağrıları slice effect katmanına taşındı. Dosyalar: `/src/store/slices/chatSlice.js`, `/src/store/slices/videoSlice.js`.
+8) Neden: Kritik davranışlar güvenceye alınmalıydı. Ne: smoke testte chat/video reducer senaryoları genişletildi. Dosyalar: `/tests/smoke.mjs`.
