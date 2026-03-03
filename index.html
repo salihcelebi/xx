@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nisai Studio Shell</title>
+    <!-- Gereksinim: index.html sadece kabuk + global stil bağlantısı içerir. -->
+    <link rel="stylesheet" href="/src/styles/global.css" />
+  </head>
+  <body>
+    <!-- Gereksinim A1/A25: Uygulama kabuğu tek panel, route değişiminde sadece outlet güncellenir. -->
+    <div id="app" class="app-shell">
+      <header id="topbar" class="topbar" aria-label="Global topbar">
+        <div id="brand-slot" class="brand-slot">Nisai Studio</div>
+        <button id="global-search-trigger" aria-haspopup="dialog" aria-controls="global-search-modal">Ara (Ctrl/⌘+K)</button>
+        <div id="mode-switch" class="segment" role="tablist" aria-label="Mode switch">
+          <button data-mode="chat" role="tab" aria-selected="true">Chat</button>
+          <button data-mode="video" role="tab" aria-selected="false">Video</button>
+        </div>
+        <div id="model-picker" class="model-picker" aria-expanded="false">
+          <button id="model-picker-trigger" aria-haspopup="listbox" aria-controls="model-picker-list">Model</button>
+          <ul id="model-picker-list" role="listbox" hidden></ul>
+          <small id="model-cost-signal">Maliyet sinyali</small>
+        </div>
+        <section id="credits-indicator" aria-label="Credits indicator">
+          <span data-credit="remaining">Remaining: -</span>
+          <span data-credit="appTotals">App total: -</span>
+          <span data-credit="diff">Diff: -</span>
+          <button id="billing-action">Bakiye / Plan</button>
+        </section>
+        <div id="language-switcher" class="language-switcher"></div>
+        <div id="user-menu" class="user-menu" aria-expanded="false"></div>
+      </header>
+
+      <aside id="sidebar" class="sidebar" aria-label="Main sidebar">
+        <nav>
+          <h3>Create</h3>
+          <a href="#/chat" data-route="/chat">Chat</a>
+          <a href="#/video" data-route="/video">Video</a>
+
+          <h3>Library</h3>
+          <a href="#/history" data-route="/history">History</a>
+          <a href="#/assets" data-route="/assets">Assets</a>
+          <div id="asset-chip-slot" class="chip-slot"></div>
+
+          <h3>Manage</h3>
+          <a href="#/models" data-route="/models">Models</a>
+          <a href="#/usage" data-route="/usage">Usage & Credits</a>
+          <a href="#/billing" data-route="/billing">Billing</a>
+
+          <h3>Settings</h3>
+          <a href="#/admin" id="admin-nav-link" data-route="/admin">Admin</a>
+        </nav>
+      </aside>
+
+      <main id="main" class="main">
+        <section id="page-header" class="page-header"></section>
+        <section id="status-bar" class="status-bar" aria-live="polite"></section>
+        <section id="route-outlet" class="route-outlet"></section>
+        <section id="global-empty-state" class="empty-state" hidden></section>
+        <section id="global-loader" class="global-loader" hidden>Yükleniyor...</section>
+      </main>
+    </div>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <div id="modals" class="modals">
+      <section id="global-search-modal" role="dialog" aria-modal="true" hidden>
+        <input id="global-search-input" type="search" placeholder="Komut veya sayfa ara" />
+      </section>
+      <section id="error-modal" role="dialog" aria-modal="true" hidden></section>
+      <section id="paywall-modal" role="dialog" aria-modal="true" hidden></section>
+    </div>
+
+    <!-- Gereksinim B1: inline script yok, tek giriş /src/app.js -->
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
