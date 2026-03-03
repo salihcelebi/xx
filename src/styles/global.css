@@ -1,0 +1,79 @@
+:root {
+  /* Gereksinim C1/C2/C3: tasarım tokenları + spacing + tipografi ölçeği */
+  --bg: #0b1020;
+  --surface: #141b2d;
+  --elevated: #1b243a;
+  --text-primary: #e8ecf8;
+  --text-secondary: #9aa6c7;
+  --border: #2a3552;
+  --accent: #5b8cff;
+  --danger: #ff637d;
+  --warning: #ffb347;
+  --success: #4ed3a5;
+
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+
+  --text-12: 12px;
+  --text-14: 14px;
+  --text-16: 16px;
+  --text-20: 20px;
+  --text-24: 24px;
+  --text-32: 32px;
+
+  /* Gereksinim C10: klon görünüm yerine özgün radius/shadow */
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font-size: var(--text-14); font-family: Inter, system-ui, sans-serif; }
+
+.app-shell { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 64px 1fr; min-height: 100vh; }
+.topbar {
+  /* Gereksinim C4: sticky topbar */
+  position: sticky; top: 0; z-index: 40;
+  grid-column: 1 / -1;
+  display: grid; grid-template-columns: repeat(7, max-content) 1fr; align-items: center;
+  gap: var(--space-12); padding: var(--space-12) var(--space-16);
+  border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.sidebar { width: 260px; padding: var(--space-16); border-right: 1px solid var(--border); background: var(--surface); overflow-y: auto; }
+.main { padding: var(--space-16); overflow-y: auto; }
+.route-outlet { min-height: 60vh; }
+
+.card { border: 1px solid var(--border); background: var(--elevated); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--space-16); }
+.card:hover { border-color: var(--accent); }
+
+button, a, select, input { border-radius: 10px; border: 1px solid var(--border); background: #11192c; color: var(--text-primary); padding: var(--space-8) var(--space-12); }
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible {
+  /* Gereksinim C6: net focus ring */
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+.global-loader {
+  /* Gereksinim C7: skeleton/loader görünürlüğü */
+  display: inline-block; margin-top: var(--space-16); padding: var(--space-8); border-radius: 8px; background: linear-gradient(90deg, #1b243a, #2a3552, #1b243a); background-size: 200% 100%; animation: pulse 1.5s linear infinite;
+}
+@keyframes pulse { to { background-position: -200% 0; } }
+
+.modals { z-index: 60; }
+.toasts { position: fixed; right: 20px; bottom: 20px; z-index: 70; display: grid; gap: 8px; }
+.toast { padding: var(--space-8) var(--space-12); border: 1px solid var(--border); background: var(--surface); display: flex; gap: 8px; }
+.toast.error { border-color: var(--danger); }
+.toast.warn { border-color: var(--warning); }
+.toast.success { border-color: var(--success); }
+
+#credits-indicator { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; display: flex; gap: 8px; }
+
+@media (max-width: 980px) {
+  /* Gereksinim C9: dar ekranda sidebar collapse, topbar taşma yönetimi */
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .topbar { grid-template-columns: repeat(4, minmax(0, 1fr)); overflow-x: auto; }
+}
