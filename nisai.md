@@ -1,4 +1,4 @@
-````md
+
 # ElevenLabs Benzeri Tek Sayfadan Yönetilen Yapay Zeka Platformu Tasarımı ve Puter.js ile Maliyet–Kredi–Kalite Optimizasyonu
 
 ## Amaç, kapsam ve kritik kısıtlar
