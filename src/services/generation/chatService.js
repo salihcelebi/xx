@@ -1,34 +1,29 @@
-// Chat üretim ve stream akışını Puter AI adaptörü ile yönetir.
+// Chat üretimini Puter AI üzerinden yönetir; validasyon, timeout ve hata eşlemesini merkezileştirir.
 
-const CHAT_TIMEOUT_MS = 30_000;
-const CHAT_STREAM_TIMEOUT_MS = 90_000;
-const VALID_ROLES = new Set(['user', 'assistant', 'system']);
+const NON_STREAM_TIMEOUT_MS = 30_000;
+const STREAM_TIMEOUT_MS = 90_000;
+const ALLOWED_ROLES = new Set(['user', 'assistant', 'system']);
+const RETRY_DELAY_MS = 1000;
 
 function now() {
   return Date.now();
 }
 
-function makeRequestId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return `chat_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+function makeId(prefix = 'chat') {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
 }
 
 function makeError(code, retryable, details = null) {
   return {
     code,
-    messageKey: `chat.error.${code.toLowerCase()}`,
+    messageKey: `chat.error.${String(code).toLowerCase()}`,
     retryable,
     ts: now(),
     details,
   };
-}
-
-function validateMessages(messages) {
-  if (!Array.isArray(messages) || messages.length === 0) throw makeError('BAD_INPUT', false, { reason: 'MESSAGES_EMPTY' });
-  messages.forEach((message) => {
-    if (!VALID_ROLES.has(message.role)) throw makeError('BAD_INPUT', false, { reason: 'INVALID_ROLE', role: message.role });
-    if (!String(message.content || '').trim()) throw makeError('BAD_INPUT', false, { reason: 'EMPTY_CONTENT' });
-  });
 }
 
 function withTimeout(promise, timeoutMs) {
@@ -44,12 +39,46 @@ function withTimeout(promise, timeoutMs) {
   });
 }
 
-function whitelistOptions(options = {}) {
+function validateInput(messages, modelId) {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    throw makeError('BAD_INPUT', false, { reason: 'MESSAGES_EMPTY' });
+  }
+
+  if (!String(modelId || '').trim()) {
+    throw makeError('BAD_INPUT', false, { reason: 'MODEL_ID_REQUIRED' });
+  }
+
+  for (const message of messages) {
+    if (!ALLOWED_ROLES.has(message?.role)) {
+      throw makeError('BAD_INPUT', false, { reason: 'INVALID_ROLE', role: message?.role });
+    }
+    if (!String(message?.content || '').trim()) {
+      throw makeError('BAD_INPUT', false, { reason: 'EMPTY_CONTENT' });
+    }
+  }
+}
+
+function sanitizeOptions(options = {}) {
   const allowed = ['temperature', 'top_p', 'max_tokens', 'tools'];
   return allowed.reduce((acc, key) => {
     if (Object.hasOwn(options, key)) acc[key] = options[key];
     return acc;
   }, {});
+}
+
+function getPuterAi() {
+  if (typeof puter === 'undefined' || !puter?.ai) return null;
+  return puter.ai;
+}
+
+function normalizeResponse(raw, modelId, metaBase) {
+  return {
+    text: String(raw?.text || raw?.message || ''),
+    modelUsed: raw?.model || modelId,
+    ts: now(),
+    usageMeta: raw?.usage || null,
+    ...metaBase,
+  };
 }
 
 function mapServiceError(error) {
@@ -63,33 +92,43 @@ function mapServiceError(error) {
   if (message.includes('rate')) return makeError('RATE_LIMIT', true, error);
   if (message.includes('quota')) return makeError('QUOTA', true, error);
   if (message.includes('network') || message.includes('fetch')) return makeError('NETWORK', true, error);
+  if (message.includes('unauthorized') || message.includes('401')) return makeError('UNAUTHORIZED', false, error);
+  if (message.includes('not supported') || message.includes('unsupported')) return makeError('NOT_SUPPORTED', false, error);
+
   return makeError('UNKNOWN', true, error);
 }
 
-function getPuterAi() {
-  if (typeof puter === 'undefined' || !puter?.ai) return null;
-  return puter.ai;
-}
-
-async function puterChatCall({ messages, modelId, options }) {
+async function callPuterChat({ messages, modelId, options, signal }) {
   const ai = getPuterAi();
-  if (!ai) throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_AI_UNAVAILABLE' });
-
-  // NISAI.MD'de netleştir: SDK'daki kesin chat metodu adı.
-  if (typeof ai.chat === 'function') {
-    return ai.chat(messages, { model: modelId, ...options });
+  if (!ai || typeof ai.chat !== 'function') {
+    throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_CHAT_UNAVAILABLE' });
   }
 
-  throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_CHAT_METHOD_MISSING' });
+  return ai.chat(messages, { model: modelId, ...options, signal });
+}
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callWithSingleNetworkRetry({ messages, modelId, options, signal, timeoutMs }) {
+  try {
+    return await withTimeout(callPuterChat({ messages, modelId, options, signal }), timeoutMs);
+  } catch (firstError) {
+    const mapped = mapServiceError(firstError);
+    if (mapped.code !== 'NETWORK' || signal?.aborted) throw firstError;
+    await sleep(RETRY_DELAY_MS);
+    return withTimeout(callPuterChat({ messages, modelId, options, signal }), timeoutMs);
+  }
 }
 
 export async function sendMessage({ messages, modelId, options = {}, signal, testMode = false }) {
   const startedAt = now();
-  const requestId = makeRequestId();
-  const correlationId = makeRequestId();
+  const requestId = makeId('request');
+  const correlationId = makeId('corr');
 
   try {
-    validateMessages(messages);
+    validateInput(messages, modelId);
 
     if (testMode) {
       return {
@@ -103,20 +142,19 @@ export async function sendMessage({ messages, modelId, options = {}, signal, tes
       };
     }
 
-    const response = await withTimeout(
-      Promise.resolve(puterChatCall({ messages, modelId, options: whitelistOptions(options), signal })),
-      CHAT_TIMEOUT_MS,
-    );
+    const raw = await callWithSingleNetworkRetry({
+      messages,
+      modelId,
+      options: sanitizeOptions(options),
+      signal,
+      timeoutMs: NON_STREAM_TIMEOUT_MS,
+    });
 
-    return {
-      text: response?.text || response?.message || '',
-      modelUsed: response?.model || modelId,
-      ts: now(),
-      usageMeta: response?.usage || null,
+    return normalizeResponse(raw, modelId, {
       requestId,
       correlationId,
       latencyMs: now() - startedAt,
-    };
+    });
   } catch (error) {
     throw mapServiceError(error);
   }
@@ -133,37 +171,50 @@ export async function streamMessage({
   testMode = false,
 }) {
   const startedAt = now();
-  const requestId = makeRequestId();
-  const correlationId = makeRequestId();
+  const requestId = makeId('request');
+  const correlationId = makeId('corr');
 
   try {
-    validateMessages(messages);
+    validateInput(messages, modelId);
 
     if (testMode) {
-      const text = 'Merhaba! (Test modu)';
       const chunks = ['Mer', 'ha', 'ba', '! ', '(Test modu)'];
+      const text = chunks.join('');
       for (const chunk of chunks) {
         if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
         onChunk?.(chunk);
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await sleep(200);
       }
-      onDone?.({ text, usageMeta: null, modelUsed: modelId, requestId, correlationId, latencyMs: now() - startedAt });
+      onDone?.({
+        text,
+        usageMeta: null,
+        modelUsed: modelId,
+        requestId,
+        correlationId,
+        latencyMs: now() - startedAt,
+      });
       return;
     }
 
-    const response = await withTimeout(
-      Promise.resolve(puterChatCall({ messages, modelId, options: whitelistOptions(options), signal })),
-      CHAT_STREAM_TIMEOUT_MS,
-    );
+    const raw = await callWithSingleNetworkRetry({
+      messages,
+      modelId,
+      options: sanitizeOptions(options),
+      signal,
+      timeoutMs: STREAM_TIMEOUT_MS,
+    });
 
-    const finalText = String(response?.text || response?.message || '');
-    const chunks = finalText.split(' ');
-    chunks.forEach((chunk) => onChunk?.(`${chunk} `));
+    const finalText = String(raw?.text || raw?.message || '');
+    if (finalText) {
+      finalText.split(/(\s+)/).forEach((delta) => {
+        if (delta) onChunk?.(delta);
+      });
+    }
 
     onDone?.({
       text: finalText,
-      usageMeta: response?.usage || null,
-      modelUsed: response?.model || modelId,
+      usageMeta: raw?.usage || null,
+      modelUsed: raw?.model || modelId,
       requestId,
       correlationId,
       latencyMs: now() - startedAt,
@@ -173,26 +224,30 @@ export async function streamMessage({
   }
 }
 
-// Geriye dönük uyum: chatSlice mevcut fonksiyonu kullanıyor.
+// Geriye dönük uyumluluk için korunur; chatSlice bu API'yi kullanır.
 export async function sendChatCompletion({ messages, model, onChunk, signal }) {
-  let text = '';
+  let assistantMessage = '';
+  let lastError = null;
+
   await streamMessage({
     messages,
     modelId: model,
     onChunk: (chunk) => {
-      text += chunk;
+      assistantMessage += chunk;
       onChunk?.(chunk);
     },
     onDone: () => {},
     onError: (error) => {
-      throw error;
+      lastError = error;
     },
     signal,
   });
 
+  if (lastError) throw lastError;
+
   return {
-    requestId: makeRequestId(),
-    assistantMessage: text.trim(),
+    requestId: makeId('legacy'),
+    assistantMessage: assistantMessage.trim(),
     meta: {
       usedModel: model,
       tokens: null,
@@ -202,6 +257,11 @@ export async function sendChatCompletion({ messages, model, onChunk, signal }) {
 }
 
 export async function loadThreadHistory(threadId) {
-  // NISAI.MD'de netleştir: History için kalıcı kaynak servis sözleşmesi.
-  return [{ id: `${threadId}:seed`, role: 'assistant', content: '', ts: now(), meta: { labelKey: 'chat.history.seed' } }];
+  return [{
+    id: `${threadId}:seed`,
+    role: 'assistant',
+    content: '',
+    ts: now(),
+    meta: { labelKey: 'chat.history.seed' },
+  }];
 }
