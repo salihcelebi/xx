@@ -1,0 +1,15 @@
+export const UI_KEYS = Object.freeze({
+  yeniSohbet: 'ui.yeniSohbet',
+  sohbetlerdeAra: 'ui.sohbetlerdeAra',
+  modelSec: 'ui.modelSec',
+  araclar: 'ui.araclar',
+  geciciSohbet: 'ui.geciciSohbet',
+  gonder: 'ui.gonder',
+  dosyaEkle: 'ui.dosyaEkle',
+  sesliMod: 'ui.sesliMod',
+  kaynaklar: 'ui.kaynaklar',
+  yaziyor: 'ui.yaziyor',
+  videoUretiliyor: 'ui.videoUretiliyor',
+  odemeAyarlari: 'ui.odemeAyarlari',
+  kullanimMaliyet: 'ui.kullanimMaliyet',
+});
