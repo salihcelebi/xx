@@ -1,23 +1,66 @@
+import { DEFAULT_LANGUAGE } from '../../config/i18n.js';
+import { setLanguage as setLanguagePreferenceInService, getInitialLanguage } from '../../services/translationService.js';
 import { fetchMonthlyUsage, microcentsToUsd } from '../../services/usageService.js';
-import { getInitialLanguage, setLanguage, translateText } from '../../services/translationService.js';
 
-export const state = {
-  route: '/chat',
+// NISAI.MD gereksinim: app slice yalnız app alanını yönetir.
+export const initialAppState = {
   mode: 'chat',
-  language: getInitialLanguage(),
-  busy: false,
-  usage: { remaining: '-', appTotals: '-', diff: '-' },
-  user: { isAdmin: false },
+  language: DEFAULT_LANGUAGE,
+  userRole: 'user',
+  featureFlags: { testMode: false },
+  lastRoute: '/chat',
+  busy: { routeLoading: false, usagePolling: false },
+  lastError: null,
 };
 
-export async function refreshUsage() {
-  const usage = await fetchMonthlyUsage();
-  state.usage.remaining = microcentsToUsd(usage.remainingMicrocents);
-  state.usage.appTotals = microcentsToUsd(usage.appTotalsMicrocents);
+export function appReducer(state = initialAppState, action) {
+  switch (action.type) {
+    case 'app/setLanguage':
+      return { ...state, language: action.payload };
+    case 'app/setMode':
+      return { ...state, mode: action.payload };
+    case 'app/setRoute':
+      return { ...state, lastRoute: action.payload };
+    case 'app/setUserRole':
+      return { ...state, userRole: action.payload };
+    case 'app/setFeatureFlags':
+      return { ...state, featureFlags: { ...state.featureFlags, ...action.payload } };
+    case 'app/setBusy':
+      return { ...state, busy: { ...state.busy, ...action.payload } };
+    case 'app/setLastError':
+      return { ...state, lastError: action.payload };
+    default:
+      return state;
+  }
 }
 
-export async function setAppLanguage(language) {
-  state.language = language;
-  setLanguage(language);
-  state.translatedEmpty = await translateText('empty', language);
+export const appActions = {
+  setLanguage: (language) => ({ type: 'app/setLanguage', payload: language }),
+  setMode: (mode) => ({ type: 'app/setMode', payload: mode }),
+  setRoute: (route) => ({ type: 'app/setRoute', payload: route }),
+  setBusy: (busyPatch) => ({ type: 'app/setBusy', payload: busyPatch }),
+  setLastError: (error) => ({ type: 'app/setLastError', payload: error }),
+};
+
+// NISAI.MD gereksinim: async süreç slice/service tarafında, UI doğrudan service çağırmaz.
+export async function setAppLanguage(dispatch, language) {
+  setLanguagePreferenceInService(language);
+  dispatch(appActions.setLanguage(language));
+}
+
+export function hydrateAppPreferences(dispatch, configLanguage = DEFAULT_LANGUAGE) {
+  const initialLanguage = getInitialLanguage() || configLanguage;
+  dispatch(appActions.setLanguage(initialLanguage));
+}
+
+export async function refreshUsage(dispatch) {
+  const usage = await fetchMonthlyUsage();
+  dispatch({
+    type: 'billing/setUsage',
+    payload: {
+      monthlyUsage: usage,
+      remaining: microcentsToUsd(usage.remainingMicrocents),
+      appTotals: microcentsToUsd(usage.appTotalsMicrocents),
+    },
+  });
 }

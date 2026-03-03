@@ -1,6 +1,6 @@
-import { renderRoute, getCurrentRoute } from './router.js';
+import { mountRouter, navigateTo, getRouterState } from './router.js';
 import { dispatch, getState, subscribe } from './store/index.js';
-import { refreshUsage, setAppLanguage } from './store/slices/appSlice.js';
+import { appActions, refreshUsage, setAppLanguage, hydrateAppPreferences } from './store/slices/appSlice.js';
 import { listModelsWithCache } from './services/aiService.js';
 import { beginDiff, computeDiff, fetchMonthlyUsage, microcentsToUsd } from './services/usageService.js';
 import { logEvent } from './services/telemetryService.js';
@@ -10,7 +10,6 @@ import { renderPageHeader } from './ui/components/pageHeader.js';
 import { dictionaries } from './config/i18n.js';
 
 const commandBus = new Map();
-let usagePollTimer = null;
 
 function getEls() {
   return {
@@ -36,7 +35,6 @@ function getEls() {
 }
 
 function setupGlobalErrorHandling(els, toast) {
-  // Gereksinim B10: window hata yakalayıp hata modalına yönlendir.
   window.addEventListener('error', (event) => {
     els.errorModal.hidden = false;
     els.errorModal.textContent = event.message;
@@ -68,7 +66,6 @@ function setupSearchPalette(els) {
   };
 
   document.addEventListener('keydown', (event) => {
-    // Gereksinim B3/B22: Ctrl/⌘+K aç, Esc kapat.
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       els.searchModal.hidden = false;
@@ -86,15 +83,19 @@ function setupModeSwitch(els) {
   els.modeSwitch.addEventListener('click', (event) => {
     const mode = event.target?.dataset?.mode;
     if (!mode) return;
-    window.location.hash = `/${mode}`;
+    navigateTo(`/${mode}`);
   });
 }
 
-async function setupModelPicker(els) {
-  const state = getState();
-  const models = await listModelsWithCache(state.mode);
-  els.modelList.innerHTML = models.map((model, idx) => `<li role="option" tabindex="${idx === 0 ? 0 : -1}" data-id="${model.id}">${model.label} <small>${model.unitCost}</small></li>`).join('');
+async function refreshModelPicker(els) {
+  const { currentMode } = getRouterState();
+  const models = await listModelsWithCache(currentMode);
+  els.modelList.innerHTML = models
+    .map((model, idx) => `<li role="option" tabindex="${idx === 0 ? 0 : -1}" data-id="${model.id}">${model.label} <small>${model.unitCost}</small></li>`)
+    .join('');
+}
 
+function setupModelPicker(els) {
   els.modelTrigger.addEventListener('click', () => {
     const isHidden = els.modelList.hidden;
     els.modelList.hidden = !isHidden;
@@ -122,9 +123,9 @@ function setupLanguageSwitcher(els, toast) {
   `;
 
   const select = els.lang.querySelector('select');
-  select.value = getState().language;
+  select.value = getState().app.language;
   select.addEventListener('change', async () => {
-    await setAppLanguage(select.value);
+    await setAppLanguage(dispatch, select.value);
     if (!dictionaries[select.value]) {
       toast.show('info', dictionaries.tr.translationFailed);
     }
@@ -144,12 +145,12 @@ function setupUserMenu(els) {
 
 function setupCommandBus(els) {
   commandBus.set('generate', () => {
-    logEvent('generate_clicked', { route: getCurrentRoute() });
+    const { currentRoute } = getRouterState();
+    logEvent('generate_clicked', { route: currentRoute });
     els.statusBar.textContent = 'Generate komutu tetiklendi.';
   });
 
   document.addEventListener('keydown', (event) => {
-    // Gereksinim B14: G kısayolu command bus üzerinden.
     if (event.key.toLowerCase() === 'g' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
       commandBus.get('generate')?.();
     }
@@ -157,7 +158,6 @@ function setupCommandBus(els) {
 }
 
 function setupPaywallHook(els, toast) {
-  // Gereksinim B16/B24: Pro kilidi tıklandığında paywall açacak örnek hook.
   document.addEventListener('click', (event) => {
     if (!event.target.matches('[data-pro-only="true"]')) return;
     els.paywallModal.hidden = false;
@@ -167,48 +167,32 @@ function setupPaywallHook(els, toast) {
 
 async function pollUsage(els) {
   const usage = await fetchMonthlyUsage();
-  const state = getState();
   beginDiff(usage);
   const diff = computeDiff(usage);
 
   els.credits.querySelector('[data-credit="remaining"]').textContent = `Remaining: ${microcentsToUsd(usage.remainingMicrocents)}`;
   els.credits.querySelector('[data-credit="appTotals"]').textContent = `App total: ${microcentsToUsd(usage.appTotalsMicrocents)}`;
   els.credits.querySelector('[data-credit="diff"]').textContent = `Diff: ${microcentsToUsd(diff)}`;
-
-  // Gereksinim B7: debug amaçlı ham microcents tooltip.
   els.credits.title = `raw remaining=${usage.remainingMicrocents}, raw total=${usage.appTotalsMicrocents}`;
 
-  dispatch((draft) => {
-    draft.usage = state.usage;
-  });
+  dispatch({ type: 'billing/setDiff', payload: microcentsToUsd(diff) });
 }
 
 function setupUsagePolling(els) {
   const run = async () => {
     await pollUsage(els);
-    const nextInterval = document.hidden ? 30_000 : 10_000;
-    usagePollTimer = setTimeout(run, nextInterval);
+    setTimeout(run, document.hidden ? 30_000 : 10_000);
   };
   run();
 }
 
 function renderFromState(els) {
   const state = getState();
-  els.adminLink.hidden = !state.user.isAdmin;
-  els.empty.textContent = state.translatedEmpty || dictionaries.tr.empty;
-  renderPageHeader(els.pageHeader, state.mode === 'video' ? 'Video' : 'Chat', 'NISAI.MD gereksinimlerine uygun standart başlık alanı.');
-  els.statusBar.textContent ||= dictionaries[state.language]?.queueIdle ?? dictionaries.tr.queueIdle;
-}
-
-async function renderCurrentRoute(els) {
-  const route = getCurrentRoute();
-  dispatch((draft) => {
-    draft.route = route;
-    draft.mode = route.includes('video') ? 'video' : 'chat';
-  });
-  await renderRoute(route, els.outlet);
-  const isEmpty = els.outlet.querySelector('[data-empty="true"]');
-  els.empty.hidden = !isEmpty;
+  els.adminLink.hidden = state.app.userRole !== 'admin';
+  els.empty.textContent = dictionaries[state.app.language]?.empty || dictionaries.tr.empty;
+  const { currentMode } = getRouterState();
+  renderPageHeader(els.pageHeader, currentMode === 'video' ? 'Video' : 'Chat', 'NISAI.MD gereksinimlerine uygun standart başlık alanı.');
+  els.statusBar.textContent ||= dictionaries[state.app.language]?.queueIdle ?? dictionaries.tr.queueIdle;
 }
 
 async function init() {
@@ -219,31 +203,48 @@ async function init() {
   setupGlobalErrorHandling(els, toast);
   setupSearchPalette(els);
   setupModeSwitch(els);
-  await setupModelPicker(els);
+  setupModelPicker(els);
   setupLanguageSwitcher(els, toast);
   setupUserMenu(els);
   setupCommandBus(els);
   setupPaywallHook(els, toast);
   setupUsagePolling(els);
 
-  // Gereksinim B11: global busy flag görünürlüğü.
   subscribe((state) => {
-    els.loader.hidden = !state.busy;
+    els.loader.hidden = !state.app.busy.routeLoading;
   });
 
-  await setAppLanguage(getState().language);
-  await refreshUsage();
-  await renderCurrentRoute(els);
+  hydrateAppPreferences(dispatch);
+  await setAppLanguage(dispatch, getState().app.language);
+  await refreshUsage(dispatch);
+
+  mountRouter({
+    els,
+    store: { dispatch, getState },
+    onRoute: (route) => {
+      dispatch(appActions.setRoute(route));
+      logEvent('route_change', { route });
+      renderFromState(els);
+      const isEmpty = els.outlet.querySelector('[data-empty="true"]');
+      els.empty.hidden = !isEmpty;
+    },
+    onModeChanged: async (mode) => {
+      dispatch(appActions.setMode(mode));
+      await refreshModelPicker(els);
+      renderFromState(els);
+    },
+    onWarning: (message) => {
+      toast.show('warn', message);
+    },
+    onLoadingChange: (busy) => {
+      dispatch(appActions.setBusy({ routeLoading: busy }));
+    },
+  });
+
+  await refreshModelPicker(els);
   renderFromState(els);
-
-  window.addEventListener('hashchange', async () => {
-    logEvent('route_change', { route: getCurrentRoute() });
-    await renderCurrentRoute(els);
-    renderFromState(els);
-  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Gereksinim B2: bootstrap DOMContentLoaded sonrası.
   init();
 });

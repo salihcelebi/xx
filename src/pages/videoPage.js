@@ -1,5 +1,5 @@
-export async function renderVideoPage() {
-  // Gereksinim B17: video için lazy-load hook.
+export async function render() {
+  // Ağır bileşenler için lazy-load noktası.
   await Promise.resolve();
   return `
     <section class="content-grid">
@@ -9,4 +9,8 @@ export async function renderVideoPage() {
       </article>
     </section>
   `;
+}
+
+export function destroy() {
+  // Video sayfasına özel cleanup burada tutulur.
 }
