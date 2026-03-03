@@ -1,3 +1,4 @@
+import { generateVoice as aiGenerateVoice } from '../aiService.js';
 // Metinden ses üretimini tek noktadan yönetir.
 
 const MAX_TEXT_LENGTH = 3000;
@@ -61,11 +62,6 @@ function mapError(error) {
   return makeError('UNKNOWN', true, error);
 }
 
-function getTxt2Speech() {
-  if (typeof puter === 'undefined' || !puter?.ai || typeof puter.ai.txt2speech !== 'function') return null;
-  return puter.ai.txt2speech.bind(puter.ai);
-}
-
 function createTestAudioElement() {
   return {
     dataset: { source: 'testMode', mimeType: 'audio/mpeg' },
@@ -90,10 +86,8 @@ export async function synthesizeSpeech({ text, modelId = null, options = {}, tes
     if (testMode) {
       audioEl = createTestAudioElement();
     } else {
-      const txt2speech = getTxt2Speech();
-      if (!txt2speech) throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_TXT2SPEECH_UNAVAILABLE' });
       audioEl = await withTimeout(
-        Promise.resolve(txt2speech(value, { ...normalized, signal })),
+        Promise.resolve(aiGenerateVoice(value, { ...normalized, signal })),
         TIMEOUT_MS,
       );
       if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });

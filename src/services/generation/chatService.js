@@ -1,3 +1,4 @@
+import { generateChat as aiGenerateChat, streamChat as aiStreamChat } from '../aiService.js';
 // Chat üretimini Puter AI üzerinden yönetir; validasyon, timeout ve hata eşlemesini merkezileştirir.
 
 const NON_STREAM_TIMEOUT_MS = 30_000;
@@ -66,11 +67,6 @@ function sanitizeOptions(options = {}) {
   }, {});
 }
 
-function getPuterAi() {
-  if (typeof puter === 'undefined' || !puter?.ai) return null;
-  return puter.ai;
-}
-
 function normalizeResponse(raw, modelId, metaBase) {
   return {
     text: String(raw?.text || raw?.message || ''),
@@ -98,13 +94,10 @@ function mapServiceError(error) {
   return makeError('UNKNOWN', true, error);
 }
 
-async function callPuterChat({ messages, modelId, options, signal }) {
-  const ai = getPuterAi();
-  if (!ai || typeof ai.chat !== 'function') {
-    throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_CHAT_UNAVAILABLE' });
-  }
-
-  return ai.chat(messages, { model: modelId, ...options, signal });
+async function callPuterChat({ messages, modelId, options, signal, stream = false }) {
+  const payload = { model: modelId, ...options, signal };
+  if (stream) return aiStreamChat(messages, payload);
+  return aiGenerateChat(messages, payload);
 }
 
 async function sleep(ms) {
@@ -113,7 +106,7 @@ async function sleep(ms) {
 
 async function callWithSingleNetworkRetry({ messages, modelId, options, signal, timeoutMs }) {
   try {
-    return await withTimeout(callPuterChat({ messages, modelId, options, signal }), timeoutMs);
+    return await withTimeout(callPuterChat({ messages, modelId, options, signal, stream: timeoutMs === STREAM_TIMEOUT_MS }), timeoutMs);
   } catch (firstError) {
     const mapped = mapServiceError(firstError);
     if (mapped.code !== 'NETWORK' || signal?.aborted) throw firstError;

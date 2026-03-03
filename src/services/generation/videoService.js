@@ -1,3 +1,4 @@
+import { generateVideo as aiGenerateVideo } from '../aiService.js';
 // Metinden video üretimini yönetir.
 
 const JOB_KIND = 'video';
@@ -35,11 +36,6 @@ function makeError(code, retryable, details = null) {
     ts: now(),
     details,
   };
-}
-
-function getPuterTxt2Vid() {
-  if (typeof puter === 'undefined' || !puter?.ai || typeof puter.ai.txt2vid !== 'function') return null;
-  return puter.ai.txt2vid.bind(puter.ai);
 }
 
 function simpleHash(input = '') {
@@ -206,10 +202,8 @@ export async function runVideoJob({ jobId, onProgress, signal, timeoutMs = DEFAU
       if (canceled) throw Object.assign(new Error('cancelled'), { name: 'AbortError' });
       videoEl = createTestVideoElement();
     } else {
-      const txt2vid = getPuterTxt2Vid();
-      if (!txt2vid) throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_TXT2VID_UNAVAILABLE' });
       videoEl = await withTimeout(
-        Promise.resolve(txt2vid(job.prompt, { ...job.options, model: job.modelId, signal: controller.signal })),
+        Promise.resolve(aiGenerateVideo(job.prompt, { ...job.options, model: job.modelId, signal: controller.signal })),
         timeoutMs,
       );
       if (canceled) throw Object.assign(new Error('cancelled'), { name: 'AbortError' });

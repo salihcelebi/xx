@@ -10,8 +10,12 @@ import { renderPageHeader } from './ui/components/pageHeader.js';
 import { dictionaries } from './config/i18n.js';
 import { mountTopbar } from './ui/shell/topbar.js';
 import { mountSidebar } from './ui/shell/sidebar.js';
+import { initAdmin } from './config/admin.js';
+import { initAdminToggle } from './ui/components/AdminToggle.js';
 
 const commandBus = new Map();
+
+initAdmin();
 
 function getEls() {
   return {
@@ -207,6 +211,7 @@ function renderFromState(els) {
     onToolsChange: () => {},
     onTempChange: (value) => dispatch({ type: 'app/setFeatureFlags', payload: { temporaryChat: value } }),
   });
+  initAdminToggle();
 
   mountSidebar({
     root: els.sidebar,

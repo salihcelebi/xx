@@ -1,3 +1,4 @@
+import { generateImage as aiGenerateImage } from '../aiService.js';
 // Görsel üretimini tek noktadan yönetir.
 
 const TIMEOUT_MS = 45_000;
@@ -72,11 +73,6 @@ function mapError(error) {
   return makeError('UNKNOWN', true, error);
 }
 
-function getTxt2Img() {
-  if (typeof puter === 'undefined' || !puter?.ai || typeof puter.ai.txt2img !== 'function') return null;
-  return puter.ai.txt2img.bind(puter.ai);
-}
-
 function createTestImageElement() {
   return {
     currentSrc: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgA0nVwEAAAAASUVORK5CYII=',
@@ -106,10 +102,8 @@ async function runGenerate({ prompt, modelId, options = {}, inputImageUrl = null
     if (testMode) {
       imgEl = createTestImageElement();
     } else {
-      const txt2img = getTxt2Img();
-      if (!txt2img) throw makeError('NOT_SUPPORTED', false, { reason: 'PUTER_TXT2IMG_UNAVAILABLE' });
       imgEl = await withTimeout(
-        Promise.resolve(txt2img(normalizedPrompt, { ...normalizedOptions, signal })),
+        Promise.resolve(aiGenerateImage(normalizedPrompt, { ...normalizedOptions, signal })),
         TIMEOUT_MS,
       );
       if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
