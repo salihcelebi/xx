@@ -260,3 +260,94 @@ Kapsam: Depodaki erişilebilir geçmişten son 50 commit tarandı (`git log --na
 10) **Neden:** Profesyonel görsel ritim ve erişilebilirlik gerekiyordu. **Ne:** Token tabanlı global CSS ve responsive yapı yazıldı. **Dosyalar:** `/src/styles/global.css`.
 11) **Neden:** Hızlı doğrulama olmadan bakım zorlaşır. **Ne:** Smoke test ve npm test komutu eklendi. **Dosyalar:** `/tests/smoke.mjs`, `/package.json`.
 12) **Neden:** Belirsiz entegrasyonları işaretlemek gerekiyordu. **Ne:** Kod içine “NISAI.MD’de netleştir” notları bırakıldı. **Dosyalar:** `/src/services/aiService.js`, `/src/services/usageService.js`, `/src/services/translationService.js`, `/src/services/telemetryService.js`.
+
+---
+
+## EK RAPOR — ROUTER İYİLEŞTİRME GÜNCELLEMESİ
+
+Bu bölüm mevcut repo taraması üstüne, router odaklı son geliştirme turunu kronolojik olarak ekler.
+
+### A) GENEL TIMELINE (EK)
+
+- [2026-03-03T11:36:51+00:00] (Commit `bu-güncelleme-commit'i`) **Router kontratı sadeleştirildi ve test edilebilir hale getirildi** — Hash route parser, fallback ve mount akışı tek dosyada netleştirildi.
+  - Etkilenen ana dosyalar: `src/router.js`, `src/app.js`, `src/pages/chatPage.js`, `src/pages/videoPage.js`, `src/pages/historyPage.js`, `src/pages/billingPage.js`, `src/pages/adminPage.js`, `tests/smoke.mjs`
+  - Risk/Not: Query/param ve title sahipliği kararı için NISAI.MD’de netleştir.
+
+### B) DOSYA KATALOĞU (EKLENEN SON BÜYÜK DEĞİŞİM)
+
+- DOSYA: `/src/router.js`
+  - ROLÜ: Pure parser + whitelist doğrulama + sayfa render orkestrasyonu + mount API.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> `normalizeRoute/isValidRoute/getCurrentRoute`, `navigateTo`, `renderCurrentRoute`, `mountRouter` ve destroy kontratı eklendi.
+  - BAĞLANTILAR: `/src/app.js`, `/src/pages/{chat,video,history,billing,admin}Page.js`, `/tests/smoke.mjs`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Query params, popstate ve title sorumluluğu.
+  - TEST/SMOKE: `tests/smoke.mjs` route parser assert’leri.
+
+- DOSYA: `/src/app.js`
+  - ROLÜ: Shell bootstrap + router mount + UI event koordinasyonu.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> Hashchange yönetimi router mount’a devredildi, mode değişiminde model picker refresh hook bağlandı.
+  - BAĞLANTILAR: `/src/router.js`, `/src/services/*`, `/src/store/*`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Router/app sorumluluk sınırı ileride kesinleştirilmeli.
+  - TEST/SMOKE: `node --check src/app.js`.
+
+- DOSYA: `/src/pages/chatPage.js`
+  - ROLÜ: Chat görünüm modülü.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> `render({els, store})` kontratına uyumlu export yapısı netleştirildi.
+  - BAĞLANTILAR: `/src/router.js`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Gerçek form/aksiyon bağları.
+  - TEST/SMOKE: Router render akışıyla dolaylı.
+
+- DOSYA: `/src/pages/videoPage.js`
+  - ROLÜ: Video görünüm modülü.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> Async `render` + opsiyonel `destroy` kontratı eklendi.
+  - BAĞLANTILAR: `/src/router.js`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Ağır bileşen lazy-load detayları.
+  - TEST/SMOKE: Router render akışıyla dolaylı.
+
+- DOSYA: `/src/pages/historyPage.js`
+  - ROLÜ: History boş durum paneli.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> `render` kontratına uyumlu hale getirildi.
+  - BAĞLANTILAR: `/src/router.js`, `/src/app.js`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Geçmiş veri modeli.
+  - TEST/SMOKE: Router render akışıyla dolaylı.
+
+- DOSYA: `/src/pages/billingPage.js`
+  - ROLÜ: Billing görünüm modülü.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> `render` kontratına uyumlu hale getirildi.
+  - BAĞLANTILAR: `/src/router.js`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Ödeme akışı ayrıntıları.
+  - TEST/SMOKE: Router render akışıyla dolaylı.
+
+- DOSYA: `/src/pages/adminPage.js`
+  - ROLÜ: Admin görünüm modülü.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> `render` kontratına uyumlu hale getirildi.
+  - BAĞLANTILAR: `/src/router.js`, `/src/app.js`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: Rol doğrulama ayrıntıları.
+  - TEST/SMOKE: Router render akışıyla dolaylı.
+
+- DOSYA: `/tests/smoke.mjs`
+  - ROLÜ: Temel smoke doğrulama.
+  - İLK EKLENME: `cbe040f`, 2026-03-03T11:28:29+00:00
+  - ÖNEMLİ DEĞİŞİMLER: `bu-güncelleme-commit'i`, `2026-03-03T11:36:47+00:00` -> Router pure parser fonksiyonları için minimal kritik testler eklendi.
+  - BAĞLANTILAR: `/src/router.js`, `/src/services/usageService.js`
+  - TODO / “NISAI.MD’de netleştir” NOTLARI: renderCurrentRoute mock testi genişletilebilir.
+  - TEST/SMOKE: `npm test`.
+
+### C) “GÖRSEL TIMELAPSE” METNİ (EK)
+
+1) **Neden:** Router görev alanı dağınıktı. **Ne:** Pure parser yardımcıları eklendi. **Dosyalar:** `/src/router.js`.
+2) **Neden:** Geçersiz rota davranışı net değildi. **Ne:** Whitelist + fallback `/chat` tanımlandı. **Dosyalar:** `/src/router.js`.
+3) **Neden:** Sayfa modülleri standart değildi. **Ne:** `render({els, store})` kontratı zorlandı. **Dosyalar:** `/src/pages/chatPage.js`, `/src/pages/videoPage.js`, `/src/pages/historyPage.js`, `/src/pages/billingPage.js`, `/src/pages/adminPage.js`.
+4) **Neden:** Sayfa geçişlerinde temizlik gerekiyordu. **Ne:** `destroy()` desteği eklendi. **Dosyalar:** `/src/router.js`, `/src/pages/chatPage.js`, `/src/pages/videoPage.js`.
+5) **Neden:** Render hatasında kullanıcı çıkmazda kalıyordu. **Ne:** Error panel + retry akışı eklendi. **Dosyalar:** `/src/router.js`.
+6) **Neden:** Bilinmeyen route görünürlüğü gerekiyordu. **Ne:** Not found paneli + Chat’a dönüş butonu eklendi. **Dosyalar:** `/src/router.js`.
+7) **Neden:** Stale model picker sorunu vardı. **Ne:** `onModeChanged` callback’iyle model yenileme bağlandı. **Dosyalar:** `/src/router.js`, `/src/app.js`.
+8) **Neden:** Router/app entegrasyonu sade olmalıydı. **Ne:** `mountRouter` kullanımı app bootstrap’e taşındı. **Dosyalar:** `/src/app.js`, `/src/router.js`.
+9) **Neden:** No-op navigate eksikti. **Ne:** Aynı route’a gidişte tekrar render engellendi. **Dosyalar:** `/src/router.js`.
+10) **Neden:** Parser güveni test edilmeliydi. **Ne:** normalize/isValid/getCurrent için smoke assert eklendi. **Dosyalar:** `/tests/smoke.mjs`.

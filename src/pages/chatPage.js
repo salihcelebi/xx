@@ -1,4 +1,4 @@
-export function renderChatPage() {
+export async function render() {
   return `
     <section class="content-grid">
       <article class="card">
@@ -7,4 +7,8 @@ export function renderChatPage() {
       </article>
     </section>
   `;
+}
+
+export function destroy() {
+  // Sayfa cleanup hook'u (gerekirse event unsubscribe burada yapılır).
 }
