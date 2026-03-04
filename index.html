@@ -1,65 +1,966 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nisai Studio Shell</title>
-    <!-- Gereksinim: index.html sadece kabuk + global stil bağlantısı içerir. -->
-    <link rel="stylesheet" href="/src/styles/global.css" />
-  </head>
-  <body>
-    <!-- Gereksinim A1/A25: Uygulama kabuğu tek panel, route değişiminde sadece outlet güncellenir. -->
-    <div id="app" class="app-shell">
-      <header id="topbar" class="topbar" aria-label="Global topbar">
-        <div id="brand-slot" class="brand-slot">Nisai Studio</div>
-        <button id="global-search-trigger" aria-haspopup="dialog" aria-controls="global-search-modal">Ara (Ctrl/⌘+K)</button>
-        <div id="mode-switch" class="segment" role="tablist" aria-label="Mode switch">
-          <button data-mode="chat" role="tab" aria-selected="true">Chat</button>
-          <button data-mode="video" role="tab" aria-selected="false">Video</button>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CandyGPT • Puter.js GPT Arayüzü</title>
+
+  <!-- Puter.js (AI + FS + Auth). Gerekirse sürümü/URL’yi Puter dokümanına göre güncelle. -->
+  <script src="https://js.puter.com/v2/"></script>
+
+  <!-- senin yazdığın kod -->
+  <script defer src="/static/kame-ui.js"></script>
+  <link rel="stylesheet" href="/index.css" />
+
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --surface:#ffffff;
+      --surface-2:#f0f2f5;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --shadow: 0 10px 25px rgba(17,24,39,.06);
+      --radius:14px;
+      --radius-sm:10px;
+      --pad:14px;
+      --accent:#2563eb;
+      --user:#111827;
+      --assistant:#ffffff;
+      --bubble:#f3f4f6;
+      --danger:#ef4444;
+      --ok:#16a34a;
+      --focus: 0 0 0 3px rgba(37,99,235,.18);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    [data-theme="dark"]{
+      --bg:#0b1220;
+      --surface:#0f172a;
+      --surface-2:#111c33;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:#1f2a44;
+      --shadow: 0 18px 35px rgba(0,0,0,.35);
+      --bubble:#0b1328;
+      --assistant:#0f172a;
+      --user:#1f2937;
+      --accent:#60a5fa;
+      --focus: 0 0 0 3px rgba(96,165,250,.18);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit}
+    button,input,select,textarea{font:inherit}
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap:12px;
+      padding:12px;
+    }
+    .app.canvas-open{
+      grid-template-columns: 300px minmax(0, 1fr) 380px;
+    }
+    .panel{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* SIDEBAR */
+    .sidebar{
+      width:100%;
+    }
+    .sb-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+      gap:10px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px; min-width:0;
+    }
+    .logo{
+      width:28px; height:28px; border-radius:8px;
+      background:radial-gradient(circle at 30% 30%, var(--accent), rgba(255,255,255,.0));
+      border:1px solid var(--border);
+      display:grid; place-items:center;
+      color:white; font-weight:700;
+    }
+    .brand .name{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .iconbtn{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+    }
+    .iconbtn:focus{outline:none; box-shadow:var(--focus)}
+    .primary{
+      border:1px solid rgba(37,99,235,.35);
+      background:var(--accent);
+      color:white;
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:600;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      width:100%;
+    }
+    .primary:focus{outline:none; box-shadow:var(--focus)}
+    .sb-body{
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow:auto;
+    }
+    .section-title{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.02em;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin:4px 2px;
+    }
+    .search{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 10px;
+      background:var(--surface);
+    }
+    .search input{
+      border:none;
+      outline:none;
+      width:100%;
+      background:transparent;
+      color:var(--text);
+    }
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .chatitem{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:12px;
+      padding:10px 10px;
+      cursor:pointer;
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .chatitem:hover{background:var(--surface-2)}
+    .chatmeta{min-width:0}
+    .chattitle{font-weight:650; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .chatstamp{font-size:12px; color:var(--muted)}
+    .dots{
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      padding:4px 6px;
+      border-radius:10px;
+      color:var(--muted);
+    }
+    .dots:hover{background:rgba(127,127,127,.12)}
+    .pillrow{display:flex; flex-wrap:wrap; gap:6px}
+    .pill{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      cursor:pointer;
+      color:var(--text);
+    }
+    .pill[aria-pressed="true"]{
+      border-color:rgba(37,99,235,.35);
+      background:rgba(37,99,235,.10);
+      color:var(--text);
+    }
+
+    .sb-footer{
+      margin-top:auto;
+      padding:12px;
+      border-top:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:linear-gradient(0deg, var(--surface), var(--surface-2));
+    }
+    .userbox{
+      display:flex; align-items:center; gap:10px; min-width:0;
+    }
+    .avatar{
+      width:32px; height:32px; border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(127,127,127,.12);
+      display:grid; place-items:center;
+      font-weight:700;
+    }
+    .username{font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .usermenu{
+      position:relative;
+    }
+    .menu{
+      position:absolute;
+      bottom:44px; right:0;
+      width:220px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:8px;
+      display:none;
+      z-index:50;
+    }
+    .menu.open{display:block}
+    .menu button{
+      width:100%;
+      text-align:left;
+      border:none;
+      background:transparent;
+      padding:10px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      color:var(--text);
+    }
+    .menu button:hover{background:var(--surface-2)}
+
+    /* MAIN */
+    .main{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .topbar{
+      border-bottom:1px solid var(--border);
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+    }
+    .tabs{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+      min-width:0;
+    }
+    .tab{
+      border:none;
+      background:transparent;
+      padding:10px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      color:var(--muted);
+      font-weight:650;
+    }
+    .tab[aria-current="page"]{
+      color:var(--text);
+      background:rgba(127,127,127,.10);
+    }
+    .actions{
+      display:flex; gap:8px; align-items:center;
+    }
+    .select{
+      border:1px solid var(--border);
+      background:var(--surface);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 10px;
+      cursor:pointer;
+      max-width:220px;
+    }
+    .toggle{
+      display:flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:var(--surface);
+      cursor:pointer;
+      color:var(--text);
+      user-select:none;
+      white-space:nowrap;
+    }
+    .switch{
+      width:34px; height:20px;
+      background:rgba(127,127,127,.25);
+      border-radius:999px;
+      position:relative;
+      border:1px solid var(--border);
+      flex:0 0 auto;
+    }
+    .switch::after{
+      content:"";
+      width:16px; height:16px;
+      border-radius:999px;
+      background:var(--surface);
+      position:absolute;
+      top:50%; left:2px;
+      transform:translateY(-50%);
+      transition:all .15s ease;
+      border:1px solid var(--border);
+    }
+    .toggle[aria-pressed="true"] .switch{
+      background:rgba(37,99,235,.35);
+      border-color:rgba(37,99,235,.35);
+    }
+    .toggle[aria-pressed="true"] .switch::after{
+      left:16px;
+    }
+
+    .route{
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .statusline{
+      padding:8px 12px;
+      border-bottom:1px solid var(--border);
+      font-size:12px;
+      color:var(--muted);
+      display:none;
+      align-items:center;
+      gap:10px;
+    }
+    .statusline.show{display:flex}
+    .dot{
+      width:8px; height:8px; border-radius:999px; background:var(--muted);
+      animation:pulse 1s infinite ease-in-out;
+    }
+    @keyframes pulse{
+      0%,100%{opacity:.35}
+      50%{opacity:1}
+    }
+
+    .chatview{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding:16px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .bubble{
+      max-width: 78%;
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding:12px 12px;
+      position:relative;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+      background:var(--assistant);
+    }
+    .bubble.system{
+      max-width:100%;
+      background:var(--surface-2);
+      color:var(--muted);
+      border-style:dashed;
+      font-size:12px;
+    }
+    .bubble.user{
+      margin-left:auto;
+      background:var(--user);
+      color:white;
+      border-color:rgba(255,255,255,.08);
+    }
+    .bubble .toolbar{
+      position:absolute;
+      top:-10px;
+      right:10px;
+      display:none;
+      gap:6px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:6px 6px;
+      box-shadow:var(--shadow);
+    }
+    .bubble:hover .toolbar{display:flex}
+    .toolbtn{
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      padding:6px 8px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:650;
+    }
+    .toolbtn:hover{background:rgba(127,127,127,.12); color:var(--text)}
+    .content{
+      white-space:pre-wrap;
+      line-height:1.45;
+      font-size:14px;
+    }
+
+    /* markdown-ish */
+    .md h1,.md h2,.md h3{margin:8px 0 6px}
+    .md h1{font-size:18px}
+    .md h2{font-size:16px}
+    .md h3{font-size:14px}
+    .md ul{margin:6px 0 6px 18px}
+    .md code.inline{
+      font-family:var(--mono);
+      background:rgba(127,127,127,.14);
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid var(--border);
+    }
+    .codeblock{
+      margin-top:10px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      overflow:hidden;
+      background:var(--bubble);
+    }
+    .codehead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:8px 10px;
+      border-bottom:1px solid var(--border);
+      font-size:12px;
+      color:var(--muted);
+    }
+    pre{
+      margin:0;
+      padding:12px;
+      overflow:auto;
+      font-family:var(--mono);
+      font-size:12.5px;
+      line-height:1.5;
+    }
+
+    .citations{
+      margin-top:10px;
+      border-top:1px dashed var(--border);
+      padding-top:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .citations .head{
+      display:flex; align-items:center; justify-content:space-between;
+      font-weight:700; color:var(--muted);
+      margin-bottom:6px;
+    }
+    .citations ol{margin:0 0 0 18px; padding:0}
+    .citations li{margin:4px 0}
+
+    .composer{
+      border-top:1px solid var(--border);
+      padding:10px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background:linear-gradient(0deg, var(--surface), var(--surface-2));
+    }
+    .attachbar{
+      display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    }
+    .chip{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      display:flex; gap:8px; align-items:center;
+    }
+    .chip button{
+      border:none; background:transparent; cursor:pointer; color:var(--muted);
+      padding:2px 6px; border-radius:999px;
+    }
+    .chip button:hover{background:rgba(127,127,127,.12)}
+    .row{
+      display:flex;
+      gap:8px;
+      align-items:flex-end;
+    }
+    textarea{
+      flex:1;
+      resize:none;
+      min-height:44px;
+      max-height:160px;
+      padding:12px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      outline:none;
+      background:var(--surface);
+      color:var(--text);
+      line-height:1.35;
+    }
+    textarea:focus{box-shadow:var(--focus); border-color:rgba(37,99,235,.35)}
+    .send{
+      border:1px solid rgba(37,99,235,.35);
+      background:var(--accent);
+      color:white;
+      border-radius:14px;
+      padding:12px 14px;
+      cursor:pointer;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .send:disabled{opacity:.6; cursor:not-allowed}
+    .minirow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .minirow .left{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+    .ghost{
+      border:1px solid var(--border);
+      background:var(--surface);
+      color:var(--text);
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:650;
+    }
+
+    /* RIGHT PANEL / CANVAS */
+    .canvas{
+      min-width:0;
+    }
+    .canvas.hidden{display:none}
+    .canvas-head{
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+    }
+    .canvas-title{font-weight:750}
+    .canvas-body{
+      flex:1;
+      min-height:0;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .codebox{
+      flex:1;
+      min-height:0;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:var(--bubble);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .codebox .bar{
+      padding:8px 10px;
+      border-bottom:1px solid var(--border);
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .codebox textarea{
+      border:none;
+      border-radius:0;
+      flex:1;
+      min-height:0;
+      background:transparent;
+      font-family:var(--mono);
+      font-size:12.5px;
+      padding:12px;
+      outline:none;
+    }
+    .canvas-foot{
+      display:flex; gap:8px;
+    }
+
+    /* TOASTS */
+    .toasts{
+      position:fixed;
+      right:14px;
+      bottom:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      z-index:100;
+      pointer-events:none;
+    }
+    .toast{
+      pointer-events:auto;
+      width:min(360px, calc(100vw - 28px));
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .toast .msg{font-size:13px; color:var(--text)}
+    .toast .x{
+      border:none; background:transparent; cursor:pointer; color:var(--muted);
+      padding:4px 8px; border-radius:10px;
+    }
+    .toast .x:hover{background:rgba(127,127,127,.12)}
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(127,127,127,.08);
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    /* MODALS */
+    .backdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.35);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:120;
+      padding:16px;
+    }
+    .backdrop.open{display:flex}
+    .modal{
+      width:min(860px, 100%);
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .modal-head{
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+    }
+    .modal-body{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:var(--surface);
+      padding:12px;
+    }
+    .card h3{margin:0 0 8px; font-size:14px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+    .field label{font-size:12px; color:var(--muted); font-weight:700}
+    .field input,.field select{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 10px;
+      background:var(--surface);
+      color:var(--text);
+      outline:none;
+    }
+    .field input:focus,.field select:focus{box-shadow:var(--focus); border-color:rgba(37,99,235,.35)}
+    .modal-foot{
+      padding:12px 14px;
+      border-top:1px solid var(--border);
+      display:flex; gap:8px; justify-content:flex-end;
+      background:linear-gradient(0deg, var(--surface), var(--surface-2));
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1180px){
+      .app{grid-template-columns: 300px 1fr; }
+      .canvas{display:none}
+    }
+    @media (max-width: 880px){
+      .app{grid-template-columns: 1fr; padding:0; gap:0}
+      .app.canvas-open{grid-template-columns: 1fr;}
+      .sidebar{
+        position:fixed;
+        top:0; left:0; bottom:0;
+        width: 86vw;
+        max-width: 360px;
+        transform:translateX(-105%);
+        transition:transform .18s ease;
+        z-index:130;
+        border-radius:0 18px 18px 0;
+      }
+      .sidebar.open{transform:translateX(0)}
+      .main{border-radius:0}
+      .panel{border-radius:0; border-left:none; border-right:none}
+      .drawer-backdrop{
+        position:fixed; inset:0; background:rgba(0,0,0,.35);
+        display:none; z-index:125;
+      }
+      .drawer-backdrop.open{display:block}
+    }
+  </style>
+</head>
+
+<body>
+  <!-- /index.html → #topbar, #sidebar, #route-outlet, #toasts, #modals mount noktalarını oluştur. -->
+  <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
+
+  <div class="app" id="app">
+    <!-- SOL SIDEBAR -->
+    <aside class="panel sidebar" id="sidebar" aria-label="Kenar çubuğu">
+      <div class="sb-top">
+        <div class="brand" title="CandyGPT">
+          <div class="logo" aria-hidden="true">C</div>
+          <div class="name">CandyGPT</div>
         </div>
-        <div id="model-picker" class="model-picker" aria-expanded="false">
-          <button id="model-picker-trigger" aria-haspopup="listbox" aria-controls="model-picker-list">Model</button>
-          <ul id="model-picker-list" role="listbox" hidden></ul>
-          <small id="model-cost-signal">Maliyet sinyali</small>
+        <button class="iconbtn" id="sidebarToggleBtn" title="Kenar çubuğunu daralt/genişlet" aria-label="Kenar çubuğunu daralt/genişlet">☰</button>
+      </div>
+
+      <div class="sb-body">
+        <button class="primary" id="newChatBtn" aria-label="Yeni Sohbet">＋ Yeni Sohbet</button>
+
+        <div>
+          <div class="section-title">
+            <span>Sohbetler</span>
+            <span class="badge" id="chatCountBadge">0</span>
+          </div>
+
+          <div class="search" role="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="chatSearchInput" type="text" placeholder="Sohbetlerde ara…" aria-label="Sohbetlerde ara" />
+          </div>
         </div>
-        <section id="credits-indicator" aria-label="Credits indicator">
-          <span data-credit="remaining">Remaining: -</span>
-          <span data-credit="appTotals">App total: -</span>
-          <span data-credit="diff">Diff: -</span>
-          <button id="billing-action">Bakiye / Plan</button>
-        </section>
-        <div id="language-switcher" class="language-switcher"></div>
-        <div id="user-menu" class="user-menu" aria-expanded="false"></div>
-      </header>
 
-      <aside id="sidebar" class="sidebar" aria-label="Main sidebar">
-        <nav>
-          <h3>Create</h3>
-          <a href="#/chat" data-route="/chat">Chat</a>
-          <a href="#/video" data-route="/video">Video</a>
+        <div id="pinnedWrap">
+          <div class="section-title">
+            <span>Sabitlenenler</span>
+            <button class="dots" id="clearSearchBtn" title="Aramayı temizle" aria-label="Aramayı temizle">ESC</button>
+          </div>
+          <div class="list" id="pinnedList"></div>
+        </div>
 
-          <h3>Library</h3>
-          <a href="#/history" data-route="/history">History</a>
-          <a href="#/assets" data-route="/assets">Assets</a>
-          <div id="asset-chip-slot" class="chip-slot"></div>
+        <div>
+          <div class="section-title">
+            <span>Geçmiş</span>
+          </div>
+          <div class="list" id="chatList"></div>
+          <div class="card" id="emptyChatsCard" style="display:none;">
+            <div style="font-weight:750; margin-bottom:6px;">Henüz sohbet yok.</div>
+            <div style="color:var(--muted); font-size:13px;">‘Yeni Sohbet’ ile başla.</div>
+          </div>
+        </div>
 
-          <h3>Manage</h3>
-          <a href="#/models" data-route="/models">Models</a>
-          <a href="#/usage" data-route="/usage">Usage & Credits</a>
-          <a href="#/billing" data-route="/billing">Billing</a>
+        <div>
+          <div class="section-title"><span>Projeler</span></div>
+          <div class="pillrow">
+            <button class="pill" id="projectsBtn" aria-label="Projeler">Projeler</button>
+            <button class="pill" id="deepResearchToggle" aria-pressed="false" aria-label="Derin Araştırma">Derin Araştırma</button>
+          </div>
+        </div>
+      </div>
 
-          <h3>Settings</h3>
-          <a href="#/admin" id="admin-nav-link" data-route="/admin">Admin</a>
-        </nav>
-      </aside>
+      <div class="sb-footer">
+        <div class="userbox" title="Kullanıcı">
+          <div class="avatar" id="avatar">S</div>
+          <div class="username" id="username">salih celebi</div>
+        </div>
 
-      <main id="main" class="main">
-        <section id="page-header" class="page-header"></section>
-        <section id="status-bar" class="status-bar" aria-live="polite"></section>
-        <section id="route-outlet" class="route-outlet"></section>
-        <section id="global-empty-state" class="empty-state" hidden></section>
-        <section id="global-loader" class="global-loader" hidden>Yükleniyor...</section>
-      </main>
+        <div class="usermenu">
+          <button class="iconbtn" id="userMenuBtn" aria-label="Hesap menüsü">⋯</button>
+          <div class="menu" id="userMenu" role="menu" aria-label="Hesap menüsü">
+            <button data-action="settings">Ayarlar</button>
+            <button data-action="usage">Kullanım ve Maliyet</button>
+            <button data-action="billing">Ödeme Ayarları</button>
+            <button data-action="logout">Çıkış</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ORTA PANEL -->
+    <main class="panel main" aria-label="Ana alan">
+      <div class="topbar" id="topbar">
+        <div class="tabs" role="navigation" aria-label="Mod sekmeleri">
+          <button class="tab" data-route="chat" aria-current="page">Chat</button>
+          <button class="tab" data-route="video">Video</button>
+          <button class="tab" data-route="gorsel">Görsel</button>
+          <button class="tab" data-route="ses">Ses</button>
+          <button class="tab" data-route="dublaj">Dublaj</button>
+          <button class="tab" data-route="kodlama">Kodlama</button>
+        </div>
+
+        <div class="actions">
+          <select class="select" id="modelPicker" aria-label="Model Seç">
+            <option value="">Model Seç</option>
+          </select>
+
+          <button class="iconbtn" id="toolsBtn" aria-label="Araçlar menüsü">GPT Tools ▾</button>
+
+          <button class="toggle" id="tempChatToggle" aria-pressed="false" aria-label="Geçici Sohbet">
+            <span class="switch" aria-hidden="true"></span>
+            <span>Geçici Sohbet</span>
+          </button>
+
+          <button class="iconbtn" id="mobileDrawerBtn" aria-label="Menüyü aç">☰</button>
+        </div>
+      </div>
+
+      <div class="statusline" id="statusLine" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="statusText">Hazır.</span>
+      </div>
+
+      <section class="route" id="routeOutlet" aria-label="Sayfa içeriği">
+        <!-- Router burayı doldurur -->
+      </section>
+
+      <!-- Chat composer sadece chat rotasında görünür (JS yönetir) -->
+      <div class="composer" id="composer" style="display:none;">
+        <div class="attachbar" id="attachBar"></div>
+
+        <div class="minirow">
+          <div class="left">
+            <label class="ghost" for="fileInput" style="cursor:pointer;">
+              Dosya Ekle
+            </label>
+            <input id="fileInput" type="file" multiple style="display:none"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.mp3,.wav,.mp4,.txt,.md" />
+            <button class="ghost" id="voiceModeBtn" aria-label="Sesli Mod">Sesli Mod</button>
+            <span class="badge" id="memoryBadge">Hafıza Kapalı</span>
+          </div>
+          <div class="right">
+            <span id="charCount">0</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <textarea id="messageInput" placeholder="Mesaj yaz…" aria-label="Mesaj yaz"></textarea>
+          <button class="send" id="sendBtn" aria-label="Gönder">Gönder ⮞</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- SAĞ PANEL / CANVAS (Kod Düzenleyici) -->
+    <aside class="panel canvas" id="canvasPanel" aria-label="Kod düzenleyici">
+      <div class="canvas-head">
+        <div class="canvas-title">Kod Düzenleyici</div>
+        <div style="display:flex; gap:8px;">
+          <button class="iconbtn" id="canvasMoreBtn" aria-label="Diğer seçenekler">⋯</button>
+          <button class="iconbtn" id="canvasCloseBtn" aria-label="Paneli kapat">✕</button>
+        </div>
+      </div>
+
+      <div class="canvas-body">
+        <div class="codebox">
+          <div class="bar">
+            <span id="canvasLang">python</span>
+            <button class="ghost" id="copyCanvasBtn">Kopyala</button>
+          </div>
+          <textarea id="canvasEditor" spellcheck="false">
+def merhaba_dünya():
+    print("Merhaba, Dünya!")
+          </textarea>
+        </div>
+
+        <div class="canvas-foot">
+          <button class="ghost" id="setLangPython">python</button>
+          <button class="ghost" id="setLangJS">javascript</button>
+          <button class="ghost" id="setLangTXT">metin</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modals mount point -->
+  <div id="modals">
+    <!-- Tools Menu (Popover) -->
+    <div class="backdrop" id="toolsBackdrop" aria-hidden="true">
+      <div class="modal" role="dialog" aria-label="Araçlar">
+        <div class="modal-head">
+          <div style="font-weight:800;">Araçlar aktifleştirildi.</div>
+          <button class="iconbtn" id="closeToolsBtn" aria-label="Kapat">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="card">
+            <h3>Kullanılabilir Araçlar:</h3>
+            <div class="field">
+              <label><input type="checkbox" data-tool="web" /> Web Araması</label>
+              <label><input type="checkbox" data-tool="files" /> Dosya/Knowledge Araması</label>
+              <label><input type="checkbox" data-tool="image" /> Görsel Üretimi</label>
+              <label><input type="checkbox" data-tool="video" /> Video Üretimi</label>
+              <label><input type="checkbox" data-tool="tts" /> Ses Üretimi</label>
+              <label><input type="checkbox" data-tool="dubbing" /> Dublaj</label>
+              <label><input type="checkbox" data-tool="coding" /> Kodlama</label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Durum</h3>
+            <div style="color:var(--muted); font-size:13px; line-height:1.45;">
+              İhtiyacınız olan fonksiyonları seçebilirsiniz.<br />
+              Seçimler sohbet bazında kaydedilir.
+            </div>
+
+            <div class="field">
+              <label>Hızlı Model Seçim (5’li)</label>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button class="pill" data-featured="mistralai/mistral-small-3.2-24b-instruct">Mistral Small</button>
+                <button class="pill" data-featured="google/gemma-2-27b-it">Gemma 2</button>
+                <button class="pill" data-featured="openai/gpt-5.1">GPT-5.1</button>
+                <button class="pill" data-featured="x-ai/grok-4">Grok-4</button>
+                <button class="pill" data-featured="openai/gpt-5.2-pro">GPT-5.2 Pro</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Hafıza</label>
+              <button class="toggle" id="memoryToggle" aria-pressed="false" aria-label="Hafıza Açık/Kapalı" style="width:fit-content;">
+                <span class="switch" aria-hidden="true"></span>
+                <span id="memoryToggleText">Hafıza Kapalı</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-foot">
+          <button class="ghost" id="toolsDoneBtn">Tamam</button>
+        </div>
+      </div>
     </div>
 
     <div id="toasts" class="toasts" aria-live="polite"></div>
@@ -70,8 +971,2148 @@
       <section id="error-modal" role="dialog" aria-modal="true" hidden></section>
       <section id="paywall-modal" role="dialog" aria-modal="true" hidden></section>
     </div>
+  </div>
 
-    <!-- Gereksinim B1: inline script yok, tek giriş /src/app.js -->
-    <script type="module" src="/src/app.js"></script>
-  </body>
+  <!-- Toast Host -->
+  <div class="toasts" id="toasts" aria-live="polite" aria-relevant="additions"></div>
+
+  <script>
+    /**********************************************************************
+     *  PUTER.JS + “GPT WEB ARAYÜZÜ” BİREBİR UI SPEC - TEK DOSYA DEMO
+     *  - %100 Türkçe metinler
+     *  - 3 panel: Sidebar + Chat + (opsiyonel) Canvas
+     *  - Araçlar (Tools) çoklu seçim
+     *  - Model listesi dinamik: puter.ai.listModels()
+     *  - 5’li hızlı seçim üstte
+     *  - Streaming hissi (chunk)
+     **********************************************************************/
+
+    /**********************************************************************
+     *  REFERANS “PROJE DOSYA HARİTASI” NOTLARI (EMİR KİPİNDE AÇIKLAMA)
+     *
+     *  1) DİL ZORUNLULUĞU (TR %100)
+     *  - /src/services/translationService.js → t(key, params), setLanguage(lang), getLanguage() KUR.
+     *  - /src/app.js → initTranslation() / applyLanguageToUI() YAP ve başlangıçta TR SEÇ.
+     *  - /src/ui/* → labelKey KULLAN ve metni translationService’ten ÇEK.
+     *
+     *  2) GPT WEB GÖRÜNÜMÜ (MINIMAL / STUDIO HİSSİ)
+     *  - /src/styles/global.css → tokenlar (bg/surface/text/border), radius, spacing, responsive KUR.
+     *  - /src/ui/components/* → Card/Panel/Divider/Skeleton STILLERİ EKLE.
+     *  - /src/app.js → “tek panel hissi” VER: sadece route-outlet DEĞİŞSİN, shell SABİT KALSIN.
+     *
+     *  3) 3 PANELLİ KABUK (SIDEBAR + CHAT + OPS. CANVAS)
+     *  - /index.html → #topbar, #sidebar, #route-outlet, #toasts, #modals mount NOKTALARINI OLUŞTUR.
+     *  - /src/app.js → mountShell(els) / initLayout(els) ile container’ları BAĞLA.
+     *  - /src/router.js → renderCurrentRoute(els) ile sadece #route-outlet İÇİNİ DEĞİŞTİR.
+     *
+     *  4) MOD SEKME MANTIĞI (CHAT/VIDEO/IMAGE/TTS/DUBBING/CODING)
+     *  - /src/router.js → registerRoutes(), getCurrentRoute(), renderCurrentRoute() YAZ.
+     *  - /src/app.js → ModeSwitch click handler + hashchange listener BAĞLA.
+     *  - /src/pages/* → ChatPage/VideoPage/HistoryPage/BillingPage/AdminPage render(entry) UYGULA.
+     *
+     *  5) MODEL LİSTESİ DİNAMİK + “HIZLI SEÇİM 5’Lİ”
+     *  - /src/services/aiService.js → listModels(), cacheModels(), filterByMode() YAP.
+     *  - /src/app.js → setupModelPicker() + mode değişince refreshModelPicker() ÇALIŞTIR.
+     *  - /src/ui/components/modelPicker.js → featuredModels (5’li) + allModels listesi ÇİZ.
+     *
+     *  6) TOOL MENÜSÜ (WEB/DOSYA/IMAGE/VIDEO/TTS/DUBBING/CODING)
+     *  - /src/store/slices/appSlice.js → toolsEnabled state + setToolEnabled(action) TUT.
+     *  - /src/app.js → Tools menu UI binding KUR (checkbox change → dispatch).
+     *  - /src/pages/ChatPage.js → tools state’ini chatService çağrısına options.tools OLARAK EKLE.
+     *
+     *  7) DEEP RESEARCH (AÇIKKEN KAYNAKLI ÇIKTI)
+     *  - /src/store/slices/appSlice.js → deepResearchEnabled toggle EKLE.
+     *  - /src/pages/ChatPage.js → açıksa “web_search tool” OPSİYONLARINI AÇ.
+     *  - /src/ui/components/CitationList.js → kaynakları numaralı LİSTELE + expand EKLE.
+     *
+     *  8) CHAT AKIŞI (AUTO SCROLL + AKIŞ HİSSİ)
+     *  - /src/pages/ChatPage.js → renderMessages(), scrollToBottom(), observeNewMessage() YAP.
+     *  - /src/store/slices/chatSlice.js → messagesByThread, appendMessage(), setActiveThread() TUT.
+     *  - /src/ui/components/ChatView.js → akışı DOM’da YÖNET.
+     *
+     *  9) STREAMING ZORUNLU (PARÇA PARÇA YAZI)
+     *  - /src/services/generation/chatService.js → streamMessage({onChunk,onDone,signal}) YAZ.
+     *  - /src/store/slices/chatSlice.js → appendStreamChunk(), finishStream(), setStreaming(true/false) EKLE.
+     *  - /src/pages/ChatPage.js → streaming sırasında “cursor/typing” UI GÖSTER.
+     *
+     *  10) MESAJ STİLİ + HOVER TOOLBAR
+     *  - /src/ui/components/MessageBubble.js → role’a göre stil (user/assistant) UYGULA.
+     *  - /src/ui/components/MessageToolbar.js → copy/like/dislike/report/retry handler’larını BAĞLA.
+     *  - /src/pages/ChatPage.js → retry handler → chatService’i TEKRAR ÇAĞIR ve aynı thread’e EKLE.
+     *
+     *  11) MARKDOWN + KOD BLOKLARI
+     *  - /src/ui/components/MarkdownRenderer.js → markdown parse/render EKLE.
+     *  - /src/ui/components/CodeBlock.js → language badge + copy button + overflow-x UYGULA.
+     *  - /src/pages/ChatPage.js → asistan içeriğini renderer’a GÖNDER.
+     *
+     *  12) COMPOSER KURALI (ENTER / SHIFT+ENTER + DOSYA CHIP)
+     *  - /src/ui/components/Composer.js → keydown handler YAZ (Enter gönder, Shift+Enter newline).
+     *  - /src/ui/components/FileAttachBar.js → chip render + remove(x) EKLE.
+     *  - /src/store/slices/chatSlice.js → attachments state + addAttachment/removeAttachment EKLE.
+     *
+     *  13) MULTIMODAL (GÖRSEL ANALİZ + OCR)
+     *  - /src/services/generation/imageService.js → analyzeImage(img), ocrImage(img) / img2txt() YAZ.
+     *  - /src/pages/ChatPage.js → görsel eklenince “Görsel analizi” tool akışını BAŞLAT.
+     *  - /src/ui/components/AttachmentPreview.js → “Metin çıkar (OCR)” butonu EKLE.
+     *
+     *  14) SESLİ MOD (STT → CHAT → TTS)
+     *  - /src/services/generation/ttsService.js → txt2speech(text, options) YAZ.
+     *  - /src/services/generation/ttsService.js → speech2txt(audio) (STT) EKLE.
+     *  - /src/pages/ChatPage.js → voiceMode pipeline state: listening/transcribing/speaking YÖNET.
+     *
+     *  15) VİDEO ÜRETİM SAYFASI
+     *  - /src/services/generation/videoService.js → createJob(), pollJob(), cancelJob(), retryJob() KUR.
+     *  - /src/store/slices/videoSlice.js → jobs[], setProgress(), setStatus(), setResult() TUT.
+     *  - /src/pages/VideoPage.js → prompt → job başlat → progress UI → player/galler ÇİZ.
+     *
+     *  16) GÖRSEL ÜRETİM SAYFASI
+     *  - /src/services/generation/imageService.js → txt2img(prompt, options), img2img(...) KUR.
+     *  - /src/store/slices/imageSlice.js → images[], status TUT.
+     *  - /src/pages/ImagePage.js → sonuç grid + zoom modal UYGULA.
+     *
+     *  17) SES ÜRETİM SAYFASI
+     *  - /src/services/generation/ttsService.js → txt2speech() ÇALIŞTIR.
+     *  - /src/pages/TtsPage.js → metin alanı + oluştur + AudioPlayer ÇİZ.
+     *  - /src/ui/components/AudioPlayer.js → play/pause + timeline EKLE.
+     *
+     *  18) DUBLAJ (SPEECH2SPEECH)
+     *  - /src/services/dubbingService.js → speech2speech() EKLE.
+     *  - /src/pages/DubbingPage.js → upload audio + voice seç + convert AKIŞI KUR.
+     *
+     *  19) CODING MODU (CANVAS PANEL)
+     *  - /src/store/slices/appSlice.js → codingModeEnabled state EKLE.
+     *  - /src/pages/ChatPage.js → coding açıkken sağ paneli AÇ.
+     *  - /src/ui/components/CanvasPanel.js → kod/doküman editörü + kopyala EKLE.
+     *
+     *  20) SIDEBAR (YENİ SOHBET + LİSTE + ARAMA + 3 NOKTA MENÜ)
+     *  - /src/ui/shell/Sidebar.js → renderSidebar(), bindSidebarEvents() YAZ.
+     *  - /src/store/slices/chatSlice.js → newThread(), renameThread(), pinThread(), archiveThread(), deleteThread() EKLE.
+     *  - /src/ui/components/ContextMenu.js → üç nokta menüsü aksiyonları BAĞLA.
+     *
+     *  21) PROJELER
+     *  - /src/store/slices/appSlice.js → currentProjectId, setProject() UYGULA.
+     *  - /src/pages/HistoryPage.js → project filter ile listeyi DARALT.
+     *  - /src/ui/components/ProjectSwitcher.js → proje kartları + seçici ÇİZ.
+     *
+     *  22) HESAP MENÜSÜ
+     *  - /src/ui/shell/TopBar.js → UserMenu render + click handler’larını BAĞLA.
+     *  - /src/services/puterAuth.js → signOut(), getCurrentUser(), restoreSession() EKLE.
+     *  - /src/router.js → /billing, /settings yönlendirmesi YAP.
+     *
+     *  23) DURUM ETİKETLERİ
+     *  - /src/store/slices/appSlice.js → globalStatus state TUT.
+     *  - /src/pages/* → işlem başlatınca setStatus(), bitince clearStatus() ÇAĞIR.
+     *  - /src/ui/components/StatusLine.js → status’u TopBar/Composer altında GÖSTER.
+     *
+     *  24) HATA/BOŞ/YÜKLENİYOR
+     *  - /src/ui/components/ToastHost.js → showToast(type, messageKey) UYGULA.
+     *  - /src/ui/components/ModalHost.js → showErrorDetails(payload), showPaywall() EKLE.
+     *  - /src/app.js → global error capture + network timeout handler KUR.
+     *
+     *  25) RESPONSIVE + ERİŞİLEBİLİRLİK
+     *  - /src/styles/global.css → mobile drawer + composer sticky UYGULA.
+     *  - /src/app.js → Ctrl/⌘+K palette + Esc close + kısayolları BAĞLA.
+     *  - /src/ui/components/* → aria-* + focus ring + keyboard nav EKLE.
+     **********************************************************************/
+
+    /* ----------------------------- Basit Store ----------------------------- */
+    const LS_KEY = "candygpt_ui_state_v1";
+
+    const DEFAULT_FEATURED_MODELS = [
+      "mistralai/mistral-small-3.2-24b-instruct",
+      "google/gemma-2-27b-it",
+      "openai/gpt-5.1",
+      "x-ai/grok-4",
+      "openai/gpt-5.2-pro",
+    ];
+
+    // Gereksinim-9: kame-ui.js ile birebir model havuz kimliklerini sabit tut.
+    const KAME_MODEL_GROUPS = {
+      M0: ["openai/gpt-4.1-nano", "openai/gpt-4o-mini", "mistralai/mistral-small-24b-instruct-2501"],
+      Mmid: ["openai/gpt-4.1-mini", "mistralai/mistral-small-3.2-24b-instruct"],
+      M1: ["deepseek/deepseek-reasoner", "deepseek/deepseek-r1", "x-ai/grok-4"],
+      Mcode: ["openai/gpt-5.1-codex-mini", "openai/gpt-5.1-codex-max"],
+    };
+
+    // DELİL-TEMA-1: Model provider değişince kurumsal renge geçişi tek noktadan yönet.
+    const PROVIDER_BRAND_THEME = {
+      openai: { accent: "#10a37f", surface2: "#eaf9f5" },
+      anthropic: { accent: "#d97706", surface2: "#fff6e8" },
+      google: { accent: "#1a73e8", surface2: "#edf4ff" },
+      x: { accent: "#111827", surface2: "#f3f4f6" },
+      "x-ai": { accent: "#111827", surface2: "#f3f4f6" },
+      mistralai: { accent: "#ff6a00", surface2: "#fff3eb" },
+      deepseek: { accent: "#2563eb", surface2: "#edf3ff" },
+      meta: { accent: "#0866ff", surface2: "#eef4ff" },
+      default: { accent: "#2563eb", surface2: "#f0f2f5" },
+    };
+
+    const DEFAULT_TOOLS = {
+      web: false,
+      files: false,
+      image: false,
+      video: false,
+      tts: false,
+      dubbing: false,
+      coding: false,
+    };
+
+    const state = loadState();
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(raw){
+          const s = JSON.parse(raw);
+          return {
+            ui: {
+              theme: s.ui?.theme ?? "light",
+              accent: s.ui?.accent ?? "#2563eb",
+              font: s.ui?.font ?? "medium",
+              tempChat: !!s.ui?.tempChat,
+              memory: !!s.ui?.memory,
+              deepResearch: !!s.ui?.deepResearch,
+              saveHistory: s.ui?.saveHistory ?? true,
+              telemetry: !!s.ui?.telemetry,
+              includeFiles: !!s.ui?.includeFiles,
+              canvasOpen: s.ui?.canvasOpen ?? true,
+              sidebarMode: s.ui?.sidebarMode || "chat",
+              draftsByRoute: s.ui?.draftsByRoute || {},
+            },
+            activeRoute: s.activeRoute ?? "chat",
+            activeThreadId: s.activeThreadId ?? null,
+            threads: Array.isArray(s.threads) ? s.threads : [],
+            model: s.model ?? "",
+            toolsByThread: s.toolsByThread ?? {},
+            attachmentsByThread: s.attachmentsByThread ?? {},
+            modelCache: s.modelCache ?? { updatedAt: 0, items: [] },
+            votes: s.votes ?? {}, // messageId -> like/dislike
+          };
+        }
+      }catch(_){}
+      return {
+        ui: {
+          theme: "light",
+          accent: "#2563eb",
+          font: "medium",
+          tempChat: false,
+          memory: false,
+          deepResearch: false,
+          saveHistory: true,
+          telemetry: false,
+          includeFiles: false,
+          canvasOpen: true,
+          sidebarMode: "chat",
+          draftsByRoute: {},
+        },
+        activeRoute: "chat",
+        activeThreadId: null,
+        threads: [],
+        model: "",
+        toolsByThread: {},
+        attachmentsByThread: {},
+        modelCache: { updatedAt: 0, items: [] },
+        votes: {},
+      };
+    }
+
+    function persist(){
+      if(!state.ui.saveHistory) return; // “Kapatılırsa: sadece runtime çalışır, kalıcı kayıt yok”
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    }
+
+    /* ----------------------------- DOM Helpers ----------------------------- */
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const el = (tag, props={}, children=[]) => {
+      const n = document.createElement(tag);
+      for(const [k,v] of Object.entries(props)){
+        if(k === "class") n.className = v;
+        else if(k === "html") n.innerHTML = v;
+        else if(k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2).toLowerCase(), v);
+        else if(v !== undefined && v !== null) n.setAttribute(k, v);
+      }
+      for(const c of children){
+        if(typeof c === "string") n.appendChild(document.createTextNode(c));
+        else if(c) n.appendChild(c);
+      }
+      return n;
+    };
+
+    function escapeHTML(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function nowTs(){ return Date.now(); }
+    function uid(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
+
+    function safeBind(selector, eventName, handler, { required=false } = {}){
+      const node = $(selector);
+      if(!node){
+        if(required) console.warn(`[UI-BIND-MISS] ${selector} bulunamadı.`);
+        return null;
+      }
+      node.addEventListener(eventName, handler);
+      return node;
+    }
+
+    function runUISelfTest(){
+      const requiredIds = [
+        "#app", "#sidebar", "#chatPane", "#messageInput", "#sendBtn", "#modelPicker", "#routeTabs", "#canvasPanel"
+      ];
+      const missing = requiredIds.filter(sel => !$(sel));
+      if(missing.length){
+        console.warn("[UI-SELF-TEST] Eksik kritik elemanlar:", missing);
+        toast("error", `Arayüzde eksik parça var: ${missing.join(', ')}`);
+      }
+    }
+
+    function syncCanvasLayout(){
+      const open = !!state.ui.canvasOpen;
+      $("#app")?.classList.toggle("canvas-open", open);
+      $("#canvasPanel")?.classList.toggle("hidden", !open);
+    }
+
+    function relativeTime(ts){
+      const diff = Date.now() - ts;
+      const s = Math.floor(diff/1000);
+      if(s < 60) return s + "s";
+      const m = Math.floor(s/60);
+      if(m < 60) return m + "d";
+      const h = Math.floor(m/60);
+      if(h < 24) return h + "s";
+      const d = Math.floor(h/24);
+      if(d === 1) return "Dün";
+      return d + "g";
+    }
+
+    function setStatus(text){
+      const line = $("#statusLine");
+      const label = $("#statusText");
+      label.textContent = text;
+      line.classList.add("show");
+    }
+    function clearStatus(){
+      $("#statusLine").classList.remove("show");
+    }
+
+    function toast(type, message){
+      const host = $("#toasts");
+      const t = el("div", { class:"toast", role:"status" }, [
+        el("div", { class:"msg" }, [ message ]),
+        el("button", { class:"x", "aria-label":"Kapat", onclick: () => t.remove() }, ["✕"])
+      ]);
+      if(type === "error") t.style.borderColor = "rgba(239,68,68,.35)";
+      if(type === "ok") t.style.borderColor = "rgba(22,163,74,.35)";
+      host.appendChild(t);
+      setTimeout(()=>{ if(t.isConnected) t.remove(); }, 5200);
+    }
+
+    /* ----------------------------- UI Apply ----------------------------- */
+    function applyTheme(){
+      document.documentElement.dataset.theme = state.ui.theme === "dark" ? "dark" : "light";
+      document.documentElement.style.setProperty("--accent", state.ui.accent);
+
+      const base = (state.ui.font === "small") ? "13px" : (state.ui.font === "large" ? "15.5px" : "14px");
+      document.body.style.fontSize = base;
+
+      $("#tempChatToggle").setAttribute("aria-pressed", String(!!state.ui.tempChat));
+      $("#deepResearchToggle").setAttribute("aria-pressed", String(!!state.ui.deepResearch));
+      $("#memoryToggle").setAttribute("aria-pressed", String(!!state.ui.memory));
+      $("#memoryToggleText").textContent = state.ui.memory ? "Hafıza Açık" : "Hafıza Kapalı";
+      $("#memoryBadge").textContent = state.ui.memory ? "Hafıza Açık" : "Hafıza Kapalı";
+      $("#saveHistoryToggle").setAttribute("aria-pressed", String(!!state.ui.saveHistory));
+      $("#telemetryToggle").setAttribute("aria-pressed", String(!!state.ui.telemetry));
+      $("#includeFilesToggle").setAttribute("aria-pressed", String(!!state.ui.includeFiles));
+
+      // Canvas panel davranışı
+      syncCanvasLayout();
+    }
+
+    /* ----------------------------- Threads CRUD ----------------------------- */
+    function newThread(){
+      const id = uid("thread");
+      const thread = {
+        id,
+        title: "Yeni Sohbet",
+        createdAt: nowTs(),
+        updatedAt: nowTs(),
+        pinned: false,
+        archived: false,
+        messages: [],
+        model: state.model || "",
+        temp: !!state.ui.tempChat, // “Geçici Sohbet”
+      };
+      state.threads.unshift(thread);
+      state.activeThreadId = id;
+
+      // Sohbet bazında araçları başlat
+      if(!state.toolsByThread[id]) state.toolsByThread[id] = { ...DEFAULT_TOOLS };
+      if(!state.attachmentsByThread[id]) state.attachmentsByThread[id] = [];
+
+      persist();
+      renderAll();
+      focusComposer();
+      return thread;
+    }
+
+    function getActiveThread(){
+      return state.threads.find(t => t.id === state.activeThreadId) || null;
+    }
+
+    function ensureThread(){
+      let t = getActiveThread();
+      if(!t) t = newThread();
+      return t;
+    }
+
+    function renameThread(threadId, title){
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+      t.title = (title || "Yeni Sohbet").trim().slice(0, 60) || "Yeni Sohbet";
+      t.updatedAt = nowTs();
+      persist();
+      renderSidebar();
+    }
+
+    function pinThread(threadId, pinned){
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+      t.pinned = pinned;
+      t.updatedAt = nowTs();
+      persist();
+      renderSidebar();
+    }
+
+    function archiveThread(threadId, archived){
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+      t.archived = archived;
+      t.updatedAt = nowTs();
+      persist();
+      renderSidebar();
+    }
+
+    function deleteThread(threadId){
+      const idx = state.threads.findIndex(x => x.id === threadId);
+      if(idx < 0) return;
+      const wasActive = state.activeThreadId === threadId;
+      state.threads.splice(idx,1);
+      delete state.toolsByThread[threadId];
+      delete state.attachmentsByThread[threadId];
+      if(wasActive) state.activeThreadId = state.threads[0]?.id ?? null;
+      persist();
+      renderAll();
+    }
+
+    /* ----------------------------- Tools / Model Picker ----------------------------- */
+    function getToolsForThread(threadId){
+      if(!state.toolsByThread[threadId]) state.toolsByThread[threadId] = { ...DEFAULT_TOOLS };
+      return state.toolsByThread[threadId];
+    }
+
+    function setTool(threadId, toolKey, enabled){
+      const tools = getToolsForThread(threadId);
+      tools[toolKey] = !!enabled;
+      persist();
+    }
+
+    function shouldShowCanvas(){
+      const thread = getActiveThread();
+      if(!thread) return false;
+      const tools = getToolsForThread(thread.id);
+      const route = getRoute();
+      return route === "kodlama" || !!tools.coding;
+    }
+
+    function applyProviderTheme(modelId){
+      // DELİL-TEMA-2: index.css + CSS variable ile tema uygulaması (minimum müdahale).
+      const provider = String(modelId || state.model || "").split("/")[0].toLowerCase();
+      const key = provider === "x-ai" ? "x-ai" : (provider || "default");
+      const theme = PROVIDER_BRAND_THEME[key] || PROVIDER_BRAND_THEME.default;
+      document.body.dataset.provider = key;
+      document.documentElement.style.setProperty("--accent", theme.accent);
+      document.documentElement.style.setProperty("--surface-2", theme.surface2);
+    }
+
+    function detectModeFromText(userText, route){
+      // Gereksinim-5.3: mode tespitini kullanıcı isteği + rota ile tek fonksiyonda yap.
+      const t = String(userText || "").toLowerCase();
+      if(route === "video" || t.includes("video")) return "video";
+      if(route === "gorsel" || t.includes("görsel") || t.includes("image") || t.includes("resim")) return "image";
+      if(route === "ses" || t.includes("tts") || t.includes("ses üret")) return "tts";
+      if(t.includes("stt") || t.includes("transcribe") || t.includes("ses yazıya")) return "stt";
+      if(route === "dublaj" || t.includes("dublaj") || t.includes("speech2speech")) return "dubbing";
+      if(route === "kodlama" || t.includes("kod") || t.includes("refactor") || t.includes("debug")) return "code";
+      return "chat";
+    }
+
+    function computeRiskScore(userText){
+      // Gereksinim-2.3: risk ∈ [0,1] skorunu zorunlu metrik olarak üret.
+      const t = String(userText || "");
+      const W = t.trim().split(/\s+/).filter(Boolean).length;
+      let risk = 0.20;
+      if(W > 100) risk += 0.20;
+      if(/(stack trace|exception|error|bug|refactor|hata|debug|trace)/i.test(t)) risk += 0.20;
+      if(/(adım|kural|zorunlu|mutlaka|şart|constraint|requirements)/i.test(t)) risk += 0.20;
+      if(/(ödeme|para|fatura|hukuk|güvenlik|security|kvkk|gdpr|pii)/i.test(t)) risk += 0.20;
+      return Math.max(0, Math.min(1, risk));
+    }
+
+    function computeMemeScore(thread){
+      // Gereksinim-7: teşekkür/oldu/tamam (+), çalışmadı/anlamadım (-), şikayet (-- ) sinyallerini puanlar.
+      const signals = (thread?.messages || []).slice(-8).map(m => String(m.content || "").toLowerCase()).join(" \n ");
+      let delta = 0;
+      if(/(teşekkür|eyvallah|oldu|tamam)/i.test(signals)) delta += 0.25;
+      if(/(devam|sürdür|ekle)/i.test(signals)) delta += 0.10;
+      if(/(çalışmadı|anlamadım|olmadı)/i.test(signals)) delta -= 0.25;
+      if(/(şikayet|berbat|rezalet)/i.test(signals)) delta -= 0.35;
+      return Math.max(0, Math.min(1, 0.50 + delta));
+    }
+
+    function pickFirstAvailable(catalog, ids){
+      // Gereksinim-4: S(model,P)=1 olmayan modeli hiç seçme.
+      for(const id of ids){
+        if(catalog.has(id)) return id;
+      }
+      return null;
+    }
+
+    function selectModelByKameRules({ mode, risk, catalog }){
+      // Gereksinim-5/9: kame-ui.js karar ağacını koruyarak M0/M1 ve mode bazlı seçim yap.
+      if(mode === "chat"){
+        if(risk <= 0.45) return pickFirstAvailable(catalog, KAME_MODEL_GROUPS.M0) || pickFirstAvailable(catalog, KAME_MODEL_GROUPS.Mmid);
+        if(risk <= 0.70) return pickFirstAvailable(catalog, KAME_MODEL_GROUPS.Mmid) || pickFirstAvailable(catalog, KAME_MODEL_GROUPS.M1);
+        return pickFirstAvailable(catalog, KAME_MODEL_GROUPS.M1) || pickFirstAvailable(catalog, KAME_MODEL_GROUPS.Mmid);
+      }
+      if(mode === "code") return risk <= 0.55 ? pickFirstAvailable(catalog, ["openai/gpt-5.1-codex-mini"]) : pickFirstAvailable(catalog, ["openai/gpt-5.1-codex-max"]);
+      if(mode === "video") return risk > 0.70 ? "sora-2-pro" : "sora-2";
+      if(mode === "image") return pickFirstAvailable(catalog, KAME_MODEL_GROUPS.Mmid) || pickFirstAvailable(catalog, KAME_MODEL_GROUPS.M0);
+      if(mode === "tts" || mode === "stt" || mode === "dubbing") return pickFirstAvailable(catalog, KAME_MODEL_GROUPS.M0) || pickFirstAvailable(catalog, KAME_MODEL_GROUPS.Mmid);
+      return pickFirstAvailable(catalog, KAME_MODEL_GROUPS.M0) || pickFirstAvailable(catalog, KAME_MODEL_GROUPS.Mmid);
+    }
+
+    function computeKameSummary({ risk, meme, retryCount }){
+      // Gereksinim-10: KAM/ROI/KAME formüllerini sabit parametrelerle hesapla (UI debug alanı için).
+      const R = 100;
+      const Cost = Number((8 + (risk * 12) + (retryCount * 3)).toFixed(2));
+      const KAM = R - Cost;
+      const ROI = KAM / Math.max(Cost, 0.01);
+      const penalty = (risk > 0.75 ? 0.10 : 0) + (retryCount > 1 ? 0.10 : 0) + (meme < 0.25 ? 0.15 : 0);
+      const norm = 1 / (1 + Math.exp(-(KAM / 25)));
+      const KAME = (0.60 * norm) + ((1 - 0.60) * meme) - penalty;
+      return { R, Cost, KAM, ROI, KAME };
+    }
+
+    async function chooseModelForPrompt({ thread, promptText, retryCount = 0 }){
+      // Gereksinim-4/5/8: paket erişilebilirlik filtresi + max 1 retry için seçimi tek yerden yap.
+      const all = await listModelsSmart();
+      const catalog = {
+        ids: all.map(m => m.id),
+        has: (id) => all.some(m => m.id === id),
+      };
+      const mode = detectModeFromText(promptText, getRoute());
+      const risk = computeRiskScore(promptText);
+      const meme = computeMemeScore(thread);
+      const selected = selectModelByKameRules({ mode, risk, catalog }) || state.model || DEFAULT_FEATURED_MODELS[0];
+      return { mode, risk, meme, selected, kame: computeKameSummary({ risk, meme, retryCount }) };
+    }
+
+    async function listModelsSmart(){
+      // Gereksinim-1: cache akışı korunur, sadece normalize alanları genişletilir.
+      const TTL = 12 * 60 * 60 * 1000;
+      const fresh = (Date.now() - (state.modelCache.updatedAt || 0)) < TTL;
+      if(fresh && Array.isArray(state.modelCache.items) && state.modelCache.items.length) return state.modelCache.items;
+
+      if(!window.puter?.ai?.listModels){
+        // Gereksinim-1: Puter yoksa null-safe fallback döner, UI çökmez.
+        return DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
+      }
+
+      try{
+        setStatus("Model listesi yükleniyor…");
+        const items = await window.puter.ai.listModels();
+        // Gereksinim-1: createdAt/updatedAt/release ve ham fiyat bilgilerini normalize ederek taşır.
+        const normalized = (Array.isArray(items) ? items : [])
+          .map(m => ({
+            id: m.id || m.model || m.name,
+            name: m.name || m.id || m.model,
+            provider: m.provider || (String(m.id || m.model || "").split("/")[0] || "Bilinmeyen"),
+            modes: m.modes || m.capabilities || [],
+            priceRaw: m.price || m.pricing || m.priceHint || null,
+            createdAt: m.createdAt || m.created || m.releaseAt || m.releasedAt || m.date || null,
+            updatedAt: m.updatedAt || m.updated || null,
+          }))
+          .filter(x => x.id);
+
+        state.modelCache = { updatedAt: Date.now(), items: normalized };
+        persist();
+        clearStatus();
+        return normalized.length ? normalized : DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
+      }catch(err){
+        clearStatus();
+        toast("error", "Model listesi alınamadı. Puter bağlantısını kontrol et.");
+        return DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
+      }
+    }
+
+    function filterModelsByRoute(models, route){
+      // Basit yetenek filtresi (varsa). Yoksa olduğu gibi göster.
+      const need = {
+        chat: "text",
+        kodlama: "text",
+        gorsel: "image",
+        video: "video",
+        ses: "tts",
+        dublaj: "speech2speech",
+      }[route] || "text";
+
+      return models.filter(m => {
+        if(!m.modes || !Array.isArray(m.modes) || m.modes.length === 0) return true;
+        const s = m.modes.map(x => String(x).toLowerCase());
+        if(need === "text") return true;
+        return s.some(x => x.includes(need));
+      });
+    }
+
+
+    function parsePriceToNumberUsd(priceRaw){
+      // Gereksinim-2A: string/object fiyatları tek numerik değere indirir, parse edilemezse Infinity döner.
+      if(priceRaw == null) return Infinity;
+      if(typeof priceRaw === "number") return Number.isFinite(priceRaw) ? priceRaw : Infinity;
+      if(typeof priceRaw === "string"){
+        const match = priceRaw.replace(",", ".").match(/\d+(?:\.\d+)?/);
+        return match ? Number(match[0]) : Infinity;
+      }
+      if(typeof priceRaw === "object"){
+        const input = Number(priceRaw.input ?? priceRaw.inputCost ?? priceRaw.prompt ?? NaN);
+        const output = Number(priceRaw.output ?? priceRaw.outputCost ?? priceRaw.completion ?? NaN);
+        if(Number.isFinite(input) && Number.isFinite(output)) return input + output;
+        if(Number.isFinite(input)) return input;
+        if(Number.isFinite(output)) return output;
+      }
+      return Infinity;
+    }
+
+    function parseVersionScore(id){
+      // Gereksinim-2B: model id içindeki sürüm numaralarını karşılaştırılabilir diziye çevirir.
+      const nums = String(id || "").match(/\d+(?:\.\d+)?/g);
+      if(!nums || !nums.length) return null;
+      return nums.flatMap(n => String(n).split(".").map(x => Number(x))).filter(Number.isFinite);
+    }
+
+    function compareVersionScore(a, b){
+      // Gereksinim-2B/C: major/minor/patch mantığıyla dizi karşılaştırması yapar.
+      const len = Math.max(a?.length || 0, b?.length || 0);
+      for(let i=0;i<len;i++){
+        const av = a?.[i] ?? 0;
+        const bv = b?.[i] ?? 0;
+        if(av !== bv) return av - bv;
+      }
+      return 0;
+    }
+
+    function modelOldnessKey(m){
+      // Gereksinim-2C: tarih varsa tarih, yoksa sürüm, o da yoksa id fallback anahtarı üretir.
+      const ts = Date.parse(m.updatedAt || m.createdAt || "");
+      if(Number.isFinite(ts)) return { kind:"time", value:ts };
+      const version = parseVersionScore(m.id);
+      if(version) return { kind:"version", value:version };
+      return { kind:"id", value:String(m.id || "").toLowerCase() };
+    }
+
+    function compareOldness(a, b){
+      // Gereksinim-2C: oldest/newest hesapları için tek karşılaştırma noktası.
+      const ka = modelOldnessKey(a);
+      const kb = modelOldnessKey(b);
+      if(ka.kind === "time" && kb.kind === "time") return ka.value - kb.value;
+      if(ka.kind === "version" && kb.kind === "version") return compareVersionScore(ka.value, kb.value);
+      return String(a.id || "").localeCompare(String(b.id || ""));
+    }
+
+    function pickRepresentative4PerProvider(models){
+      // Gereksinim-2D: provider başına [ESKİ, YENİ, UCUZ, PAHALI] + gerekirse EK ile 4 modele tamamlar.
+      const grouped = models.reduce((acc, m) => {
+        const provider = String(m.provider || "Bilinmeyen");
+        if(!acc[provider]) acc[provider] = [];
+        acc[provider].push(m);
+        return acc;
+      }, {});
+
+      const providerGroups = {};
+      Object.entries(grouped).forEach(([provider, list]) => {
+        const uniq = [];
+        const seen = new Set();
+        const pushTagged = (model, tag) => {
+          if(!model || seen.has(model.id)) return;
+          seen.add(model.id);
+          uniq.push({
+            ...model,
+            tag,
+            priceNum: parsePriceToNumberUsd(model.priceRaw),
+            ageKey: modelOldnessKey(model),
+          });
+        };
+
+        const byOldness = [...list].sort(compareOldness);
+        const byPriceAsc = [...list].sort((a,b) => parsePriceToNumberUsd(a.priceRaw) - parsePriceToNumberUsd(b.priceRaw));
+        const byPriceDesc = [...list].sort((a,b) => {
+          const pa = parsePriceToNumberUsd(a.priceRaw);
+          const pb = parsePriceToNumberUsd(b.priceRaw);
+          const na = Number.isFinite(pa);
+          const nb = Number.isFinite(pb);
+          if(na && !nb) return -1;
+          if(!na && nb) return 1;
+          return pb - pa;
+        });
+
+        pushTagged(byOldness[0], "ESKİ");
+        pushTagged(byOldness[byOldness.length - 1], "YENİ");
+        pushTagged(byPriceAsc[0], "UCUZ");
+        pushTagged(byPriceDesc[0], "PAHALI");
+
+        const fillers = [...list].sort((a,b) => {
+          const priceDiff = parsePriceToNumberUsd(a.priceRaw) - parsePriceToNumberUsd(b.priceRaw);
+          if(priceDiff !== 0) return priceDiff;
+          return compareOldness(b, a);
+        });
+        for(const model of fillers){
+          if(uniq.length >= 4) break;
+          pushTagged(model, "EK");
+        }
+
+        providerGroups[provider] = uniq.slice(0, 4);
+      });
+
+      return providerGroups;
+    }
+
+    async function refreshModelPicker(){
+      const picker = $("#modelPicker");
+      const route = getRoute();
+      const all = await listModelsSmart();
+      const filtered = filterModelsByRoute(all, route);
+
+      const featuredSet = new Set(DEFAULT_FEATURED_MODELS);
+      const featured = filtered.filter(m => featuredSet.has(m.id));
+      const rest = filtered.filter(m => !featuredSet.has(m.id));
+      const groups = pickRepresentative4PerProvider(rest);
+
+      picker.innerHTML = "";
+      picker.appendChild(el("option", { value:"" }, ["Model Seç"]));
+
+      if(featured.length){
+        const og = el("optgroup", { label:"Hızlı Seçim" });
+        featured.forEach(m => og.appendChild(el("option", { value:m.id }, [ m.name ])));
+        picker.appendChild(og);
+      }
+
+      // Gereksinim-3: tüm modeller yerine provider başına en fazla 4 temsil model gösterilir.
+      const providerPriority = ["openai", "google", "anthropic", "mistralai", "x-ai", "deepseek", "meta"];
+      const providers = Object.keys(groups).sort((a, b) => {
+        const ai = providerPriority.indexOf(String(a).toLowerCase());
+        const bi = providerPriority.indexOf(String(b).toLowerCase());
+        if(ai === -1 && bi === -1) return a.localeCompare(b);
+        if(ai === -1) return 1;
+        if(bi === -1) return -1;
+        return ai - bi;
+      });
+
+      providers.forEach(provider => {
+        const items = groups[provider] || [];
+        if(!items.length) return;
+        const og = el("optgroup", { label:`${provider.toUpperCase()} • 4 Model` });
+        items.forEach(m => {
+          const priceText = Number.isFinite(m.priceNum) ? ` (≈$${m.priceNum})` : "";
+          og.appendChild(el("option", { value:m.id }, [ `${m.name} — ${m.tag}${priceText}` ]));
+        });
+        picker.appendChild(og);
+      });
+
+      // Gereksinim-3: aktif model listede yoksa önce featured[0], sonra ilk provider modeli fallback olur.
+      const allOptions = $$("option[value]", picker).map(o => o.value).filter(Boolean);
+      if(state.model && allOptions.includes(state.model)) {
+        picker.value = state.model;
+      } else if(featured[0]?.id) {
+        picker.value = featured[0].id;
+      } else if(providers[0] && groups[providers[0]]?.[0]?.id) {
+        picker.value = groups[providers[0]][0].id;
+      }
+
+      state.model = picker.value || state.model;
+      applyProviderTheme(state.model);
+      persist();
+    }
+
+    /* ----------------------------- Router ----------------------------- */
+    function getRoute(){
+      const h = location.hash.replace("#","").trim();
+      if(!h) return state.activeRoute || "chat";
+      const r = h.split("?")[0].replace("/","").trim();
+      const allowed = new Set(["chat","video","gorsel","ses","dublaj","kodlama","projects"]);
+      return allowed.has(r) ? r : "chat";
+    }
+
+    function saveCurrentDraftByRoute(){
+      // Gereksinim-3.2: mod değişiminde taslak kaybını önlemek için route bazlı taslak sakla.
+      const r = getRoute();
+      const input = $("#messageInput");
+      if(!input) return;
+      state.ui.draftsByRoute[r] = input.value || "";
+    }
+
+    function restoreDraftByRoute(route){
+      // Gereksinim-3.2: seçilen moda ait taslağı geri yükle, yoksa boş bırak.
+      const input = $("#messageInput");
+      if(!input) return;
+      input.value = state.ui.draftsByRoute?.[route] || "";
+      $("#charCount").textContent = String(input.value.length);
+    }
+
+    function enforceToolCompatibilityByRoute(route){
+      // Gereksinim-3.3: modla uyumsuz tool kombinasyonlarını pasifleyip kullanıcıyı bilgilendir.
+      const thread = ensureThread();
+      const tools = getToolsForThread(thread.id);
+      const incompatible = {
+        video: ["tts", "dubbing"],
+        ses: ["video", "image"],
+        gorsel: ["tts", "dubbing"],
+      };
+      const off = (incompatible[route] || []).filter(k => tools[k]);
+      off.forEach(k => tools[k] = false);
+      if(off.length) toast("ok", `Uyumsuz araçlar pasif yapıldı: ${off.join(", ")}`);
+    }
+
+    function applyLayoutMode(){
+      // Gereksinim-1.1: desktop>=1180 üç panel, küçük ekran iki panel+drawer davranışı.
+      const isDesktop = window.innerWidth >= 1180;
+      document.body.dataset.layoutMode = isDesktop ? "desktop" : "compact";
+      if(!isDesktop && getRoute() !== "kodlama"){
+        state.ui.canvasOpen = false;
+      } else if(isDesktop && (getRoute() === "kodlama" || getToolsForThread(ensureThread().id).coding)) {
+        state.ui.canvasOpen = true;
+      }
+      syncCanvasLayout();
+    }
+
+    function setRoute(route){
+      saveCurrentDraftByRoute();
+      enforceToolCompatibilityByRoute(route);
+      location.hash = "#" + route;
+    }
+
+    function renderTabs(){
+      const r = getRoute();
+      $$(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.route === r ? "page" : "false"));
+    }
+
+    function renderRoute(){
+      const outlet = $("#routeOutlet");
+      const r = getRoute();
+      state.activeRoute = r;
+
+      // Composer sadece chat rotasında görünür
+      $("#composer").style.display = (r === "chat") ? "flex" : "none";
+      restoreDraftByRoute(r);
+
+      // Coding: Canvas panel aç
+      state.ui.canvasOpen = shouldShowCanvas();
+      $("#canvasPanel").classList.toggle("hidden", !state.ui.canvasOpen);
+
+      // Route içerikleri
+      outlet.innerHTML = "";
+      if(r === "chat") outlet.appendChild(renderChatPage());
+      else if(r === "video") outlet.appendChild(renderVideoPage());
+      else if(r === "gorsel") outlet.appendChild(renderImagePage());
+      else if(r === "ses") outlet.appendChild(renderTtsPage());
+      else if(r === "dublaj") outlet.appendChild(renderDubbingPage());
+      else if(r === "kodlama") outlet.appendChild(renderCodingPage());
+      else if(r === "projects") outlet.appendChild(renderProjectsPage());
+
+      renderTabs();
+      refreshModelPicker();
+
+      persist();
+    }
+
+    /* ----------------------------- Pages ----------------------------- */
+    function renderChatPage(){
+      const wrap = el("div", { style:"display:flex; flex-direction:column; min-height:0; flex:1;" });
+
+      const view = el("div", { class:"chatview", id:"chatView", "aria-label":"Sohbet akışı" });
+      wrap.appendChild(view);
+
+      renderMessages();
+
+      return wrap;
+    }
+
+    function renderVideoPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Video Üretimi" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
+            "Prompt yaz ve “Üret”e bas. (Demo: gerçek txt2vid çağrısı bağlanabilir.)"
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Prompt"]),
+            el("input", { id:"videoPrompt", placeholder:"Örn: İstanbul’da yağmurlu bir akşam, sinematik…" })
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"videoGenBtn", style:"width:fit-content;" }, ["Üret"]),
+            el("span", { class:"badge", id:"videoStatus" }, ["Hazır"])
+          ]),
+          el("div", { class:"card", id:"videoOut", style:"margin-top:10px; display:none;" }, [])
+        ])
+      ]);
+
+      setTimeout(() => {
+        const btn = $("#videoGenBtn");
+        if(!btn) return;
+        btn.onclick = async () => {
+          const prompt = ($("#videoPrompt")?.value || "").trim();
+          if(!prompt){ toast("error","Prompt boş olamaz."); return; }
+
+          try{
+            $("#videoStatus").textContent = "Üretiliyor…";
+            setStatus("Video üretiliyor…");
+
+            // Gerçek akış için: puter.ai.txt2vid(prompt, options) çağır.
+            if(window.puter?.ai?.txt2vid){
+              const vid = await window.puter.ai.txt2vid(prompt, { model: state.model || undefined });
+              const url = (vid?.url || vid?.src || vid);
+              showVideo(url);
+            }else{
+              // Demo bekleme
+              await new Promise(r => setTimeout(r, 1200));
+              showVideo(null);
+            }
+
+            $("#videoStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(e){
+            clearStatus();
+            $("#videoStatus").textContent = "Hata";
+            toast("error","Video üretimi başarısız.");
+          }
+        };
+
+        function showVideo(url){
+          const out = $("#videoOut");
+          out.style.display = "block";
+          out.innerHTML = "";
+          out.appendChild(el("div", { style:"font-weight:800; margin-bottom:8px;" }, ["Önizleme"]));
+          if(url){
+            const v = el("video", { controls:"true", style:"width:100%; border-radius:14px; border:1px solid var(--border);" });
+            v.src = url;
+            out.appendChild(v);
+          }else{
+            out.appendChild(el("div", { style:"color:var(--muted);" }, [
+              "Demo mod: Puter.js txt2vid bağlı değil. Puter aktifse gerçek video burada oynatılır."
+            ]));
+          }
+        }
+      }, 0);
+
+      return card;
+    }
+
+    function renderImagePage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Görsel Üretimi" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
+            "Prompt yaz ve “Oluştur”a bas. (Demo: gerçek txt2img çağrısı bağlanabilir.)"
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Prompt"]),
+            el("input", { id:"imgPrompt", placeholder:"Örn: Minimal ikon seti, düz renkler…" })
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"imgGenBtn", style:"width:fit-content;" }, ["Oluştur"]),
+            el("button", { class:"ghost", id:"imgReBtn" }, ["Yeniden üret"]),
+            el("span", { class:"badge", id:"imgStatus" }, ["Hazır"])
+          ]),
+          el("div", { id:"imgGrid", style:"margin-top:10px; display:grid; grid-template-columns:repeat(2,1fr); gap:10px;" })
+        ])
+      ]);
+
+      setTimeout(() => {
+        const gen = async () => {
+          const prompt = ($("#imgPrompt")?.value || "").trim();
+          if(!prompt){ toast("error","Prompt boş olamaz."); return; }
+          try{
+            $("#imgStatus").textContent = "Oluşturuluyor…";
+            setStatus("Görsel üretiliyor…");
+
+            if(window.puter?.ai?.txt2img){
+              const res = await window.puter.ai.txt2img(prompt, { model: state.model || undefined });
+              // Puter çıktısı HTMLImageElement olabilir; url da olabilir.
+              addImage(res);
+            }else{
+              await new Promise(r => setTimeout(r, 900));
+              addImage(null);
+            }
+
+            $("#imgStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(e){
+            clearStatus();
+            $("#imgStatus").textContent = "Hata";
+            toast("error","Görsel üretimi başarısız.");
+          }
+        };
+
+        $("#imgGenBtn").onclick = gen;
+        $("#imgReBtn").onclick = gen;
+
+        function addImage(res){
+          const grid = $("#imgGrid");
+          const wrap = el("div", { class:"card", style:"padding:10px;" });
+          const img = document.createElement("img");
+          img.style.width = "100%";
+          img.style.borderRadius = "14px";
+          img.style.border = "1px solid var(--border)";
+          img.alt = "Üretilen görsel";
+
+          const src = (res && typeof res === "object" && "src" in res) ? res.src
+                    : (typeof res === "string" ? res : null);
+
+          if(src){
+            img.src = src;
+          }else{
+            img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+              `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500">
+                <rect width="100%" height="100%" fill="#e5e7eb"/>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#6b7280" font-family="Arial" font-size="22">
+                  Demo görsel (Puter bağlı değil)
+                </text>
+              </svg>`
+            );
+          }
+
+          wrap.appendChild(img);
+          wrap.appendChild(el("div", { style:"display:flex; gap:8px; margin-top:8px; justify-content:flex-end;" }, [
+            el("button", { class:"ghost", onclick: ()=> openZoom(img.src) }, ["Büyüt"])
+          ]));
+          grid.prepend(wrap);
+        }
+
+        function openZoom(src){
+          const bd = $("#settingsBackdrop"); // basit reuse: ayarlar modalını zoom olarak kullanma (demo)
+          const modal = bd.querySelector(".modal");
+          $("#settingsTitle").textContent = "Görsel Önizleme";
+          modal.querySelector(".modal-body").innerHTML =
+            `<div class="card" style="grid-column:1 / -1;">
+              <img src="${escapeHTML(src)}" alt="Önizleme" style="width:100%; border-radius:14px; border:1px solid var(--border);" />
+            </div>`;
+          bd.classList.add("open");
+        }
+      }, 0);
+
+      return card;
+    }
+
+    function renderTtsPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Ses Üretimi" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
+            "Metni yaz ve “Oluştur”a bas. Dil varsayılan: Türkçe (TR)."
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Metin"]),
+            el("input", { id:"ttsText", placeholder:"Örn: Merhaba! Bugün sana kısa bir özet vereceğim…" })
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Dil"]),
+            el("select", { id:"ttsLang" }, [
+              el("option", { value:"tr-TR", selected:"true" }, ["Türkçe (TR)"]),
+              el("option", { value:"en-US" }, ["İngilizce (EN)"])
+            ])
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"ttsBtn", style:"width:fit-content;" }, ["Oluştur"]),
+            el("span", { class:"badge", id:"ttsStatus" }, ["Hazır"])
+          ]),
+          el("div", { id:"ttsOut", style:"margin-top:10px;" })
+        ])
+      ]);
+
+      setTimeout(() => {
+        $("#ttsBtn").onclick = async () => {
+          const text = ($("#ttsText")?.value || "").trim();
+          const lang = ($("#ttsLang")?.value || "tr-TR");
+          if(!text){ toast("error","Metin boş olamaz."); return; }
+
+          try{
+            $("#ttsStatus").textContent = "Üretiliyor…";
+            setStatus("Ses üretiliyor…");
+
+            let audioSrc = null;
+            if(window.puter?.ai?.txt2speech){
+              const res = await window.puter.ai.txt2speech(text, { language: lang, model: state.model || undefined });
+              audioSrc = (res?.src || res?.url || res);
+            }else{
+              await new Promise(r => setTimeout(r, 800));
+            }
+
+            const out = $("#ttsOut");
+            out.innerHTML = "";
+            out.appendChild(el("div", { style:"font-weight:800; margin-bottom:8px;" }, ["Çıktı"]));
+            if(audioSrc){
+              const a = el("audio", { controls:"true", style:"width:100%;" });
+              a.src = audioSrc;
+              out.appendChild(a);
+            }else{
+              out.appendChild(el("div", { style:"color:var(--muted);" }, [
+                "Demo mod: Puter.js txt2speech bağlı değil. Puter aktifse audio player burada görünür."
+              ]));
+            }
+
+            $("#ttsStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(e){
+            clearStatus();
+            $("#ttsStatus").textContent = "Hata";
+            toast("error","Ses üretimi başarısız.");
+          }
+        };
+      }, 0);
+
+      return card;
+    }
+
+    function renderDubbingPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Dublaj" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
+            "Ses dosyası yükle ve “Dönüştür”e bas. (Demo: speech2speech bağlanabilir.)"
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Ses dosyası"]),
+            el("input", { id:"dubFile", type:"file", accept:".mp3,.wav" })
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Hedef ses"]),
+            el("select", { id:"dubVoice" }, [
+              el("option", { value:"varsayilan" }, ["Varsayılan"]),
+              el("option", { value:"daha-resmi" }, ["Daha Resmi"]),
+              el("option", { value:"daha-enerjik" }, ["Daha Enerjik"])
+            ])
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"dubBtn", style:"width:fit-content;" }, ["Dönüştür"]),
+            el("span", { class:"badge", id:"dubStatus" }, ["Hazır"])
+          ]),
+          el("div", { id:"dubOut", style:"margin-top:10px;" })
+        ])
+      ]);
+
+      setTimeout(() => {
+        $("#dubBtn").onclick = async () => {
+          const file = $("#dubFile")?.files?.[0];
+          const voice = $("#dubVoice")?.value || "varsayilan";
+          if(!file){ toast("error","Ses dosyası seç."); return; }
+
+          try{
+            $("#dubStatus").textContent = "Dönüştürülüyor…";
+            setStatus("Dublaj yapılıyor…");
+
+            let audioSrc = null;
+            if(window.puter?.ai?.speech2speech){
+              const res = await window.puter.ai.speech2speech(file, { voice, model: state.model || undefined });
+              audioSrc = (res?.src || res?.url || res);
+            }else{
+              await new Promise(r => setTimeout(r, 900));
+            }
+
+            const out = $("#dubOut");
+            out.innerHTML = "";
+            out.appendChild(el("div", { style:"font-weight:800; margin-bottom:8px;" }, ["Çıktı"]));
+            if(audioSrc){
+              const a = el("audio", { controls:"true", style:"width:100%;" });
+              a.src = audioSrc;
+              out.appendChild(a);
+              out.appendChild(el("div", { style:"margin-top:8px; display:flex; justify-content:flex-end;" }, [
+                el("button", { class:"ghost", onclick: async()=>{ await navigator.clipboard.writeText(audioSrc); toast("ok","Link kopyalandı."); } }, ["Kopyala link"])
+              ]));
+            }else{
+              out.appendChild(el("div", { style:"color:var(--muted);" }, [
+                "Demo mod: Puter.js speech2speech bağlı değil. Puter aktifse audio player burada görünür."
+              ]));
+            }
+
+            $("#dubStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(e){
+            clearStatus();
+            $("#dubStatus").textContent = "Hata";
+            toast("error","Dublaj başarısız.");
+          }
+        };
+      }, 0);
+
+      return card;
+    }
+
+    function renderCodingPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Kodlama" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
+            "Kodlama açıkken sağdaki “Kod Düzenleyici” paneli otomatik açılır. Chat içinde kod blokları özel stillenir."
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("span", { class:"badge" }, ["Canvas Panel Açık"]),
+            el("button", { class:"ghost", onclick: ()=> { setRoute("chat"); } }, ["Chat’e dön"])
+          ])
+        ])
+      ]);
+
+      return card;
+    }
+
+    function renderProjectsPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Projeler" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
+            "Demo: Proje kartları + filtreleme akışını burada uygula."
+          ]),
+          el("div", { style:"display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px;" }, [
+            projectCard("Örnek Proje", "Sohbet / Dosya / Talimat", "3 / 2 / 5"),
+            projectCard("Arşiv Yolu", "Eski işler", "12 / 8 / 2"),
+          ])
+        ])
+      ]);
+
+      function projectCard(name, desc, counts){
+        return el("div", { class:"card" }, [
+          el("div", { style:"font-weight:850; margin-bottom:6px;" }, [name]),
+          el("div", { style:"color:var(--muted); font-size:13px; margin-bottom:10px;" }, [desc]),
+          el("div", { class:"badge" }, [counts]),
+        ]);
+      }
+      return card;
+    }
+
+    /* ----------------------------- Messages Render ----------------------------- */
+    function renderMessages(){
+      const view = $("#chatView");
+      if(!view) return;
+      const thread = ensureThread();
+
+      view.innerHTML = "";
+      if(thread.messages.length === 0){
+        view.appendChild(el("div", { class:"card" }, [
+          el("div", { style:"font-weight:900; font-size:16px; margin-bottom:6px;" }, ["Merhaba 👋"]),
+          el("div", { style:"color:var(--muted); line-height:1.55;" }, [
+            "Bu arayüz GPT web hissi verir ve Puter.js ile çalışır. Araçları “GPT Tools” menüsünden seç."
+          ]),
+          el("div", { style:"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;" }, [
+            el("button", { class:"ghost", onclick: ()=> prefill("Kısa bir ürün açıklaması yaz.") }, ["Metin üret"]),
+            el("button", { class:"ghost", onclick: ()=> prefill("Bu metni 3 maddede özetle.") }, ["Özetle"]),
+            el("button", { class:"ghost", onclick: ()=> prefill("Bir Python fonksiyonu yaz: fibonacci.") }, ["Kod yaz"]),
+          ])
+        ]));
+      }
+
+      thread.messages.forEach(msg => view.appendChild(renderBubble(msg, thread)));
+
+      // auto scroll
+      view.scrollTop = view.scrollHeight;
+    }
+
+    function renderBubble(msg, thread){
+      const cls = msg.role === "user" ? "user" : (msg.role === "system" ? "system" : "");
+      const b = el("div", { class: "bubble " + cls, "data-id": msg.id });
+
+      if(msg.role !== "user" && msg.role !== "system"){
+        const tb = el("div", { class:"toolbar" }, [
+          el("button", { class:"toolbtn", title:"Kopyala", onclick: ()=> copyText(msg.content || "") }, ["Kopyala"]),
+          el("button", { class:"toolbtn", title:"Beğen", onclick: ()=> vote(msg.id, "like") }, ["Beğen"]),
+          el("button", { class:"toolbtn", title:"Beğenmedim", onclick: ()=> vote(msg.id, "dislike") }, ["Beğenmedim"]),
+          el("button", { class:"toolbtn", title:"Şikayet Et", onclick: ()=> reportMsg(msg.id) }, ["Şikayet Et"]),
+          el("button", { class:"toolbtn", title:"Yeniden Üret", onclick: ()=> retryLast(thread) }, ["Yeniden Üret"]),
+        ]);
+        b.appendChild(tb);
+      }
+
+      const content = el("div", { class:"content md" });
+      content.appendChild(renderMarkdown(msg.content || ""));
+      b.appendChild(content);
+
+      if(msg.citations && msg.citations.length){
+        b.appendChild(renderCitations(msg.citations));
+      }
+
+      return b;
+    }
+
+    function renderCitations(citations){
+      const wrap = el("div", { class:"citations" });
+      const head = el("div", { class:"head" }, [
+        el("span", {}, ["Kaynaklar"]),
+        el("button", { class:"toolbtn", onclick: ()=> toggleCite(wrap) }, ["Göster/Gizle"])
+      ]);
+      const list = el("ol", { style:"display:none;" });
+      citations.forEach(c => {
+        const text = `${c.title || "Kaynak"} • ${c.domain || ""} • ${c.date || ""}`.trim();
+        const li = el("li");
+        const a = el("a", { href: c.url || "#", target:"_blank", rel:"noreferrer" }, [text]);
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+      wrap.appendChild(head);
+      wrap.appendChild(list);
+
+      function toggleCite(node){
+        const ol = node.querySelector("ol");
+        ol.style.display = (ol.style.display === "none") ? "block" : "none";
+      }
+      return wrap;
+    }
+
+    function vote(messageId, kind){
+      state.votes[messageId] = kind;
+      persist();
+      toast("ok", kind === "like" ? "Geri bildirim alındı: Beğen" : "Geri bildirim alındı: Beğenmedim");
+    }
+
+    function reportMsg(messageId){
+      toast("ok", "Şikayet kaydedildi. Teşekkürler.");
+    }
+
+    function copyText(text){
+      navigator.clipboard.writeText(text || "").then(
+        ()=> toast("ok","Kopyalandı."),
+        ()=> toast("error","Kopyalanamadı.")
+      );
+    }
+
+    function renderMarkdown(raw){
+      // Minimal markdown: başlıklar, liste, inline code, fenced code
+      const container = document.createDocumentFragment();
+
+      const text = String(raw || "");
+      const parts = splitFences(text);
+
+      parts.forEach(p => {
+        if(p.type === "code"){
+          container.appendChild(renderCodeBlock(p.lang, p.content));
+        }else{
+          container.appendChild(renderInlineBlocks(p.content));
+        }
+      });
+
+      return container;
+    }
+
+    function splitFences(text){
+      const out = [];
+      const re = /```(\w+)?\n([\s\S]*?)```/g;
+      let last = 0;
+      let m;
+      while((m = re.exec(text)) !== null){
+        if(m.index > last){
+          out.push({ type:"text", content: text.slice(last, m.index) });
+        }
+        out.push({ type:"code", lang: (m[1] || "text").trim(), content: m[2] });
+        last = re.lastIndex;
+      }
+      if(last < text.length) out.push({ type:"text", content: text.slice(last) });
+      return out;
+    }
+
+    function renderCodeBlock(lang, code){
+      const wrap = el("div", { class:"codeblock" });
+      const head = el("div", { class:"codehead" }, [
+        el("span", {}, [lang || "text"]),
+        el("button", { class:"toolbtn", onclick: ()=> copyText(code) }, ["Kopyala"])
+      ]);
+      const pre = el("pre");
+      pre.textContent = code;
+      wrap.appendChild(head);
+      wrap.appendChild(pre);
+      return wrap;
+    }
+
+    function renderInlineBlocks(text){
+      const frag = document.createDocumentFragment();
+      const lines = String(text).split("\n");
+
+      lines.forEach((line, i) => {
+        const trimmed = line.trim();
+
+        // Headings
+        if(trimmed.startsWith("### ")){
+          frag.appendChild(el("h3", {}, [trimmed.slice(4)]));
+          return;
+        }
+        if(trimmed.startsWith("## ")){
+          frag.appendChild(el("h2", {}, [trimmed.slice(3)]));
+          return;
+        }
+        if(trimmed.startsWith("# ")){
+          frag.appendChild(el("h1", {}, [trimmed.slice(2)]));
+          return;
+        }
+
+        // Lists
+        if(trimmed.startsWith("- ")){
+          // Collect consecutive list lines
+          const ul = el("ul");
+          let j = i;
+          while(j < lines.length && lines[j].trim().startsWith("- ")){
+            ul.appendChild(el("li", {}, [ renderInlineCode(lines[j].trim().slice(2)) ]));
+            j++;
+          }
+          frag.appendChild(ul);
+
+          // Skip consumed lines
+          for(let k=i+1; k<j; k++) lines[k] = "";
+          return;
+        }
+
+        // Normal paragraph
+        if(trimmed.length === 0){
+          frag.appendChild(el("div", { style:"height:6px" }));
+          return;
+        }
+        frag.appendChild(el("div", {}, [ renderInlineCode(line) ]));
+      });
+
+      return frag;
+    }
+
+    function renderInlineCode(line){
+      // inline `code`
+      const frag = document.createDocumentFragment();
+      const re = /`([^`]+)`/g;
+      let last = 0, m;
+      const s = String(line);
+      while((m = re.exec(s)) !== null){
+        if(m.index > last) frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+        frag.appendChild(el("code", { class:"inline" }, [m[1]]));
+        last = re.lastIndex;
+      }
+      if(last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+      return frag;
+    }
+
+    /* ----------------------------- Chat Send + Streaming ----------------------------- */
+    function prefill(text){
+      $("#messageInput").value = text;
+      $("#charCount").textContent = String(text.length);
+      focusComposer();
+    }
+
+    function focusComposer(){
+      setTimeout(()=> $("#messageInput")?.focus(), 0);
+    }
+
+    async function sendUserMessage(){
+      const thread = ensureThread();
+      const input = $("#messageInput");
+      const text = (input.value || "").trim();
+      if(!text) return;
+
+      // Temporary Chat: kaydetme
+      if(state.ui.tempChat) thread.temp = true;
+
+      const userMsg = { id: uid("m"), role:"user", content: text, createdAt: nowTs() };
+      thread.messages.push(userMsg);
+      thread.updatedAt = nowTs();
+
+      // Başlık otomatik türet
+      if(thread.title === "Yeni Sohbet"){
+        renameThread(thread.id, text.slice(0, 40));
+      }
+
+      input.value = "";
+      $("#charCount").textContent = "0";
+      persist();
+      renderMessages();
+      renderSidebar();
+
+      await generateAssistantReply(thread);
+    }
+
+    async function retryLast(thread){
+      // Son asistan mesajını kaldırıp tekrar üret (basit retry)
+      const lastIdx = [...thread.messages].reverse().findIndex(m => m.role === "assistant");
+      if(lastIdx < 0){
+        toast("error","Yeniden üretilecek yanıt yok.");
+        return;
+      }
+      // reverse index -> real index
+      const realIndex = thread.messages.length - 1 - lastIdx;
+      thread.messages.splice(realIndex, 1);
+      persist();
+      renderMessages();
+      await generateAssistantReply(thread);
+    }
+
+    function buildSystemPrompt(thread){
+      const tools = getToolsForThread(thread.id);
+
+      let sys = "Sen Türkçe konuşan bir asistansın. Tüm yanıtlar %100 Türkçe olmalı.\n";
+      if(state.ui.deepResearch || tools.web){
+        sys += "Derin Araştırma açık: önce kısa bir araştırma planı üret, sonra web araması yaptığını varsayarak kaynaklı özet ver.\n";
+        sys += "Yanıt sonunda 'Kaynaklar' bölümünde numaralı kaynak listesi ver.\n";
+      }
+      if(tools.coding || getRoute() === "kodlama"){
+        sys += "Kodlama modu: temiz, çalışır örnekler ver; hataları önle; adım adım öneriler ekle.\n";
+      }
+      return sys;
+    }
+
+    function collectChatContext(thread){
+      // Son N mesajı bağlama ekle
+      const N = 18;
+      const slice = thread.messages.slice(-N).map(m => ({ role: m.role, content: m.content }));
+      return slice;
+    }
+
+    async function generateAssistantReply(thread){
+      const tools = getToolsForThread(thread.id);
+
+      const assistantMsg = {
+        id: uid("m"),
+        role:"assistant",
+        content:"",
+        createdAt: nowTs(),
+        citations: [],
+      };
+      thread.messages.push(assistantMsg);
+
+      setStatus("Yazıyor…");
+      $("#sendBtn").disabled = true;
+
+      renderMessages();
+
+      try{
+        const sys = buildSystemPrompt(thread);
+        const msgs = collectChatContext(thread);
+
+        // Hafıza (basit demo): uygulama katmanında kısa özet ekle
+        const memory = state.ui.memory ? loadMemorySummary() : "";
+        const merged = [];
+        merged.push({ role:"system", content: sys + (memory ? "\nHAFIZA ÖZETİ:\n" + memory : "") });
+        msgs.forEach(m => merged.push(m));
+
+        const latestUser = [...thread.messages].reverse().find(m => m.role === "user");
+        const promptText = latestUser?.content || "";
+        let retryCount = 0;
+        let selection = await chooseModelForPrompt({ thread, promptText, retryCount });
+        let model = state.model || thread.model || selection.selected || DEFAULT_FEATURED_MODELS[0];
+        // Gereksinim-1/10: model/risk/meme/KAME hesap özetini mesaj metasında sakla.
+        assistantMsg.meta = { mode: selection.mode, risk: selection.risk, meme: selection.meme, kame: selection.kame, model };
+
+        if(window.puter?.ai?.chat){
+          const options = {
+            model,
+            stream: true,
+            tools: Object.entries(tools).filter(([,v])=>v).map(([k])=>k),
+          };
+
+          const res = await window.puter.ai.chat(merged, options);
+
+          if(res && typeof res[Symbol.asyncIterator] === "function"){
+            for await (const chunk of res){
+              const text = extractText(chunk);
+              if(text) appendChunk(assistantMsg, text);
+            }
+          }
+          else if(res && typeof res.stream === "function"){
+            await res.stream({
+              onChunk: (c)=> appendChunk(assistantMsg, extractText(c)),
+              onDone: ()=>{}
+            });
+          }
+          else{
+            const text = extractText(res);
+            appendChunk(assistantMsg, text || "Model yanıt vermedi.");
+          }
+
+          // Gereksinim-8: meme düşük ve çıktı boş kaldıysa yalnız 1 kez kalite modeliyle retry yap.
+          if(!assistantMsg.content.trim() && selection.meme < 0.75){
+            retryCount = 1;
+            selection = await chooseModelForPrompt({ thread, promptText, retryCount });
+            const allRetryModels = await listModelsSmart();
+            const retryCatalog = { has:(id)=> allRetryModels.some(m=>m.id===id) };
+            model = pickFirstAvailable(retryCatalog, KAME_MODEL_GROUPS.M1) || model;
+            const retryRes = await window.puter.ai.chat(merged, { ...options, model, stream:false });
+            appendChunk(assistantMsg, extractText(retryRes) || "Model yanıt vermedi.");
+          }
+
+          if(state.ui.deepResearch || tools.web){
+            assistantMsg.citations = makeDemoCitations();
+          }
+        }else{
+          await fakeStream(assistantMsg,
+            "Demo mod: Puter.js bağlı değil.\n\n- Araçlar seçimini “GPT Tools” menüsünden yap.\n- Model seçimini sağ üstten değiştir.\n- Kodlama açınca sağ panel (Canvas) otomatik gelir.\n\n```python\ndef merhaba_dünya():\n    print(\"Merhaba, Dünya!\")\n```\n"
+          );
+          if(state.ui.deepResearch || tools.web){
+            assistantMsg.citations = makeDemoCitations();
+          }
+        }
+
+        thread.updatedAt = nowTs();
+        persist();
+        renderMessages();
+        renderSidebar();
+        clearStatus();
+      }catch(e){
+        clearStatus();
+        assistantMsg.content = "Model yanıt vermedi.\n\n- Bağlantı sorunu olabilir.\n- Bu işlem için izin gerekli olabilir.\n";
+        toast("error","Model yanıt vermedi.");
+        renderMessages();
+      }finally{
+        $("#sendBtn").disabled = false;
+      }
+    }
+
+
+    function extractText(any){
+      if(any == null) return "";
+      if(typeof any === "string") return any;
+      if(typeof any === "object"){
+        // yaygın alanlar
+        if(typeof any.text === "string") return any.text;
+        if(typeof any.content === "string") return any.content;
+        if(typeof any.message === "string") return any.message;
+        if(any.choices?.[0]?.delta?.content) return any.choices[0].delta.content;
+        if(any.choices?.[0]?.message?.content) return any.choices[0].message.content;
+      }
+      return "";
+    }
+
+    function appendChunk(msg, chunk){
+      if(!chunk) return;
+      msg.content += chunk;
+      // auto-scroll + cursor hissi
+      renderMessages();
+    }
+
+    async function fakeStream(msg, fullText){
+      for(const ch of fullText.split("")){
+        msg.content += ch;
+        renderMessages();
+        await new Promise(r => setTimeout(r, 7));
+      }
+    }
+
+    function makeDemoCitations(){
+      return [
+        { title:"Puter AI Model Kataloğu", domain:"developer.puter.com", date:"—", url:"https://developer.puter.com/ai/models" },
+        { title:"Puter.js AI API", domain:"developer.puter.com", date:"—", url:"https://developer.puter.com/" },
+      ];
+    }
+
+    /* ----------------------------- Attachments (Demo) ----------------------------- */
+    function addAttachment(file){
+      const thread = ensureThread();
+      const list = (state.attachmentsByThread[thread.id] ||= []);
+      list.push({ id: uid("f"), name: file.name, type: file.type, size: file.size, file });
+      persist();
+      renderAttachBar();
+    }
+
+    function removeAttachment(attId){
+      const thread = ensureThread();
+      const list = (state.attachmentsByThread[thread.id] ||= []);
+      const idx = list.findIndex(x => x.id === attId);
+      if(idx >= 0) list.splice(idx,1);
+      persist();
+      renderAttachBar();
+    }
+
+    function renderAttachBar(){
+      const thread = ensureThread();
+      const bar = $("#attachBar");
+      if(!bar) return;
+      bar.innerHTML = "";
+
+      const list = (state.attachmentsByThread[thread.id] ||= []);
+      list.forEach(a => {
+        const chip = el("div", { class:"chip" }, [
+          el("span", {}, [a.name]),
+          el("button", { title:"Kaldır", "aria-label":"Kaldır", onclick: ()=> removeAttachment(a.id) }, ["✕"])
+        ]);
+        bar.appendChild(chip);
+      });
+    }
+
+    /* ----------------------------- Sidebar Render + Context Menu ----------------------------- */
+    function renderSidebar(){
+      const pinnedList = $("#pinnedList");
+      const chatList = $("#chatList");
+      const empty = $("#emptyChatsCard");
+      const isProjectMode = state.ui.sidebarMode === "project";
+
+      const q = ($("#chatSearchInput")?.value || "").trim().toLowerCase();
+
+      const threads = state.threads.filter(t => !t.archived);
+
+      const filtered = q
+        ? threads.filter(t =>
+            t.title.toLowerCase().includes(q) ||
+            t.messages.some(m => (m.content || "").toLowerCase().includes(q))
+          )
+        : threads;
+
+      const pinned = filtered.filter(t => t.pinned);
+      const rest = filtered.filter(t => !t.pinned);
+
+      pinnedList.innerHTML = "";
+      chatList.innerHTML = "";
+
+      $("#pinnedWrap").style.display = (!isProjectMode && pinned.length) ? "block" : "none";
+
+      if(filtered.length === 0 && !isProjectMode){
+        empty.style.display = "block";
+      }else{
+        empty.style.display = "none";
+      }
+
+      if(!isProjectMode){
+        pinned.forEach(t => pinnedList.appendChild(chatItem(t)));
+        rest.forEach(t => chatList.appendChild(chatItem(t)));
+      }else{
+        // Gereksinim-2.1: proje modunda solda başlık/filtre/bildirim odaklı sade liste göster.
+        chatList.appendChild(el("div", { class:"card" }, [
+          el("div", { style:"font-weight:750; margin-bottom:6px;" }, ["Proje Modu"]),
+          el("div", { style:"color:var(--muted); font-size:13px;" }, ["Klasör/başlık/filtre görünümü aktif."]),
+          el("div", { class:"badge", style:"margin-top:8px;" }, ["Bildirim: 2 görev bekliyor"]),
+        ]));
+      }
+
+      $("#chatCountBadge").textContent = String(threads.length);
+
+      // kullanıcı avatar harfi
+      $("#avatar").textContent = (String($("#username").textContent || "S").trim()[0] || "S").toUpperCase();
+    }
+
+    function chatItem(t){
+      const wrap = el("div", { class:"chatitem", "data-id": t.id, role:"button", tabindex:"0", "aria-label":"Sohbet aç" });
+      const meta = el("div", { class:"chatmeta" }, [
+        el("div", { class:"chattitle" }, [t.title]),
+        el("div", { class:"chatstamp" }, [relativeTime(t.updatedAt)])
+      ]);
+      const dots = el("button", { class:"dots", title:"Menü", "aria-label":"Menü", onclick: (e)=> openContextMenu(e, t.id) }, ["⋯"]);
+      wrap.appendChild(meta);
+      wrap.appendChild(dots);
+
+      if(t.id === state.activeThreadId){
+        wrap.style.borderColor = "rgba(37,99,235,.35)";
+        wrap.style.background = "rgba(37,99,235,.06)";
+      }
+
+      wrap.onclick = (e) => {
+        if(e.target === dots) return;
+        state.activeThreadId = t.id;
+        persist();
+        renderAll();
+        focusComposer();
+        const cv = $("#chatView"); if(cv) cv.scrollTop = cv.scrollHeight;
+      };
+      wrap.onkeydown = (e) => {
+        if(e.key === "Enter"){
+          state.activeThreadId = t.id;
+          persist();
+          renderAll();
+          focusComposer();
+          const cv = $("#chatView"); if(cv) cv.scrollTop = cv.scrollHeight;
+        }
+      };
+      return wrap;
+    }
+
+    function openContextMenu(e, threadId){
+      e.stopPropagation();
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+
+      // Basit prompt menü
+      const action = prompt(
+        "İşlem seç:\n1) Yeniden Adlandır\n2) " + (t.pinned ? "Sabitlemeyi kaldır" : "Sabitle") +
+        "\n3) Arşivle\n4) Sil\n\n1-4 yaz ve Enter’a bas."
+      );
+
+      if(action === "1"){
+        const name = prompt("Yeni ad:", t.title);
+        if(name != null) renameThread(threadId, name);
+      }else if(action === "2"){
+        pinThread(threadId, !t.pinned);
+      }else if(action === "3"){
+        archiveThread(threadId, true);
+        toast("ok","Arşivlendi.");
+      }else if(action === "4"){
+        if(confirm("Silinsin mi?")) deleteThread(threadId);
+      }
+    }
+
+    /* ----------------------------- Memory (Demo) ----------------------------- */
+    const MEM_KEY = "candygpt_memory_v1";
+    function loadMemorySummary(){
+      try{
+        const raw = localStorage.getItem(MEM_KEY);
+        if(!raw) return "";
+        const items = JSON.parse(raw);
+        if(!Array.isArray(items) || items.length === 0) return "";
+        return items.slice(-6).map(x => "- " + x).join("\n");
+      }catch(_){ return ""; }
+    }
+
+    /* ----------------------------- Events ----------------------------- */
+    function bindEvents(){
+      // New chat
+      $("#newChatBtn").onclick = () => newThread();
+
+      // Search
+      $("#chatSearchInput").addEventListener("input", renderSidebar);
+
+      // ESC: aramayı temizle
+      $("#clearSearchBtn").onclick = () => {
+        $("#chatSearchInput").value = "";
+        renderSidebar();
+      };
+      window.addEventListener("keydown", (e)=>{
+        if(e.key === "Escape"){
+          // arama temizle + modalları kapat
+          const toolsOpen = $("#toolsBackdrop").classList.contains("open");
+          const settingsOpen = $("#settingsBackdrop").classList.contains("open");
+          if(toolsOpen) closeTools();
+          if(settingsOpen) closeSettings();
+          if(!toolsOpen && !settingsOpen){
+            $("#chatSearchInput").value = "";
+            renderSidebar();
+          }
+        }
+        // Ctrl/⌘+K: yeni sohbet (demo)
+        if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
+          e.preventDefault();
+          newThread();
+        }
+      });
+
+      // Tabs
+      $$(".tab").forEach(b => b.onclick = ()=> setRoute(b.dataset.route));
+
+      // Route change
+      window.addEventListener("hashchange", () => renderRoute());
+      window.addEventListener("resize", applyLayoutMode);
+
+      // Model picker
+      $("#modelPicker").addEventListener("change", (e)=>{
+        state.model = e.target.value;
+        const t = getActiveThread();
+        if(t) t.model = state.model;
+        persist();
+        applyProviderTheme(state.model);
+        if($("#sendBtn").disabled){
+          toast("ok","Model değişimi sonraki yanıtta uygulanır.");
+        }else{
+          toast("ok","Model seçildi.");
+        }
+      });
+
+      // Tools open/close
+      $("#toolsBtn").onclick = openTools;
+      $("#closeToolsBtn").onclick = closeTools;
+      $("#toolsDoneBtn").onclick = closeTools;
+      $("#toolsBackdrop").addEventListener("click", (e)=>{
+        if(e.target.id === "toolsBackdrop") closeTools();
+      });
+
+      // Tools checkboxes
+      $$('#toolsBackdrop input[type="checkbox"][data-tool]').forEach(cb => {
+        cb.addEventListener("change", ()=>{
+          const thread = ensureThread();
+          setTool(thread.id, cb.dataset.tool, cb.checked);
+
+          // Coding tool: canvas aç/kapat
+          state.ui.canvasOpen = shouldShowCanvas();
+          $("#canvasPanel").classList.toggle("hidden", !state.ui.canvasOpen);
+          persist();
+        });
+      });
+
+      // Featured model quick buttons
+      $$('#toolsBackdrop [data-featured]').forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-featured");
+          state.model = id;
+          persist();
+          applyProviderTheme(id);
+          await refreshModelPicker();
+          toast("ok","Model seçildi: " + id);
+        });
+      });
+
+      // Temporary chat toggle
+      $("#tempChatToggle").onclick = ()=>{
+        state.ui.tempChat = !state.ui.tempChat;
+        $("#tempChatToggle").setAttribute("aria-pressed", String(!!state.ui.tempChat));
+        persist();
+        toast("ok", state.ui.tempChat ? "Geçici Sohbet açık." : "Geçici Sohbet kapalı.");
+      };
+
+      // Deep research toggle
+      $("#deepResearchToggle").onclick = ()=>{
+        state.ui.deepResearch = !state.ui.deepResearch;
+        $("#deepResearchToggle").setAttribute("aria-pressed", String(!!state.ui.deepResearch));
+        const thread = ensureThread();
+        thread.messages.push({ id: uid("m"), role:"system", content: state.ui.deepResearch ? "Derin Araştırma modu açıldı: daha uzun ve kanıtlı yanıt." : "Derin Araştırma modu kapatıldı: normal kısa moda dönüldü.", createdAt: nowTs() });
+        persist();
+        renderMessages();
+        toast("ok", state.ui.deepResearch ? "Derin Araştırma açık." : "Derin Araştırma kapalı.");
+      };
+
+      // Memory toggle (tools modal)
+      $("#memoryToggle").onclick = ()=>{
+        state.ui.memory = !state.ui.memory;
+        applyTheme();
+        persist();
+        toast("ok", state.ui.memory ? "Hafıza açıldı." : "Hafıza kapatıldı.");
+      };
+
+      // Projects shortcut
+      $("#projectsBtn").onclick = ()=> setRoute("projects");
+
+      // Gereksinim-2.1: sidebar için Sohbet/Proje mod geçişi.
+      if(!$("#sidebarModeChat")){
+        const host = $("#projectsBtn")?.parentElement;
+        if(host){
+          host.prepend(el("button", { class:"pill", id:"sidebarModeProject", "aria-label":"Proje modu" }, ["Proje Modu"]));
+          host.prepend(el("button", { class:"pill", id:"sidebarModeChat", "aria-label":"Sohbet modu" }, ["Sohbet Modu"]));
+        }
+      }
+      $("#sidebarModeChat")?.addEventListener("click", ()=>{ state.ui.sidebarMode = "chat"; persist(); renderSidebar(); });
+      $("#sidebarModeProject")?.addEventListener("click", ()=>{ state.ui.sidebarMode = "project"; persist(); renderSidebar(); });
+
+      // Composer send
+      safeBind("#sendBtn", "click", sendUserMessage, { required:true });
+
+      // Enter vs Shift+Enter
+      safeBind("#messageInput", "keydown", (e)=>{
+        if(e.key === "Enter" && !e.shiftKey){
+          e.preventDefault();
+          sendUserMessage();
+        }
+      });
+
+      // Char count
+      safeBind("#messageInput", "input", (e)=>{
+        $("#charCount").textContent = String(e.target.value.length);
+      });
+
+      // File attach
+      safeBind("#fileInput", "change", (e)=>{
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => addAttachment(f));
+        e.target.value = "";
+      });
+
+      // Voice mode (demo pipeline)
+      $("#voiceModeBtn").onclick = async ()=>{
+        // Basit demo: gerçek pipeline: STT → CHAT → TTS
+        toast("ok","Sesli Mod (demo) başlatıldı.");
+        if(!window.puter?.ai?.speech2txt || !window.puter?.ai?.txt2speech){
+          toast("error","Sesli Mod için Puter.js STT/TTS gerekli.");
+          return;
+        }
+        // Burada mikrofon kayıt UI’si ekleyip ardından speech2txt çalıştır.
+      };
+
+      // Sidebar drawer (mobile)
+      $("#mobileDrawerBtn").onclick = ()=>{
+        $("#sidebar").classList.add("open");
+        $("#drawerBackdrop").classList.add("open");
+      };
+      $("#drawerBackdrop").onclick = ()=>{
+        $("#sidebar").classList.remove("open");
+        $("#drawerBackdrop").classList.remove("open");
+      };
+      $("#sidebarToggleBtn").onclick = ()=>{
+        // Desktop daraltma: demo amaçlı sadece toast
+        toast("ok","Sidebar dar/geniş (demo).");
+      };
+
+      // User menu
+      $("#userMenuBtn").onclick = (e)=>{
+        e.stopPropagation();
+        $("#userMenu").classList.toggle("open");
+      };
+      document.addEventListener("click", ()=>{
+        $("#userMenu").classList.remove("open");
+      });
+      $("#userMenu").addEventListener("click", (e)=>{
+        const btn = e.target.closest("button[data-action]");
+        if(!btn) return;
+        const a = btn.dataset.action;
+        $("#userMenu").classList.remove("open");
+        if(a === "settings") openSettings("Ayarlar");
+        if(a === "usage") openSettings("Kullanım ve Maliyet");
+        if(a === "billing") openSettings("Ödeme Ayarları");
+        if(a === "logout") doLogout();
+      });
+
+      // Settings modal
+      $("#closeSettingsBtn").onclick = closeSettings;
+      $("#settingsBackdrop").addEventListener("click", (e)=>{
+        if(e.target.id === "settingsBackdrop") closeSettings();
+      });
+      $("#settingsSaveBtn").onclick = ()=>{
+        state.ui.theme = $("#themeSelect").value;
+        state.ui.accent = $("#accentSelect").value;
+        state.ui.font = $("#fontSelect").value;
+        persist();
+        applyTheme();
+        toast("ok","Kaydedildi.");
+        closeSettings();
+      };
+
+      // Data control toggles
+      $("#saveHistoryToggle").onclick = ()=>{
+        state.ui.saveHistory = !state.ui.saveHistory;
+        $("#saveHistoryToggle").setAttribute("aria-pressed", String(!!state.ui.saveHistory));
+        if(state.ui.saveHistory) persist();
+        toast("ok", state.ui.saveHistory ? "Geçmiş kaydı açık." : "Geçmiş kaydı kapalı.");
+      };
+      $("#telemetryToggle").onclick = ()=>{
+        state.ui.telemetry = !state.ui.telemetry;
+        $("#telemetryToggle").setAttribute("aria-pressed", String(!!state.ui.telemetry));
+        persist();
+      };
+      $("#includeFilesToggle").onclick = ()=>{
+        state.ui.includeFiles = !state.ui.includeFiles;
+        $("#includeFilesToggle").setAttribute("aria-pressed", String(!!state.ui.includeFiles));
+        persist();
+      };
+
+      // Canvas close
+      safeBind("#canvasCloseBtn", "click", ()=>{
+        state.ui.canvasOpen = false;
+        syncCanvasLayout();
+        persist();
+      });
+      safeBind("#copyCanvasBtn", "click", ()=>{
+        copyText($("#canvasEditor").value);
+      });
+      safeBind("#setLangPython", "click", ()=> setCanvasLang("python"));
+      safeBind("#setLangJS", "click", ()=> setCanvasLang("javascript"));
+      safeBind("#setLangTXT", "click", ()=> setCanvasLang("metin"));
+
+      // Tools modal: açıldığında checkbox’ları thread’e göre senkronla
+      safeBind("#toolsBackdrop", "transitionend", ()=> syncToolsCheckboxes());
+    }
+
+    function setCanvasLang(lang){
+      $("#canvasLang").textContent = lang;
+      toast("ok","Dil seçildi: " + lang);
+    }
+
+    function syncToolsCheckboxes(){
+      const thread = ensureThread();
+      const tools = getToolsForThread(thread.id);
+      $$('#toolsBackdrop input[type="checkbox"][data-tool]').forEach(cb => {
+        cb.checked = !!tools[cb.dataset.tool];
+      });
+    }
+
+    function openTools(){
+      syncToolsCheckboxes();
+      $("#toolsBackdrop").classList.add("open");
+    }
+    function closeTools(){
+      $("#toolsBackdrop").classList.remove("open");
+    }
+
+    function openSettings(title){
+      $("#settingsTitle").textContent = title;
+      // İçeriği “Ayarlar” görünümüne geri döndür (zoom reuse bozulduysa)
+      // Basit yaklaşım: sayfayı yenilemeden restore etmek için modal-body’yi tekrar kurma yerine,
+      // burada sadece mevcut ayar değerlerini set et.
+      $("#themeSelect").value = state.ui.theme;
+      $("#accentSelect").value = state.ui.accent;
+      $("#fontSelect").value = state.ui.font;
+
+      // Eğer zoom reuse ile modal-body değiştiyse, hızlı fix: reload önerisi.
+      // (Üretim sürümünde ayrı zoom modalı yap.)
+      $("#settingsBackdrop").classList.add("open");
+    }
+    function closeSettings(){
+      // Eğer zoom reuse yapıldıysa modal-body bozulabilir; demo için sayfa yenilemiyoruz.
+      $("#settingsBackdrop").classList.remove("open");
+      // Kullanıcı tekrar ayarlar açarsa içerik kalabilir; üretimde ayrı modal yap.
+    }
+
+    async function doLogout(){
+      try{
+        if(window.puter?.auth?.signOut) await window.puter.auth.signOut();
+        toast("ok","Çıkış yapıldı.");
+      }catch(_){
+        toast("error","Çıkış başarısız.");
+      }
+    }
+
+    /* ----------------------------- Render All ----------------------------- */
+    function renderAll(){
+      applyTheme();
+      renderSidebar();
+      renderTabs();
+      renderRoute();
+      renderAttachBar();
+    }
+
+    /* ----------------------------- Boot ----------------------------- */
+    async function boot(){
+      // İlk thread yoksa oluştur
+      if(state.threads.length === 0) newThread();
+      else if(!state.activeThreadId) state.activeThreadId = state.threads[0].id;
+
+      bindEvents();
+      applyTheme();
+      applyLayoutMode();
+      renderAll();
+      runUISelfTest();
+
+      // Puter user bilgisi (varsa)
+      try{
+        if(window.puter?.auth?.getUser){
+          const u = await window.puter.auth.getUser();
+          if(u?.username){
+            $("#username").textContent = u.username;
+            $("#avatar").textContent = u.username[0].toUpperCase();
+          }
+        }
+      }catch(_){}
+
+      // İlk model listesi
+      await refreshModelPicker();
+      applyProviderTheme(state.model || DEFAULT_FEATURED_MODELS[0]);
+
+      // İlk route
+      if(!location.hash) setRoute("chat");
+
+      // Gereksinim-1.2: ilk girişte yeni sohbet odakla, dönüşte son konuşmayı aç.
+      if(state.threads.length <= 1 && state.threads[0]?.messages?.length === 0){
+        focusComposer();
+      }else if(state.activeThreadId){
+        renderMessages();
+      }
+    }
+
+    boot();
+  </script>
+</body>
 </html>

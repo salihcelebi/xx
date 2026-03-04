@@ -2,7 +2,7 @@
 // NISAI.MD'de netleştir: Router listener sorumluluğunun tamamen app.js'te mi kalacağı.
 
 export const DEFAULT_ROUTE = '/chat';
-export const ROUTES = Object.freeze(['/chat', '/video', '/history', '/billing', '/admin']);
+export const ROUTES = Object.freeze(['/chat', '/video', '/image', '/tts', '/dubbing', '/code', '/history', '/billing', '/admin']);
 
 // Pure helper: hash veya route girdisini normalize eder.
 export function normalizeRoute(input = '') {
@@ -29,6 +29,10 @@ export function getCurrentRoute(hash = window.location.hash) {
 const pageRegistry = {
   '/chat': () => import('./pages/chatPage.js'),
   '/video': () => import('./pages/videoPage.js'),
+  '/image': () => import('./pages/imagePage.js'),
+  '/tts': () => import('./pages/ttsPage.js'),
+  '/dubbing': () => import('./pages/dubbingPage.js'),
+  '/code': () => import('./pages/codePage.js'),
   '/history': () => import('./pages/historyPage.js'),
   '/billing': () => import('./pages/billingPage.js'),
   '/admin': () => import('./pages/adminPage.js'),
@@ -38,8 +42,13 @@ let currentRoute = DEFAULT_ROUTE;
 let currentMode = 'chat';
 let activePageModule = null;
 
-function getModeFromRoute(route) {
-  return route === '/video' ? 'video' : 'chat';
+export function routeToMode(route) {
+  if (route === '/video') return 'video';
+  if (route === '/image') return 'image';
+  if (route === '/tts') return 'tts';
+  if (route === '/dubbing') return 'dubbing';
+  if (route === '/code') return 'code';
+  return 'chat';
 }
 
 function createErrorPanel(route) {
@@ -114,12 +123,15 @@ export async function renderCurrentRoute(els, store, hooks = {}) {
     const view = await pageModule.render({ els, store });
     if (typeof view === 'string') {
       outlet.innerHTML = view;
+    } else if (view instanceof Element) {
+      outlet.innerHTML = '';
+      outlet.append(view);
     }
 
     activePageModule = pageModule;
     currentRoute = route;
 
-    const nextMode = getModeFromRoute(route);
+    const nextMode = routeToMode(route);
     if (nextMode !== currentMode) {
       currentMode = nextMode;
       onModeChanged?.(nextMode);
