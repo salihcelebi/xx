@@ -1,0 +1,2540 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CandyGPT • Puter.js GPT Arayüzü</title>
+
+  <!-- Puter.js (AI + FS + Auth). Gerekirse sürümü/URL’yi Puter dokümanına göre güncelle. -->
+  <script src="https://js.puter.com/v2/"></script>
+
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --surface:#ffffff;
+      --surface-2:#f0f2f5;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --shadow: 0 10px 25px rgba(17,24,39,.06);
+      --radius:14px;
+      --radius-sm:10px;
+      --pad:14px;
+      --accent:#2563eb;
+      --prov:#10a37f; /* aktif provider rengi (varsayılan: OpenAI benzeri) */
+      --user:#111827;
+      --assistant:#ffffff;
+      --bubble:#f3f4f6;
+      --danger:#ef4444;
+      --ok:#16a34a;
+      --focus: 0 0 0 3px rgba(37,99,235,.18);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    [data-theme="dark"]{
+      --bg:#0b1220;
+      --surface:#0f172a;
+      --surface-2:#111c33;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:#1f2a44;
+      --shadow: 0 18px 35px rgba(0,0,0,.35);
+      --bubble:#0b1328;
+      --assistant:#0f172a;
+      --user:#1f2937;
+      --accent:#60a5fa;
+      --focus: 0 0 0 3px rgba(96,165,250,.18);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit}
+    button,input,select,textarea{font:inherit}
+
+    .app{
+      height:100%;
+      display:grid;
+      /* GPT web gibi: alanın tümünü kullan; sadece sağ panel (canvas) açılınca daral */
+      grid-template-columns: 300px 1fr;
+      gap:12px;
+      padding:12px;
+    }
+    .app.canvas-open{grid-template-columns: 300px 1fr 380px;}
+    .panel{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* SIDEBAR */
+    .sidebar{width:100%}
+    .sb-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+      gap:10px;
+    }
+    .brand{display:flex; align-items:center; gap:10px; min-width:0;}
+    .logo{
+      width:28px; height:28px; border-radius:8px;
+      background:radial-gradient(circle at 30% 30%, var(--accent), rgba(255,255,255,.0));
+      border:1px solid var(--border);
+      display:grid; place-items:center;
+      color:white; font-weight:700;
+    }
+    .brand .name{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+    .iconbtn{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+    }
+    .iconbtn:focus{outline:none; box-shadow:var(--focus)}
+
+    .primary{
+      border:1px solid rgba(37,99,235,.35);
+      background:var(--accent);
+      color:white;
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:650;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      width:100%;
+    }
+    .primary:focus{outline:none; box-shadow:var(--focus)}
+
+    .sb-body{
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow:auto;
+    }
+
+    .section-title{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.02em;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin:4px 2px;
+    }
+
+    .search{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 10px;
+      background:var(--surface);
+    }
+    .search input{
+      border:none;
+      outline:none;
+      width:100%;
+      background:transparent;
+      color:var(--text);
+    }
+
+    .list{display:flex; flex-direction:column; gap:6px;}
+    .chatitem{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:12px;
+      padding:10px 10px;
+      cursor:pointer;
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .chatitem:hover{background:var(--surface-2)}
+    .chatmeta{min-width:0}
+    .chattitle{font-weight:750; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .chatstamp{font-size:12px; color:var(--muted)}
+
+    .dots{
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      padding:4px 6px;
+      border-radius:10px;
+      color:var(--muted);
+    }
+    .dots:hover{background:rgba(127,127,127,.12)}
+
+    .pillrow{display:flex; flex-wrap:wrap; gap:6px}
+    .pill{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      cursor:pointer;
+      color:var(--text);
+      font-weight:750;
+    }
+    .pill[aria-pressed="true"]{
+      border-color:rgba(37,99,235,.35);
+      background:rgba(37,99,235,.10);
+    }
+
+    .sb-footer{
+      margin-top:auto;
+      padding:12px;
+      border-top:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:linear-gradient(0deg, var(--surface), var(--surface-2));
+    }
+    .userbox{display:flex; align-items:center; gap:10px; min-width:0;}
+    .avatar{
+      width:32px; height:32px; border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(127,127,127,.12);
+      display:grid; place-items:center;
+      font-weight:800;
+    }
+    .username{font-weight:750; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+    .usermenu{position:relative;}
+    .menu{
+      position:absolute;
+      bottom:44px; right:0;
+      width:220px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:8px;
+      display:none;
+      z-index:50;
+    }
+    .menu.open{display:block}
+    .menu button{
+      width:100%;
+      text-align:left;
+      border:none;
+      background:transparent;
+      padding:10px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      color:var(--text);
+    }
+    .menu button:hover{background:var(--surface-2)}
+
+    /* MAIN */
+    .main{display:flex; flex-direction:column; min-width:0;}
+
+    .topbar{
+      border-bottom:1px solid var(--border);
+      padding:10px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+    }
+    .topbar-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      min-width:0;
+    }
+
+    .tabs{display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-width:0;}
+    .tab{
+      border:none;
+      background:transparent;
+      padding:10px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      color:var(--muted);
+      font-weight:750;
+    }
+    .tab[aria-current="page"]{color:var(--text); background:rgba(127,127,127,.10);}
+
+    .actions{display:flex; gap:8px; align-items:center;}
+
+    .toggle{
+      display:flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:var(--surface);
+      cursor:pointer;
+      color:var(--text);
+      user-select:none;
+      white-space:nowrap;
+      font-weight:750;
+    }
+    .switch{
+      width:34px; height:20px;
+      background:rgba(127,127,127,.25);
+      border-radius:999px;
+      position:relative;
+      border:1px solid var(--border);
+      flex:0 0 auto;
+    }
+    .switch::after{
+      content:"";
+      width:16px; height:16px;
+      border-radius:999px;
+      background:var(--surface);
+      position:absolute;
+      top:50%; left:2px;
+      transform:translateY(-50%);
+      transition:all .15s ease;
+      border:1px solid var(--border);
+    }
+    .toggle[aria-pressed="true"] .switch{background:rgba(37,99,235,.35); border-color:rgba(37,99,235,.35);}
+    .toggle[aria-pressed="true"] .switch::after{left:16px;}
+
+    .providerbar{display:flex; align-items:center; gap:10px; min-width:0; flex-wrap:wrap;}
+    .ptabs{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+    .ptab{
+      border:1px solid var(--border);
+      background:transparent;
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:850;
+    }
+    .ptab[aria-current="page"]{
+      color:var(--text);
+      border-color: color-mix(in srgb, var(--prov) 55%, var(--border));
+      background: color-mix(in srgb, var(--prov) 12%, transparent);
+    }
+
+    .mchips{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+    .mchip{
+      border:1px solid var(--border);
+      background:var(--surface);
+      color:var(--text);
+      padding:7px 10px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:850;
+      font-size:12px;
+      max-width:240px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .mchip[aria-pressed="true"]{
+      border-color: color-mix(in srgb, var(--prov) 55%, var(--border));
+      background: color-mix(in srgb, var(--prov) 12%, transparent);
+    }
+
+    .linkbtn{
+      border:none;
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      padding:8px 10px;
+      border-radius:12px;
+      font-weight:850;
+    }
+    .linkbtn:hover{background:rgba(127,127,127,.10); color:var(--text)}
+
+    .select{
+      border:1px solid var(--border);
+      background:var(--surface);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 10px;
+      cursor:pointer;
+      max-width:220px;
+    }
+
+    .route{flex:1; min-height:0; display:flex; flex-direction:column;}
+
+    .statusline{
+      padding:8px 12px;
+      border-bottom:1px solid var(--border);
+      font-size:12px;
+      color:var(--muted);
+      display:none;
+      align-items:center;
+      gap:10px;
+    }
+    .statusline.show{display:flex}
+    .dot{width:8px; height:8px; border-radius:999px; background:var(--muted); animation:pulse 1s infinite ease-in-out;}
+    @keyframes pulse{0%,100%{opacity:.35} 50%{opacity:1}}
+
+    .chatview{
+      flex:1;
+      min-height:0;
+      overflow:auto;
+      padding:16px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .bubble{
+      max-width: 78%;
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding:12px 12px;
+      position:relative;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+      background:var(--assistant);
+    }
+    .bubble.user{margin-left:auto; background:var(--user); color:white; border-color:rgba(255,255,255,.08);}
+    .bubble .toolbar{
+      position:absolute;
+      top:-10px;
+      right:10px;
+      display:none;
+      gap:6px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:6px 6px;
+      box-shadow:var(--shadow);
+    }
+    .bubble:hover .toolbar{display:flex}
+    .toolbtn{
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      padding:6px 8px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:750;
+    }
+    .toolbtn:hover{background:rgba(127,127,127,.12); color:var(--text)}
+
+    .content{white-space:pre-wrap; line-height:1.45; font-size:14px;}
+
+    /* markdown-ish */
+    .md h1,.md h2,.md h3{margin:8px 0 6px}
+    .md h1{font-size:18px}
+    .md h2{font-size:16px}
+    .md h3{font-size:14px}
+    .md ul{margin:6px 0 6px 18px}
+    .md code.inline{
+      font-family:var(--mono);
+      background:rgba(127,127,127,.14);
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid var(--border);
+    }
+    .codeblock{margin-top:10px; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--bubble);}
+    .codehead{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted);}
+    pre{margin:0; padding:12px; overflow:auto; font-family:var(--mono); font-size:12.5px; line-height:1.5;}
+
+    .citations{margin-top:10px; border-top:1px dashed var(--border); padding-top:10px; font-size:12px; color:var(--muted);}
+    .citations .head{display:flex; align-items:center; justify-content:space-between; font-weight:800; margin-bottom:6px;}
+    .citations ol{margin:0 0 0 18px; padding:0}
+    .citations li{margin:4px 0}
+
+    .composer{
+      border-top:1px solid var(--border);
+      padding:10px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background:linear-gradient(0deg, var(--surface), var(--surface-2));
+    }
+    .attachbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+    .chip{
+      border:1px solid var(--border);
+      background:var(--surface);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      display:flex; gap:8px; align-items:center;
+    }
+    .chip button{border:none; background:transparent; cursor:pointer; color:var(--muted); padding:2px 6px; border-radius:999px;}
+    .chip button:hover{background:rgba(127,127,127,.12)}
+
+    .row{display:flex; gap:8px; align-items:flex-end;}
+    textarea{
+      flex:1;
+      resize:none;
+      min-height:44px;
+      max-height:160px;
+      padding:12px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      outline:none;
+      background:var(--surface);
+      color:var(--text);
+      line-height:1.35;
+    }
+    textarea:focus{box-shadow:var(--focus); border-color:rgba(37,99,235,.35)}
+
+    .send{
+      border:1px solid rgba(37,99,235,.35);
+      background:var(--accent);
+      color:white;
+      border-radius:14px;
+      padding:12px 14px;
+      cursor:pointer;
+      font-weight:850;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .send:disabled{opacity:.6; cursor:not-allowed}
+
+    .minirow{display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:12px; color:var(--muted);}
+    .minirow .left{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+
+    .ghost{
+      border:1px solid var(--border);
+      background:var(--surface);
+      color:var(--text);
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:750;
+    }
+
+    /* RIGHT PANEL / CANVAS */
+    .canvas{min-width:0;}
+    .canvas.hidden{display:none}
+    .canvas-head{
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      background:linear-gradient(180deg, var(--surface), var(--surface-2));
+    }
+    .canvas-title{font-weight:850}
+    .canvas-body{flex:1; min-height:0; padding:12px; display:flex; flex-direction:column; gap:10px;}
+    .codebox{flex:1; min-height:0; border:1px solid var(--border); border-radius:14px; background:var(--bubble); overflow:hidden; display:flex; flex-direction:column;}
+    .codebox .bar{padding:8px 10px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); display:flex; justify-content:space-between; align-items:center;}
+    .codebox textarea{border:none; border-radius:0; flex:1; min-height:0; background:transparent; font-family:var(--mono); font-size:12.5px; padding:12px; outline:none;}
+    .canvas-foot{display:flex; gap:8px;}
+
+    /* TOASTS */
+    .toasts{
+      position:fixed;
+      right:14px;
+      bottom:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      z-index:100;
+      pointer-events:none;
+    }
+    .toast{
+      pointer-events:auto;
+      width:min(360px, calc(100vw - 28px));
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content:space-between;
+    }
+    .toast .msg{font-size:13px; color:var(--text)}
+    .toast .x{border:none; background:transparent; cursor:pointer; color:var(--muted); padding:4px 8px; border-radius:10px;}
+    .toast .x:hover{background:rgba(127,127,127,.12)}
+
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(127,127,127,.08);
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    /* MODALS */
+    .backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:120; padding:16px;}
+    .backdrop.open{display:flex}
+    .modal{width:min(860px, 100%); background:var(--surface); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); overflow:hidden;}
+    .modal-head{padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:linear-gradient(180deg, var(--surface), var(--surface-2));}
+    .modal-body{padding:14px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    .card{border:1px solid var(--border); border-radius:16px; background:var(--surface); padding:12px;}
+    .card h3{margin:0 0 8px; font-size:14px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-top:10px}
+    .field label{font-size:12px; color:var(--muted); font-weight:800}
+    .field input,.field select{border:1px solid var(--border); border-radius:12px; padding:10px 10px; background:var(--surface); color:var(--text); outline:none;}
+    .field input:focus,.field select:focus{box-shadow:var(--focus); border-color:rgba(37,99,235,.35)}
+    .modal-foot{padding:12px 14px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; background:linear-gradient(0deg, var(--surface), var(--surface-2));}
+
+    .drawer-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:125;}
+    .drawer-backdrop.open{display:block}
+
+    /* RESPONSIVE */
+    @media (max-width: 1180px){
+      .app{grid-template-columns: 300px 1fr; }
+      .canvas{display:none}
+    }
+    @media (max-width: 880px){
+      .app{grid-template-columns: 1fr; padding:0; gap:0}
+      .sidebar{
+        position:fixed;
+        top:0; left:0; bottom:0;
+        width: 86vw;
+        max-width: 360px;
+        transform:translateX(-105%);
+        transition:transform .18s ease;
+        z-index:130;
+        border-radius:0 18px 18px 0;
+      }
+      .sidebar.open{transform:translateX(0)}
+      .main{border-radius:0}
+      .panel{border-radius:0; border-left:none; border-right:none}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
+  <div class="drawer-backdrop" id="canvasBackdrop" aria-hidden="true"></div>
+
+  <div class="app" id="app">
+    <!-- SOL SIDEBAR -->
+    <aside class="panel sidebar" id="sidebar" aria-label="Kenar çubuğu">
+      <div class="sb-top">
+        <div class="brand" title="CandyGPT">
+          <div class="logo" aria-hidden="true">C</div>
+          <div class="name">CandyGPT</div>
+        </div>
+        <button class="iconbtn" id="sidebarToggleBtn" title="Kenar çubuğunu daralt/genişlet" aria-label="Kenar çubuğunu daralt/genişlet">☰</button>
+      </div>
+
+      <div class="sb-body">
+        <button class="primary" id="newChatBtn" aria-label="Yeni Sohbet">＋ Yeni Sohbet</button>
+
+        <div>
+          <div class="section-title"><span>Görünüm</span></div>
+          <div class="pillrow" role="tablist" aria-label="Sidebar modu">
+            <button class="pill" id="sbModeChat" aria-pressed="true">Sohbet Modu</button>
+            <button class="pill" id="sbModeProject" aria-pressed="false">Proje Modu</button>
+          </div>
+        </div>
+
+        <!-- CHAT MODE -->
+        <div id="sbChatMode">
+          <div>
+            <div class="section-title">
+              <span>Sohbetler</span>
+              <span class="badge" id="chatCountBadge">0</span>
+            </div>
+            <div class="search" aria-label="Sohbet ara">
+              <span style="color:var(--muted);">⌕</span>
+              <input id="chatSearchInput" placeholder="Sohbet ara…" />
+              <button class="dots" id="clearSearchBtn" title="Temizle" aria-label="Temizle">✕</button>
+            </div>
+          </div>
+
+          <div id="pinnedWrap" style="display:none;">
+            <div class="section-title"><span>Sabitlenenler</span></div>
+            <div class="list" id="pinnedList"></div>
+          </div>
+
+          <div>
+            <div class="section-title"><span>Tümü</span></div>
+            <div class="list" id="chatList"></div>
+
+            <div class="card" id="emptyChatsCard" style="display:none;">
+              <div style="font-weight:850; margin-bottom:6px;">Henüz sohbet yok.</div>
+              <div style="color:var(--muted); font-size:13px; line-height:1.55;">Yeni sohbet başlatmak için “＋ Yeni Sohbet”e bas.</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title"><span>Kısayollar</span></div>
+            <div class="pillrow">
+              <button class="pill" id="projectsBtn" aria-label="Projeler">Projeler</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROJECT MODE (placeholder) -->
+        <div id="sbProjectModeWrap" style="display:none;">
+          <div class="card">
+            <div style="font-weight:900; margin-bottom:6px;">Proje Modu</div>
+            <div style="color:var(--muted); font-size:13px; line-height:1.55;">Proje listesi + filtreler sonraki pakette bağlanacak.</div>
+            <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="pill" id="projectsBtn2" aria-label="Projeler">Projeler</button>
+</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="sb-footer">
+        <div class="userbox" title="Kullanıcı">
+          <div class="avatar" id="avatar">S</div>
+          <div class="username" id="username">salih celebi</div>
+        </div>
+
+        <div class="usermenu">
+          <button class="iconbtn" id="userMenuBtn" aria-label="Hesap menüsü">⋯</button>
+          <div class="menu" id="userMenu" role="menu" aria-label="Hesap menüsü">
+            <button data-action="settings">Ayarlar</button>
+            <button data-action="usage">Kullanım ve Maliyet</button>
+            <button data-action="billing">Ödeme Ayarları</button>
+            <button data-action="logout">Çıkış</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ORTA PANEL -->
+    <main class="panel main" aria-label="Ana alan">
+      <div class="topbar" id="topbar">
+        <!-- ÜST KATMAN: MODLAR -->
+        <div class="topbar-row">
+          <div class="tabs" role="navigation" aria-label="Mod sekmeleri">
+            <button class="tab" data-route="chat" aria-current="page">Chat</button>
+            <button class="tab" data-route="video">Video</button>
+            <button class="tab" data-route="gorsel">Görsel</button>
+            <button class="tab" data-route="ses">Ses</button>
+            <button class="tab" data-route="dublaj">Dublaj</button>
+            <button class="tab" data-route="kodlama">Kodlama</button>
+          </div>
+
+          <div class="actions">
+            <button class="iconbtn" id="toolsBtn" aria-label="Araçlar menüsü">GPT Tools ▾</button>
+
+            <button class="toggle" id="tempChatToggle" aria-pressed="false" aria-label="Geçici Sohbet">
+              <span class="switch" aria-hidden="true"></span>
+              <span>Geçici Sohbet</span>
+            </button>
+
+            <button class="toggle" id="deepResearchToggleTop" aria-pressed="false" aria-label="Derin Araştırma">
+              <span class="switch" aria-hidden="true"></span>
+              <span>Derin Araştırma</span>
+            </button>
+
+            <button class="iconbtn" id="mobileDrawerBtn" aria-label="Menüyü aç">☰</button>
+          </div>
+        </div>
+
+        <!-- ALT KATMAN: PROVIDER + 7 MODEL KURALI + AKSİYONLAR -->
+        <div class="topbar-row" aria-label="Model ve sağlayıcı">
+          <div class="providerbar">
+            <div class="ptabs" id="providerTabs" role="tablist" aria-label="Provider sekmeleri"></div>
+            <div class="mchips" id="modelChips" aria-label="Model seçim chipleri"></div>
+            <button class="linkbtn" id="allModelsBtn" aria-label="Tüm modeller">Tümünü Gör</button>
+          </div>
+
+          <div class="actions">
+            <select class="select" id="modelPicker" aria-label="Model Seç" style="display:none;">
+              <option value="">Model Seç</option>
+            </select>
+
+            <div id="kameBadges" style="display:flex; gap:8px; align-items:center;">
+              <span id="kame-badge" class="badge" aria-label="KAME puanı">KAME: --</span>
+              <span id="mode-badge" class="badge" aria-label="KAME modu">⚡</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="statusline" id="statusLine" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="statusText">Hazır.</span>
+      </div>
+
+      <section class="route" id="routeOutlet" aria-label="Sayfa içeriği"></section>
+
+      <!-- Chat composer sadece chat rotasında görünür (JS yönetir) -->
+      <div class="composer" id="composer" style="display:none;">
+        <div class="attachbar" id="attachBar"></div>
+        <div id="kame-hint" class="badge" style="width:fit-content;">KAME ipucu: --</div>
+
+        <div class="minirow">
+          <div class="left">
+            <label class="ghost" for="fileInput" style="cursor:pointer;">Dosya Ekle</label>
+            <input id="fileInput" type="file" multiple style="display:none" accept=".pdf,.png,.jpg,.jpeg,.webp,.mp3,.wav,.mp4,.txt,.md" />
+            <button class="ghost" id="voiceModeBtn" aria-label="Sesli Mod">Sesli Mod</button>
+            <span class="badge" id="memoryBadge">Hafıza Kapalı</span>
+          </div>
+          <div class="right"><span id="charCount">0</span></div>
+        </div>
+
+        <div class="row">
+          <textarea id="messageInput" placeholder="Mesaj yaz…" aria-label="Mesaj yaz"></textarea>
+          <button class="send" id="sendBtn" aria-label="Gönder">Gönder ⮞</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- SAĞ PANEL / CANVAS (Kod Düzenleyici) -->
+    <aside class="panel canvas" id="canvasPanel" aria-label="Kod düzenleyici">
+      <div class="canvas-head">
+        <div class="canvas-title">Kod Düzenleyici</div>
+        <div style="display:flex; gap:8px;">
+          <button class="iconbtn" id="canvasMoreBtn" aria-label="Diğer seçenekler">⋯</button>
+          <button class="iconbtn" id="canvasCloseBtn" aria-label="Paneli kapat">✕</button>
+        </div>
+      </div>
+
+      <div class="canvas-body">
+        <div class="codebox">
+          <div class="bar">
+            <span id="canvasLang">python</span>
+            <button class="ghost" id="copyCanvasBtn">Kopyala</button>
+          </div>
+          <textarea id="canvasEditor" spellcheck="false">def merhaba_dünya():
+    print("Merhaba, Dünya!")</textarea>
+        </div>
+
+        <div class="canvas-foot">
+          <button class="ghost" id="setLangPython">python</button>
+          <button class="ghost" id="setLangJS">javascript</button>
+          <button class="ghost" id="setLangTXT">metin</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Tools Menu (Popover) -->
+  <div class="backdrop" id="toolsBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-label="Araçlar">
+      <div class="modal-head">
+        <div style="font-weight:900;">Araçlar</div>
+        <button class="iconbtn" id="closeToolsBtn" aria-label="Kapat">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <h3>Kullanılabilir Araçlar</h3>
+          <div class="field">
+            <label><input type="checkbox" data-tool="web" /> Web Araması</label>
+            <label><input type="checkbox" data-tool="files" /> Dosya/Knowledge Araması</label>
+            <label><input type="checkbox" data-tool="image" /> Görsel Üretimi</label>
+            <label><input type="checkbox" data-tool="video" /> Video Üretimi</label>
+            <label><input type="checkbox" data-tool="tts" /> Ses Üretimi</label>
+            <label><input type="checkbox" data-tool="dubbing" /> Dublaj</label>
+            <label><input type="checkbox" data-tool="coding" /> Kodlama</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Durum</h3>
+          <div style="color:var(--muted); font-size:13px; line-height:1.45;">
+            Seçimler sohbet bazında kaydedilir.
+          </div>
+
+          <div class="field">
+            <label>Hızlı Model Seçim (5’li)</label>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button class="pill" data-featured="mistralai/mistral-small-3.2-24b-instruct">Mistral Small</button>
+              <button class="pill" data-featured="google/gemma-2-27b-it">Gemma 2</button>
+              <button class="pill" data-featured="openai/gpt-5.1">GPT-5.1</button>
+              <button class="pill" data-featured="x-ai/grok-4">Grok-4</button>
+              <button class="pill" data-featured="openai/gpt-5.2-pro">GPT-5.2 Pro</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Hafıza</label>
+            <button class="toggle" id="memoryToggle" aria-pressed="false" aria-label="Hafıza Açık/Kapalı" style="width:fit-content;">
+              <span class="switch" aria-hidden="true"></span>
+              <span id="memoryToggleText">Hafıza Kapalı</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="ghost" id="toolsDoneBtn">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ayarlar / Ödeme / Kullanım Modal -->
+  <div class="backdrop" id="settingsBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-label="Ayarlar">
+      <div class="modal-head">
+        <div style="font-weight:900;" id="settingsTitle">Ayarlar</div>
+        <button class="iconbtn" id="closeSettingsBtn" aria-label="Kapat">✕</button>
+      </div>
+
+      <div class="modal-body" id="settingsBody">
+        <div class="card">
+          <h3>Görünüm</h3>
+          <div class="field">
+            <label>Tema</label>
+            <select id="themeSelect">
+              <option value="light">Açık</option>
+              <option value="dark">Koyu</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Vurgu rengi</label>
+            <select id="accentSelect">
+              <option value="#2563eb">Mavi</option>
+              <option value="#16a34a">Yeşil</option>
+              <option value="#7c3aed">Mor</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Yazı boyutu</label>
+            <select id="fontSelect">
+              <option value="small">Küçük</option>
+              <option value="medium" selected>Orta</option>
+              <option value="large">Büyük</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Veri Denetimleri</h3>
+          <div class="field">
+            <button class="toggle" id="saveHistoryToggle" aria-pressed="true" aria-label="Sohbet geçmişini kaydet">
+              <span class="switch" aria-hidden="true"></span>
+              <span>Sohbet geçmişini kaydet</span>
+            </button>
+          </div>
+          <div class="field">
+            <button class="toggle" id="telemetryToggle" aria-pressed="false" aria-label="Telemetri / hata raporu">
+              <span class="switch" aria-hidden="true"></span>
+              <span>Telemetri / hata raporu</span>
+            </button>
+          </div>
+          <div class="field">
+            <button class="toggle" id="includeFilesToggle" aria-pressed="false" aria-label="Dosyaları model bağlamına dahil et">
+              <span class="switch" aria-hidden="true"></span>
+              <span>Dosyaları model bağlamına dahil et</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:1 / -1;">
+          <h3>Ödeme Ayarları</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="card" style="box-shadow:none;">
+              <h3 style="margin:0 0 6px;">Fiyat gösterimi</h3>
+              <div style="color:var(--muted); font-size:13px; line-height:1.45;">Tüm fiyatlar TL + USD birlikte gösterilir.<br />Örnek: <b>₺12,90 (≈ $0.40)</b></div>
+            </div>
+            <div class="card" style="box-shadow:none;">
+              <h3 style="margin:0 0 6px;">Ödeme kanalları</h3>
+              <div style="color:var(--muted); font-size:13px; line-height:1.55;"><b>Türkiye:</b> iyzico, PayTR, Param, Shopier<br/><b>Global:</b> PayPal, Stripe</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="ghost" id="settingsSaveBtn">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Host -->
+  <div class="toasts" id="toasts" aria-live="polite" aria-relevant="additions"></div>
+
+  <!-- KAME UI (kame-ui.js) UYUMLULUK KABUĞU: Mevcut kod tabanı bozulmasın diye gizli mount noktaları -->
+  <div id="kame-compat" style="display:none;">
+    <div id="route-outlet"></div>
+    <div id="modals"></div>
+    <div id="global-status"></div>
+    <a id="billing-link" href="/billing">Kullanım ve Maliyet</a>
+    <div id="model-picker"></div>
+    <div id="tools-menu"><label><input type="checkbox" data-tool="kame" />KAME Optimizasyonu</label></div>
+    <textarea id="message-input"></textarea>
+    <button id="send-btn">Gönder</button>
+    <div id="chat"></div>
+  </div>
+
+  <script type="module">
+    /**********************************************************************
+     *  Tek dosya demo: CandyGPT UI + Puter.js
+     *  Not: Bu dosyada "null.onclick" hatasına karşı güvenli event bağlama uygulanır.
+     **********************************************************************/
+
+    /* ----------------------------- Basit Store ----------------------------- */
+    const LS_KEY = "candygpt_ui_state_v1";
+
+    const DEFAULT_FEATURED_MODELS = [
+      "mistralai/mistral-small-3.2-24b-instruct",
+      "google/gemma-2-27b-it",
+      "openai/gpt-5.1",
+      "x-ai/grok-4",
+      "openai/gpt-5.2-pro",
+    ];
+
+    const DEFAULT_TOOLS = {
+      web: false,
+      files: false,
+      image: false,
+      video: false,
+      tts: false,
+      dubbing: false,
+      coding: false,
+    };
+
+    const state = loadState();
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(raw){
+          const s = JSON.parse(raw);
+          return {
+            ui: {
+              theme: s.ui?.theme ?? "light",
+              accent: s.ui?.accent ?? "#2563eb",
+              font: s.ui?.font ?? "medium",
+              tempChat: !!s.ui?.tempChat,
+              memory: !!s.ui?.memory,
+              deepResearch: !!s.ui?.deepResearch,
+              saveHistory: s.ui?.saveHistory ?? true,
+              telemetry: !!s.ui?.telemetry,
+              includeFiles: !!s.ui?.includeFiles,
+              canvasOpen: s.ui?.canvasOpen ?? true,
+              sidebarMode: s.ui?.sidebarMode ?? "chat",
+            },
+            activeRoute: s.activeRoute ?? "chat",
+            activeThreadId: s.activeThreadId ?? null,
+            threads: Array.isArray(s.threads) ? s.threads : [],
+            model: s.model ?? "",
+            toolsByThread: s.toolsByThread ?? {},
+            attachmentsByThread: s.attachmentsByThread ?? {},
+            modelCache: s.modelCache ?? { updatedAt: 0, items: [] },
+            votes: s.votes ?? {},
+          };
+        }
+      }catch(_){/* ignore */}
+
+      return {
+        ui: {
+          theme: "light",
+          accent: "#2563eb",
+          font: "medium",
+          tempChat: false,
+          memory: false,
+          deepResearch: false,
+          saveHistory: true,
+          telemetry: false,
+          includeFiles: false,
+          canvasOpen: true,
+          sidebarMode: "chat",
+        },
+        activeRoute: "chat",
+        activeThreadId: null,
+        threads: [],
+        model: "",
+        toolsByThread: {},
+        attachmentsByThread: {},
+        modelCache: { updatedAt: 0, items: [] },
+        votes: {},
+      };
+    }
+
+    function persist(){
+      if(!state.ui.saveHistory) return;
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    }
+
+    /* ----------------------------- DOM Helpers (Güvenli bağlama) ----------------------------- */
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const byId = (id) => document.getElementById(id);
+
+    function onClick(id, fn){
+      const n = byId(id);
+      if(n) n.onclick = fn;
+      return !!n;
+    }
+    function onEvent(id, type, fn, opts){
+      const n = byId(id);
+      if(n) n.addEventListener(type, fn, opts);
+      return !!n;
+    }
+
+    const el = (tag, props={}, children=[]) => {
+      const n = document.createElement(tag);
+      for(const [k,v] of Object.entries(props)){
+        if(k === "class") n.className = v;
+        else if(k === "html") n.innerHTML = v;
+        else if(k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2).toLowerCase(), v);
+        else if(v !== undefined && v !== null) n.setAttribute(k, v);
+      }
+      for(const c of children){
+        if(typeof c === "string") n.appendChild(document.createTextNode(c));
+        else if(c) n.appendChild(c);
+      }
+      return n;
+    };
+
+    function escapeHTML(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function nowTs(){ return Date.now(); }
+    function uid(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
+
+    function relativeTime(ts){
+      const diff = Date.now() - ts;
+      const s = Math.floor(diff/1000);
+      if(s < 60) return s + "s";
+      const m = Math.floor(s/60);
+      if(m < 60) return m + "d";
+      const h = Math.floor(m/60);
+      if(h < 24) return h + "s";
+      const d = Math.floor(h/24);
+      if(d === 1) return "Dün";
+      return d + "g";
+    }
+
+    function setStatus(text){
+      const line = byId("statusLine");
+      const label = byId("statusText");
+      if(!line || !label) return;
+      label.textContent = text;
+      line.classList.add("show");
+    }
+    function clearStatus(){
+      byId("statusLine")?.classList.remove("show");
+    }
+
+    function toast(type, message){
+      const host = byId("toasts");
+      if(!host) return;
+      const t = el("div", { class:"toast", role:"status" }, [
+        el("div", { class:"msg" }, [ message ]),
+        el("button", { class:"x", "aria-label":"Kapat", onclick: () => t.remove() }, ["✕"])
+      ]);
+      if(type === "error") t.style.borderColor = "rgba(239,68,68,.35)";
+      if(type === "ok") t.style.borderColor = "rgba(22,163,74,.35)";
+      host.appendChild(t);
+      setTimeout(()=>{ if(t.isConnected) t.remove(); }, 5200);
+    }
+
+    /* ----------------------------- UI Apply ----------------------------- */
+    function applyTheme(){
+      document.documentElement.dataset.theme = state.ui.theme === "dark" ? "dark" : "light";
+      document.documentElement.style.setProperty("--accent", state.ui.accent);
+
+      const base = (state.ui.font === "small") ? "13px" : (state.ui.font === "large" ? "15.5px" : "14px");
+      document.body.style.fontSize = base;
+
+      byId("tempChatToggle")?.setAttribute("aria-pressed", String(!!state.ui.tempChat));
+      byId("deepResearchToggleTop")?.setAttribute("aria-pressed", String(!!state.ui.deepResearch));
+      byId("memoryToggle")?.setAttribute("aria-pressed", String(!!state.ui.memory));
+
+      const memText = byId("memoryToggleText");
+      if(memText) memText.textContent = state.ui.memory ? "Hafıza Açık" : "Hafıza Kapalı";
+
+      const memBadge = byId("memoryBadge");
+      if(memBadge) memBadge.textContent = state.ui.memory ? "Hafıza Açık" : "Hafıza Kapalı";
+
+      byId("saveHistoryToggle")?.setAttribute("aria-pressed", String(!!state.ui.saveHistory));
+      byId("telemetryToggle")?.setAttribute("aria-pressed", String(!!state.ui.telemetry));
+      byId("includeFilesToggle")?.setAttribute("aria-pressed", String(!!state.ui.includeFiles));
+
+      // Sidebar mode
+      byId("sbModeChat")?.setAttribute("aria-pressed", String(state.ui.sidebarMode === "chat"));
+      byId("sbModeProject")?.setAttribute("aria-pressed", String(state.ui.sidebarMode === "project"));
+      byId("sbChatMode")?.style && (byId("sbChatMode").style.display = state.ui.sidebarMode === "chat" ? "block" : "none");
+      byId("sbProjectModeWrap")?.style && (byId("sbProjectModeWrap").style.display = state.ui.sidebarMode === "project" ? "block" : "none");
+
+      // Canvas
+      byId("canvasPanel")?.classList.toggle("hidden", !state.ui.canvasOpen);
+      byId("app")?.classList.toggle("canvas-open", !!state.ui.canvasOpen);
+    }
+
+    /* ----------------------------- Threads CRUD ----------------------------- */
+    function newThread(){
+      const id = uid("thread");
+      const thread = {
+        id,
+        title: "Yeni Sohbet",
+        createdAt: nowTs(),
+        updatedAt: nowTs(),
+        pinned: false,
+        archived: false,
+        messages: [],
+        model: state.model || "",
+        temp: !!state.ui.tempChat,
+      };
+      state.threads.unshift(thread);
+      state.activeThreadId = id;
+
+      if(!state.toolsByThread[id]) state.toolsByThread[id] = { ...DEFAULT_TOOLS };
+      if(!state.attachmentsByThread[id]) state.attachmentsByThread[id] = [];
+
+      persist();
+      renderAll();
+      focusComposer();
+      return thread;
+    }
+
+    function getActiveThread(){
+      return state.threads.find(t => t.id === state.activeThreadId) || null;
+    }
+
+    function ensureThread(){
+      let t = getActiveThread();
+      if(!t) t = newThread();
+      return t;
+    }
+
+    function renameThread(threadId, title){
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+      t.title = (title || "Yeni Sohbet").trim().slice(0, 60) || "Yeni Sohbet";
+      t.updatedAt = nowTs();
+      persist();
+      renderSidebar();
+    }
+
+    function pinThread(threadId, pinned){
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+      t.pinned = pinned;
+      t.updatedAt = nowTs();
+      persist();
+      renderSidebar();
+    }
+
+    function archiveThread(threadId, archived){
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+      t.archived = archived;
+      t.updatedAt = nowTs();
+      persist();
+      renderSidebar();
+    }
+
+    function deleteThread(threadId){
+      const idx = state.threads.findIndex(x => x.id === threadId);
+      if(idx < 0) return;
+      const wasActive = state.activeThreadId === threadId;
+      state.threads.splice(idx,1);
+      delete state.toolsByThread[threadId];
+      delete state.attachmentsByThread[threadId];
+      if(wasActive) state.activeThreadId = state.threads[0]?.id ?? null;
+      persist();
+      renderAll();
+    }
+
+    /* ----------------------------- Tools / Model Picker ----------------------------- */
+    function getToolsForThread(threadId){
+      if(!state.toolsByThread[threadId]) state.toolsByThread[threadId] = { ...DEFAULT_TOOLS };
+      return state.toolsByThread[threadId];
+    }
+
+    function setTool(threadId, toolKey, enabled){
+      const tools = getToolsForThread(threadId);
+      tools[toolKey] = !!enabled;
+      persist();
+    }
+
+    function shouldShowCanvas(){
+      const thread = getActiveThread();
+      if(!thread) return false;
+      const tools = getToolsForThread(thread.id);
+      const route = getRoute();
+      return route === "kodlama" || !!tools.coding;
+    }
+
+    async function listModelsSmart(){
+      const TTL = 12 * 60 * 60 * 1000;
+      const fresh = (Date.now() - (state.modelCache.updatedAt || 0)) < TTL;
+      if(fresh && Array.isArray(state.modelCache.items) && state.modelCache.items.length) return state.modelCache.items;
+
+      if(!window.puter?.ai?.listModels){
+        return DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
+      }
+
+      try{
+        setStatus("Model listesi yükleniyor…");
+        const items = await window.puter.ai.listModels();
+        const normalized = (Array.isArray(items) ? items : [])
+          .map(m => ({
+            id: m.id || m.model || m.name,
+            name: m.name || m.id || m.model,
+            provider: m.provider || (String(m.id || m.model || "").split("/")[0] || "Bilinmeyen"),
+            modes: m.modes || m.capabilities || [],
+          }))
+          .filter(x => x.id);
+
+        state.modelCache = { updatedAt: Date.now(), items: normalized };
+        persist();
+        clearStatus();
+        return normalized.length ? normalized : DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
+      }catch(_){
+        clearStatus();
+        toast("error", "Model listesi alınamadı. Puter bağlantısını kontrol et.");
+        return DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
+      }
+    }
+
+    function filterModelsByRoute(models, route){
+      const need = {
+        chat: "text",
+        kodlama: "text",
+        gorsel: "image",
+        video: "video",
+        ses: "tts",
+        dublaj: "speech2speech",
+      }[route] || "text";
+
+      return models.filter(m => {
+        if(!m.modes || !Array.isArray(m.modes) || m.modes.length === 0) return true;
+        const s = m.modes.map(x => String(x).toLowerCase());
+        if(need === "text") return true;
+        return s.some(x => x.includes(need));
+      });
+    }
+
+    function normalizeProvider(p){
+      const s = String(p || "").toLowerCase();
+      if(s.includes("openai")) return "openai";
+      if(s.includes("anthropic") || s.includes("claude")) return "anthropic";
+      if(s.includes("google") || s.includes("gemini")) return "google";
+      if(s.includes("meta") || s.includes("llama")) return "meta";
+      if(s.includes("local") || s.includes("ollama") || s.includes("lmstudio")) return "local";
+      return "other";
+    }
+
+    const PROVIDERS = [
+      { id:"openai", label:"OpenAI" },
+      { id:"anthropic", label:"Anthropic" },
+      { id:"google", label:"Google" },
+      { id:"meta", label:"Meta" },
+      { id:"local", label:"Local" },
+      { id:"other", label:"Diğer" },
+    ];
+
+    function pickTop7(models){
+      const sorted = [...models].sort((a,b)=> (a.name||a.id).localeCompare((b.name||b.id),"tr"));
+      return sorted.slice(0,7);
+    }
+
+    async function refreshModelPicker(){
+      const picker = byId("modelPicker");
+      const route = getRoute();
+      const all = await listModelsSmart();
+      const filtered = filterModelsByRoute(all, route);
+
+      const byProv = new Map();
+      filtered.forEach(m => {
+        const pid = normalizeProvider(m.provider);
+        if(!byProv.has(pid)) byProv.set(pid, []);
+        byProv.get(pid).push(m);
+      });
+
+      // provider sekmeleri
+      renderProviderTabs(byProv);
+      if(!state.ui.provider || !byProv.has(state.ui.provider) || (byProv.get(state.ui.provider)?.length||0) === 0){
+        state.ui.provider = PROVIDERS.map(x=>x.id).find(id => (byProv.get(id)?.length||0) > 0) || "openai";
+      }
+
+      const pool = byProv.get(state.ui.provider) || filtered;
+      const top7 = pickTop7(pool);
+      renderModelChips(top7);
+
+      // hidden select: eski akışlar bozulmasın
+      if(picker){
+        picker.innerHTML = "";
+        picker.appendChild(el("option", { value:"" }, ["Model Seç"]));
+        const og = el("optgroup", { label:"Tüm Modeller" });
+        filtered.slice(0, 400).forEach(m => og.appendChild(el("option", { value:m.id }, [`${m.name} (${m.provider})`])));
+        picker.appendChild(og);
+        if(state.model) picker.value = state.model;
+      }
+
+      if(!state.model && top7[0]?.id) state.model = top7[0].id;
+      persist();
+    }
+
+    function providerColor(pid){
+      // Kurumsal renkler (yaklaşık)
+      const map = {
+        openai: "#10a37f",
+        anthropic: "#f97316",
+        google: "#4285F4",
+        meta: "#0866ff",
+        local: "#6b7280",
+        other: "#7c3aed",
+      };
+      return map[pid] || map.other;
+    }
+
+    function applyProviderColor(){
+      document.documentElement.style.setProperty("--prov", providerColor(state.ui.provider || "openai"));
+    }
+
+    function renderProviderTabs(byProv){
+      const host = byId("providerTabs");
+      if(!host) return;
+      host.innerHTML = "";
+      applyProviderColor();
+      PROVIDERS.forEach(p => {
+        const count = (byProv.get(p.id)?.length || 0);
+        if(count === 0 && p.id !== "other") return;
+        const btn = el("button", { class:"ptab", "data-prov": p.id, "aria-current": (state.ui.provider===p.id ? "page" : "false") }, [p.label]);
+        btn.onclick = ()=>{
+          state.ui.provider = p.id;
+          persist();
+          refreshModelPicker();
+        };
+        host.appendChild(btn);
+      });
+    }
+
+    function renderModelChips(models){
+      const host = byId("modelChips");
+      if(!host) return;
+      host.innerHTML = "";
+      models.forEach(m => {
+        const pressed = (state.model === m.id);
+        const btn = el("button", { class:"mchip", "data-model": m.id, "aria-pressed": String(pressed) }, [m.name || m.id]);
+        btn.onclick = ()=>{
+          state.model = m.id;
+          const t = getActiveThread();
+          if(t) t.model = state.model;
+          persist();
+          toast("ok","Model seçildi.");
+          refreshModelPicker();
+        };
+        host.appendChild(btn);
+      });
+    }
+
+    /* ----------------------------- Router ----------------------------- */
+    function getRoute(){
+      const h = location.hash.replace("#","").trim();
+      if(!h) return state.activeRoute || "chat";
+      const r = h.split("?")[0].replace("/","").trim();
+      const allowed = new Set(["chat","video","gorsel","ses","dublaj","kodlama","projects"]);
+      return allowed.has(r) ? r : "chat";
+    }
+
+    function setRoute(route){
+      location.hash = "#" + route;
+    }
+
+    function renderTabs(){
+      const r = getRoute();
+      $$(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.route === r ? "page" : "false"));
+    }
+
+    function renderRoute(){
+      const outlet = byId("routeOutlet");
+      const r = getRoute();
+      state.activeRoute = r;
+
+      // Composer sadece chat
+      const comp = byId("composer");
+      if(comp) comp.style.display = (r === "chat") ? "flex" : "none";
+
+      // Coding: Canvas panel aç
+      state.ui.canvasOpen = shouldShowCanvas();
+      byId("canvasPanel")?.classList.toggle("hidden", !state.ui.canvasOpen);
+      byId("app")?.classList.toggle("canvas-open", !!state.ui.canvasOpen);
+
+      outlet.innerHTML = "";
+      if(r === "chat") outlet.appendChild(renderChatPage());
+      else if(r === "video") outlet.appendChild(renderVideoPage());
+      else if(r === "gorsel") outlet.appendChild(renderImagePage());
+      else if(r === "ses") outlet.appendChild(renderTtsPage());
+      else if(r === "dublaj") outlet.appendChild(renderDubbingPage());
+      else if(r === "kodlama") outlet.appendChild(renderCodingPage());
+      else if(r === "projects") outlet.appendChild(renderProjectsPage());
+
+      renderTabs();
+      refreshModelPicker();
+      persist();
+    }
+
+    /* ----------------------------- Pages ----------------------------- */
+    function renderChatPage(){
+      const wrap = el("div", { style:"display:flex; flex-direction:column; min-height:0; flex:1;" });
+      const view = el("div", { class:"chatview", id:"chatView", "aria-label":"Sohbet akışı" });
+      wrap.appendChild(view);
+      renderMessages();
+      return wrap;
+    }
+
+    function renderVideoPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Video Üretimi" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, ["Prompt yaz ve “Üret”e bas. (Demo)"]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Prompt"]),
+            el("input", { id:"videoPrompt", placeholder:"Örn: İstanbul’da yağmurlu bir akşam, sinematik…" })
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"videoGenBtn", style:"width:fit-content;" }, ["Üret"]),
+            el("span", { class:"badge", id:"videoStatus" }, ["Hazır"])
+          ]),
+          el("div", { class:"card", id:"videoOut", style:"margin-top:10px; display:none;" }, [])
+        ])
+      ]);
+
+      setTimeout(() => {
+        const btn = byId("videoGenBtn");
+        if(!btn) return;
+        btn.onclick = async () => {
+          const prompt = (byId("videoPrompt")?.value || "").trim();
+          if(!prompt){ toast("error","Prompt boş olamaz."); return; }
+
+          try{
+            byId("videoStatus").textContent = "Üretiliyor…";
+            setStatus("Video üretiliyor…");
+
+            if(window.puter?.ai?.txt2vid){
+              const vid = await window.puter.ai.txt2vid(prompt, { model: state.model || undefined });
+              const url = (vid?.url || vid?.src || vid);
+              showVideo(url);
+            }else{
+              await new Promise(r => setTimeout(r, 1200));
+              showVideo(null);
+            }
+
+            byId("videoStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(_){
+            clearStatus();
+            byId("videoStatus").textContent = "Hata";
+            toast("error","Video üretimi başarısız.");
+          }
+        };
+
+        function showVideo(url){
+          const out = byId("videoOut");
+          out.style.display = "block";
+          out.innerHTML = "";
+          out.appendChild(el("div", { style:"font-weight:900; margin-bottom:8px;" }, ["Önizleme"]));
+          if(url){
+            const v = el("video", { controls:"true", style:"width:100%; border-radius:14px; border:1px solid var(--border);" });
+            v.src = url;
+            out.appendChild(v);
+          }else{
+            out.appendChild(el("div", { style:"color:var(--muted);" }, ["Demo mod: Puter.js txt2vid bağlı değil."]));
+          }
+        }
+      }, 0);
+
+      return card;
+    }
+
+    function renderImagePage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Görsel Üretimi" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, ["Prompt yaz ve “Oluştur”a bas. (Demo)"]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Prompt"]),
+            el("input", { id:"imgPrompt", placeholder:"Örn: Minimal ikon seti, düz renkler…" })
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"imgGenBtn", style:"width:fit-content;" }, ["Oluştur"]),
+            el("button", { class:"ghost", id:"imgReBtn" }, ["Yeniden üret"]),
+            el("span", { class:"badge", id:"imgStatus" }, ["Hazır"])
+          ]),
+          el("div", { id:"imgGrid", style:"margin-top:10px; display:grid; grid-template-columns:repeat(2,1fr); gap:10px;" })
+        ])
+      ]);
+
+      setTimeout(() => {
+        const gen = async () => {
+          const prompt = (byId("imgPrompt")?.value || "").trim();
+          if(!prompt){ toast("error","Prompt boş olamaz."); return; }
+          try{
+            byId("imgStatus").textContent = "Oluşturuluyor…";
+            setStatus("Görsel üretiliyor…");
+
+            if(window.puter?.ai?.txt2img){
+              const res = await window.puter.ai.txt2img(prompt, { model: state.model || undefined });
+              addImage(res);
+            }else{
+              await new Promise(r => setTimeout(r, 900));
+              addImage(null);
+            }
+
+            byId("imgStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(_){
+            clearStatus();
+            byId("imgStatus").textContent = "Hata";
+            toast("error","Görsel üretimi başarısız.");
+          }
+        };
+
+        onClick("imgGenBtn", gen);
+        onClick("imgReBtn", gen);
+
+        function addImage(res){
+          const grid = byId("imgGrid");
+          const wrap = el("div", { class:"card", style:"padding:10px;" });
+          const img = document.createElement("img");
+          img.style.width = "100%";
+          img.style.borderRadius = "14px";
+          img.style.border = "1px solid var(--border)";
+          img.alt = "Üretilen görsel";
+
+          const src = (res && typeof res === "object" && "src" in res) ? res.src : (typeof res === "string" ? res : null);
+          if(src) img.src = src;
+          else{
+            img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+              `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"500\"><rect width=\"100%\" height=\"100%\" fill=\"#e5e7eb\"/><text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#6b7280\" font-family=\"Arial\" font-size=\"22\">Demo görsel</text></svg>`
+            );
+          }
+
+          wrap.appendChild(img);
+          wrap.appendChild(el("div", { style:"display:flex; gap:8px; margin-top:8px; justify-content:flex-end;" }, [
+            el("button", { class:"ghost", onclick: ()=> openZoom(img.src) }, ["Büyüt"]) 
+          ]));
+          grid.prepend(wrap);
+        }
+
+        function openZoom(src){
+          const bd = byId("settingsBackdrop");
+          const modal = bd.querySelector(".modal");
+          byId("settingsTitle").textContent = "Görsel Önizleme";
+          byId("settingsBody").innerHTML = `<div class=\"card\" style=\"grid-column:1 / -1;\"><img src=\"${escapeHTML(src)}\" alt=\"Önizleme\" style=\"width:100%; border-radius:14px; border:1px solid var(--border);\" /></div>`;
+          bd.classList.add("open");
+        }
+      }, 0);
+
+      return card;
+    }
+
+    function renderTtsPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Ses Üretimi" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, ["Metni yaz ve “Oluştur”a bas."]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Metin"]),
+            el("input", { id:"ttsText", placeholder:"Örn: Merhaba!" })
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Dil"]),
+            el("select", { id:"ttsLang" }, [
+              el("option", { value:"tr-TR", selected:"true" }, ["Türkçe (TR)"]),
+              el("option", { value:"en-US" }, ["İngilizce (EN)"])
+            ])
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"ttsBtn", style:"width:fit-content;" }, ["Oluştur"]),
+            el("span", { class:"badge", id:"ttsStatus" }, ["Hazır"])
+          ]),
+          el("div", { id:"ttsOut", style:"margin-top:10px;" })
+        ])
+      ]);
+
+      setTimeout(() => {
+        onClick("ttsBtn", async () => {
+          const text = (byId("ttsText")?.value || "").trim();
+          const lang = (byId("ttsLang")?.value || "tr-TR");
+          if(!text){ toast("error","Metin boş olamaz."); return; }
+
+          try{
+            byId("ttsStatus").textContent = "Üretiliyor…";
+            setStatus("Ses üretiliyor…");
+
+            let audioSrc = null;
+            if(window.puter?.ai?.txt2speech){
+              const res = await window.puter.ai.txt2speech(text, { language: lang, model: state.model || undefined });
+              audioSrc = (res?.src || res?.url || res);
+            }else{
+              await new Promise(r => setTimeout(r, 800));
+            }
+
+            const out = byId("ttsOut");
+            out.innerHTML = "";
+            out.appendChild(el("div", { style:"font-weight:900; margin-bottom:8px;" }, ["Çıktı"]));
+            if(audioSrc){
+              const a = el("audio", { controls:"true", style:"width:100%;" });
+              a.src = audioSrc;
+              out.appendChild(a);
+            }else{
+              out.appendChild(el("div", { style:"color:var(--muted);" }, ["Demo mod: Puter.js txt2speech bağlı değil."]));
+            }
+
+            byId("ttsStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(_){
+            clearStatus();
+            byId("ttsStatus").textContent = "Hata";
+            toast("error","Ses üretimi başarısız.");
+          }
+        });
+      }, 0);
+
+      return card;
+    }
+
+    function renderDubbingPage(){
+      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Dublaj" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, ["Ses dosyası yükle ve “Dönüştür”e bas. (Demo)"]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Ses dosyası"]),
+            el("input", { id:"dubFile", type:"file", accept:".mp3,.wav" })
+          ]),
+          el("div", { class:"field" }, [
+            el("label", {}, ["Hedef ses"]),
+            el("select", { id:"dubVoice" }, [
+              el("option", { value:"varsayilan" }, ["Varsayılan"]),
+              el("option", { value:"daha-resmi" }, ["Daha Resmi"]),
+              el("option", { value:"daha-enerjik" }, ["Daha Enerjik"])
+            ])
+          ]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("button", { class:"primary", id:"dubBtn", style:"width:fit-content;" }, ["Dönüştür"]),
+            el("span", { class:"badge", id:"dubStatus" }, ["Hazır"])
+          ]),
+          el("div", { id:"dubOut", style:"margin-top:10px;" })
+        ])
+      ]);
+
+      setTimeout(() => {
+        onClick("dubBtn", async () => {
+          const file = byId("dubFile")?.files?.[0];
+          const voice = byId("dubVoice")?.value || "varsayilan";
+          if(!file){ toast("error","Ses dosyası seç."); return; }
+
+          try{
+            byId("dubStatus").textContent = "Dönüştürülüyor…";
+            setStatus("Dublaj yapılıyor…");
+
+            let audioSrc = null;
+            if(window.puter?.ai?.speech2speech){
+              const res = await window.puter.ai.speech2speech(file, { voice, model: state.model || undefined });
+              audioSrc = (res?.src || res?.url || res);
+            }else{
+              await new Promise(r => setTimeout(r, 900));
+            }
+
+            const out = byId("dubOut");
+            out.innerHTML = "";
+            out.appendChild(el("div", { style:"font-weight:900; margin-bottom:8px;" }, ["Çıktı"]));
+            if(audioSrc){
+              const a = el("audio", { controls:"true", style:"width:100%;" });
+              a.src = audioSrc;
+              out.appendChild(a);
+            }else{
+              out.appendChild(el("div", { style:"color:var(--muted);" }, ["Demo mod: Puter.js speech2speech bağlı değil."]));
+            }
+
+            byId("dubStatus").textContent = "Tamam";
+            clearStatus();
+          }catch(_){
+            clearStatus();
+            byId("dubStatus").textContent = "Hata";
+            toast("error","Dublaj başarısız.");
+          }
+        });
+      }, 0);
+
+      return card;
+    }
+
+    function renderCodingPage(){
+      return el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Kodlama" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, ["Kodlama açıkken sağdaki editör paneli otomatik açılır."]),
+          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
+            el("span", { class:"badge" }, ["Canvas Panel Açık"]),
+            el("button", { class:"ghost", onclick: ()=> setRoute("chat") }, ["Chat’e dön"])
+          ])
+        ])
+      ]);
+    }
+
+    function renderProjectsPage(){
+      return el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
+        el("div", { class:"card" }, [
+          el("h3", { html:"Projeler" }),
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, ["Demo: Proje kartları + filtreleme akışını burada uygula."])
+        ])
+      ]);
+    }
+
+    /* ----------------------------- Messages Render ----------------------------- */
+    function renderMessages(){
+      const view = byId("chatView");
+      if(!view) return;
+      const thread = ensureThread();
+
+      view.innerHTML = "";
+      if(thread.messages.length === 0){
+        view.appendChild(el("div", { class:"card" }, [
+          el("div", { style:"font-weight:950; font-size:16px; margin-bottom:6px;" }, ["Merhaba 👋"]),
+          el("div", { style:"color:var(--muted); line-height:1.55;" }, ["Bu arayüz GPT web hissi verir ve Puter.js ile çalışır. Araçları “GPT Tools” menüsünden seç."]),
+          el("div", { style:"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;" }, [
+            el("button", { class:"ghost", onclick: ()=> prefill("Kısa bir ürün açıklaması yaz.") }, ["Metin üret"]),
+            el("button", { class:"ghost", onclick: ()=> prefill("Bu metni 3 maddede özetle.") }, ["Özetle"]),
+            el("button", { class:"ghost", onclick: ()=> prefill("Bir Python fonksiyonu yaz: fibonacci.") }, ["Kod yaz"]),
+          ])
+        ]));
+      }
+
+      thread.messages.forEach(msg => view.appendChild(renderBubble(msg, thread)));
+      view.scrollTop = view.scrollHeight;
+    }
+
+    function renderBubble(msg, thread){
+      const b = el("div", { class: "bubble " + (msg.role === "user" ? "user" : ""), "data-id": msg.id });
+
+      if(msg.role !== "user"){
+        const tb = el("div", { class:"toolbar" }, [
+          el("button", { class:"toolbtn", title:"Kopyala", onclick: ()=> copyText(msg.content || "") }, ["Kopyala"]),
+          el("button", { class:"toolbtn", title:"Beğen", onclick: ()=> vote(msg.id, "like") }, ["Beğen"]),
+          el("button", { class:"toolbtn", title:"Beğenmedim", onclick: ()=> vote(msg.id, "dislike") }, ["Beğenmedim"]),
+          el("button", { class:"toolbtn", title:"Şikayet Et", onclick: ()=> reportMsg(msg.id) }, ["Şikayet Et"]),
+          el("button", { class:"toolbtn", title:"Yeniden Üret", onclick: ()=> retryLast(thread) }, ["Yeniden Üret"]),
+        ]);
+        b.appendChild(tb);
+      }
+
+      const content = el("div", { class:"content md" });
+      content.appendChild(renderMarkdown(msg.content || ""));
+      b.appendChild(content);
+
+      if(msg.citations && msg.citations.length){
+        b.appendChild(renderCitations(msg.citations));
+      }
+
+      return b;
+    }
+
+    function renderCitations(citations){
+      const wrap = el("div", { class:"citations" });
+      const head = el("div", { class:"head" }, [
+        el("span", {}, ["Kaynaklar"]),
+        el("button", { class:"toolbtn", onclick: ()=> toggleCite(wrap) }, ["Göster/Gizle"])
+      ]);
+      const list = el("ol", { style:"display:none;" });
+      citations.forEach(c => {
+        const text = `${c.title || "Kaynak"} • ${c.domain || ""} • ${c.date || ""}`.trim();
+        const li = el("li");
+        const a = el("a", { href: c.url || "#", target:"_blank", rel:"noreferrer" }, [text]);
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+      wrap.appendChild(head);
+      wrap.appendChild(list);
+
+      function toggleCite(node){
+        const ol = node.querySelector("ol");
+        ol.style.display = (ol.style.display === "none") ? "block" : "none";
+      }
+      return wrap;
+    }
+
+    function vote(messageId, kind){
+      state.votes[messageId] = kind;
+      persist();
+      toast("ok", kind === "like" ? "Geri bildirim alındı: Beğen" : "Geri bildirim alındı: Beğenmedim");
+    }
+
+    function reportMsg(_messageId){
+      toast("ok", "Şikayet kaydedildi. Teşekkürler.");
+    }
+
+    function copyText(text){
+      navigator.clipboard.writeText(text || "").then(
+        ()=> toast("ok","Kopyalandı."),
+        ()=> toast("error","Kopyalanamadı.")
+      );
+    }
+
+    function renderMarkdown(raw){
+      const container = document.createDocumentFragment();
+      const text = String(raw || "");
+      const parts = splitFences(text);
+
+      parts.forEach(p => {
+        if(p.type === "code") container.appendChild(renderCodeBlock(p.lang, p.content));
+        else container.appendChild(renderInlineBlocks(p.content));
+      });
+
+      return container;
+    }
+
+    function splitFences(text){
+      const out = [];
+      const re = /```(\w+)?\n([\s\S]*?)```/g;
+      let last = 0;
+      let m;
+      while((m = re.exec(text)) !== null){
+        if(m.index > last) out.push({ type:"text", content: text.slice(last, m.index) });
+        out.push({ type:"code", lang: (m[1] || "text").trim(), content: m[2] });
+        last = re.lastIndex;
+      }
+      if(last < text.length) out.push({ type:"text", content: text.slice(last) });
+      return out;
+    }
+
+    function renderCodeBlock(lang, code){
+      const wrap = el("div", { class:"codeblock" });
+      const head = el("div", { class:"codehead" }, [
+        el("span", {}, [lang || "text"]),
+        el("button", { class:"toolbtn", onclick: ()=> copyText(code) }, ["Kopyala"])
+      ]);
+      const pre = el("pre");
+      pre.textContent = code;
+      wrap.appendChild(head);
+      wrap.appendChild(pre);
+      return wrap;
+    }
+
+    function renderInlineBlocks(text){
+      const frag = document.createDocumentFragment();
+      const lines = String(text).split("\n");
+
+      lines.forEach((line, i) => {
+        const trimmed = line.trim();
+        if(trimmed.startsWith("### ")){ frag.appendChild(el("h3", {}, [trimmed.slice(4)])); return; }
+        if(trimmed.startsWith("## ")){ frag.appendChild(el("h2", {}, [trimmed.slice(3)])); return; }
+        if(trimmed.startsWith("# ")){ frag.appendChild(el("h1", {}, [trimmed.slice(2)])); return; }
+
+        if(trimmed.startsWith("- ")){
+          const ul = el("ul");
+          let j = i;
+          while(j < lines.length && lines[j].trim().startsWith("- ")){
+            ul.appendChild(el("li", {}, [ renderInlineCode(lines[j].trim().slice(2)) ]));
+            j++;
+          }
+          frag.appendChild(ul);
+          for(let k=i+1; k<j; k++) lines[k] = "";
+          return;
+        }
+
+        if(trimmed.length === 0){ frag.appendChild(el("div", { style:"height:6px" })); return; }
+        frag.appendChild(el("div", {}, [ renderInlineCode(line) ]));
+      });
+
+      return frag;
+    }
+
+    function renderInlineCode(line){
+      const frag = document.createDocumentFragment();
+      const re = /`([^`]+)`/g;
+      let last = 0, m;
+      const s = String(line);
+      while((m = re.exec(s)) !== null){
+        if(m.index > last) frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+        frag.appendChild(el("code", { class:"inline" }, [m[1]]));
+        last = re.lastIndex;
+      }
+      if(last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+      return frag;
+    }
+
+    /* ----------------------------- Chat Send + Streaming ----------------------------- */
+    function prefill(text){
+      const mi = byId("messageInput");
+      if(mi) mi.value = text;
+      const cc = byId("charCount");
+      if(cc) cc.textContent = String(text.length);
+      focusComposer();
+    }
+
+    function focusComposer(){
+      setTimeout(()=> byId("messageInput")?.focus(), 0);
+    }
+
+    async function sendUserMessage(){
+      const thread = ensureThread();
+      const input = byId("messageInput");
+      if(!input) return;
+
+      const text = (input.value || "").trim();
+      if(!text) return;
+
+      if(state.ui.tempChat) thread.temp = true;
+
+      const userMsg = { id: uid("m"), role:"user", content: text, createdAt: nowTs() };
+      thread.messages.push(userMsg);
+      thread.updatedAt = nowTs();
+
+      if(thread.title === "Yeni Sohbet") renameThread(thread.id, text.slice(0, 40));
+
+      input.value = "";
+      byId("charCount").textContent = "0";
+      persist();
+      renderMessages();
+      renderSidebar();
+
+      await generateAssistantReply(thread);
+    }
+
+    async function retryLast(thread){
+      const lastIdx = [...thread.messages].reverse().findIndex(m => m.role === "assistant");
+      if(lastIdx < 0){ toast("error","Yeniden üretilecek yanıt yok."); return; }
+      const realIndex = thread.messages.length - 1 - lastIdx;
+      thread.messages.splice(realIndex, 1);
+      persist();
+      renderMessages();
+      await generateAssistantReply(thread);
+    }
+
+    function buildSystemPrompt(thread){
+      const tools = getToolsForThread(thread.id);
+      let sys = "Sen Türkçe konuşan bir asistansın. Tüm yanıtlar %100 Türkçe olmalı.\n";
+      if(state.ui.deepResearch || tools.web){
+        sys += "Derin Araştırma açık: önce kısa bir araştırma planı üret, sonra kaynaklı özet ver.\n";
+        sys += "Yanıt sonunda 'Kaynaklar' bölümünde numaralı kaynak listesi ver.\n";
+      }
+      if(tools.coding || getRoute() === "kodlama"){
+        sys += "Kodlama modu: temiz, çalışır örnekler ver; hataları önle.\n";
+      }
+      return sys;
+    }
+
+    function collectChatContext(thread){
+      const N = 18;
+      return thread.messages.slice(-N).map(m => ({ role: m.role, content: m.content }));
+    }
+
+    async function generateAssistantReply(thread){
+      const tools = getToolsForThread(thread.id);
+
+      const assistantMsg = { id: uid("m"), role:"assistant", content:"", createdAt: nowTs(), citations: [] };
+      thread.messages.push(assistantMsg);
+
+      setStatus("Yazıyor…");
+      const sb = byId("sendBtn");
+      if(sb) sb.disabled = true;
+
+      renderMessages();
+
+      try{
+        const sys = buildSystemPrompt(thread);
+        const msgs = collectChatContext(thread);
+        const merged = [{ role:"system", content: sys }, ...msgs];
+
+        const model = state.model || thread.model || DEFAULT_FEATURED_MODELS[0];
+
+        if(window.puter?.ai?.chat){
+          const options = {
+            model,
+            stream: true,
+            tools: Object.entries(tools).filter(([,v])=>v).map(([k])=>k),
+          };
+
+          const res = await window.puter.ai.chat(merged, options);
+
+          if(res && typeof res[Symbol.asyncIterator] === "function"){
+            for await (const chunk of res){
+              const text = extractText(chunk);
+              if(text) appendChunk(assistantMsg, text);
+            }
+          }else if(res && typeof res.stream === "function"){
+            await res.stream({
+              onChunk: (c)=> appendChunk(assistantMsg, extractText(c)),
+              onDone: ()=>{}
+            });
+          }else{
+            const text = extractText(res);
+            appendChunk(assistantMsg, text || "Model yanıt vermedi.");
+          }
+
+          if(state.ui.deepResearch || tools.web) assistantMsg.citations = makeDemoCitations();
+        }else{
+          await fakeStream(assistantMsg, "Demo mod: Puter.js bağlı değil.\n\n- Araçlar: GPT Tools\n- Model: Provider sekmeleri + 7 model\n\n```python\ndef merhaba_dünya():\n    print(\"Merhaba, Dünya!\")\n```\n");
+          if(state.ui.deepResearch || tools.web) assistantMsg.citations = makeDemoCitations();
+        }
+
+        thread.updatedAt = nowTs();
+        persist();
+        renderMessages();
+        renderSidebar();
+        clearStatus();
+      }catch(_){
+        clearStatus();
+        assistantMsg.content = "Model yanıt vermedi.\n\n- Bağlantı sorunu olabilir.\n";
+        toast("error","Model yanıt vermedi.");
+        renderMessages();
+      }finally{
+        if(sb) sb.disabled = false;
+      }
+    }
+
+    function extractText(any){
+      if(any == null) return "";
+      if(typeof any === "string") return any;
+      if(typeof any === "object"){
+        if(typeof any.text === "string") return any.text;
+        if(typeof any.content === "string") return any.content;
+        if(typeof any.message === "string") return any.message;
+        if(any.choices?.[0]?.delta?.content) return any.choices[0].delta.content;
+        if(any.choices?.[0]?.message?.content) return any.choices[0].message.content;
+      }
+      return "";
+    }
+
+    function appendChunk(msg, chunk){
+      if(!chunk) return;
+      msg.content += chunk;
+      renderMessages();
+    }
+
+    async function fakeStream(msg, fullText){
+      for(const ch of fullText.split("")){
+        msg.content += ch;
+        renderMessages();
+        await new Promise(r => setTimeout(r, 7));
+      }
+    }
+
+    function makeDemoCitations(){
+      return [
+        { title:"Puter AI Model Kataloğu", domain:"developer.puter.com", date:"—", url:"https://developer.puter.com/ai/models" },
+        { title:"Puter.js AI API", domain:"developer.puter.com", date:"—", url:"https://developer.puter.com/" },
+      ];
+    }
+
+    /* ----------------------------- Attachments (Demo) ----------------------------- */
+    function addAttachment(file){
+      const thread = ensureThread();
+      const list = (state.attachmentsByThread[thread.id] ||= []);
+      list.push({ id: uid("f"), name: file.name, type: file.type, size: file.size, file });
+      persist();
+      renderAttachBar();
+    }
+
+    function removeAttachment(attId){
+      const thread = ensureThread();
+      const list = (state.attachmentsByThread[thread.id] ||= []);
+      const idx = list.findIndex(x => x.id === attId);
+      if(idx >= 0) list.splice(idx,1);
+      persist();
+      renderAttachBar();
+    }
+
+    function renderAttachBar(){
+      const thread = ensureThread();
+      const bar = byId("attachBar");
+      if(!bar) return;
+      bar.innerHTML = "";
+
+      const list = (state.attachmentsByThread[thread.id] ||= []);
+      list.forEach(a => {
+        const chip = el("div", { class:"chip" }, [
+          el("span", {}, [a.name]),
+          el("button", { title:"Kaldır", "aria-label":"Kaldır", onclick: ()=> removeAttachment(a.id) }, ["✕"])
+        ]);
+        bar.appendChild(chip);
+      });
+    }
+
+    /* ----------------------------- Sidebar Render + Context Menu ----------------------------- */
+    function renderSidebar(){
+      const pinnedList = byId("pinnedList");
+      const chatList = byId("chatList");
+      const empty = byId("emptyChatsCard");
+      const pinnedWrap = byId("pinnedWrap");
+
+      if(!pinnedList || !chatList || !empty || !pinnedWrap) return;
+
+      const q = (byId("chatSearchInput")?.value || "").trim().toLowerCase();
+      const threads = state.threads.filter(t => !t.archived);
+
+      const filtered = q
+        ? threads.filter(t =>
+            t.title.toLowerCase().includes(q) ||
+            t.messages.some(m => (m.content || "").toLowerCase().includes(q))
+          )
+        : threads;
+
+      const pinned = filtered.filter(t => t.pinned);
+      const rest = filtered.filter(t => !t.pinned);
+
+      pinnedList.innerHTML = "";
+      chatList.innerHTML = "";
+
+      pinnedWrap.style.display = pinned.length ? "block" : "none";
+      empty.style.display = filtered.length === 0 ? "block" : "none";
+
+      pinned.forEach(t => pinnedList.appendChild(chatItem(t)));
+      rest.forEach(t => chatList.appendChild(chatItem(t)));
+
+      const badge = byId("chatCountBadge");
+      if(badge) badge.textContent = String(threads.length);
+
+      const un = String(byId("username")?.textContent || "S").trim();
+      const av = byId("avatar");
+      if(av) av.textContent = (un[0] || "S").toUpperCase();
+    }
+
+    function chatItem(t){
+      const wrap = el("div", { class:"chatitem", "data-id": t.id, role:"button", tabindex:"0", "aria-label":"Sohbet aç" });
+      const meta = el("div", { class:"chatmeta" }, [
+        el("div", { class:"chattitle" }, [t.title]),
+        el("div", { class:"chatstamp" }, [relativeTime(t.updatedAt)])
+      ]);
+      const dots = el("button", { class:"dots", title:"Menü", "aria-label":"Menü", onclick: (e)=> openContextMenu(e, t.id) }, ["⋯"]);
+      wrap.appendChild(meta);
+      wrap.appendChild(dots);
+
+      if(t.id === state.activeThreadId){
+        wrap.style.borderColor = "rgba(37,99,235,.35)";
+        wrap.style.background = "rgba(37,99,235,.06)";
+      }
+
+      wrap.onclick = (e) => {
+        if(e.target === dots) return;
+        state.activeThreadId = t.id;
+        persist();
+        renderAll();
+        focusComposer();
+      };
+      wrap.onkeydown = (e) => {
+        if(e.key === "Enter"){
+          state.activeThreadId = t.id;
+          persist();
+          renderAll();
+          focusComposer();
+        }
+      };
+      return wrap;
+    }
+
+    function openContextMenu(e, threadId){
+      e.stopPropagation();
+      const t = state.threads.find(x => x.id === threadId);
+      if(!t) return;
+
+      const action = prompt(
+        "İşlem seç:\n1) Yeniden Adlandır\n2) " + (t.pinned ? "Sabitlemeyi kaldır" : "Sabitle") +
+        "\n3) Arşivle\n4) Sil\n\n1-4 yaz ve Enter’a bas."
+      );
+
+      if(action === "1"){
+        const name = prompt("Yeni ad:", t.title);
+        if(name != null) renameThread(threadId, name);
+      }else if(action === "2"){
+        pinThread(threadId, !t.pinned);
+      }else if(action === "3"){
+        archiveThread(threadId, true);
+        toast("ok","Arşivlendi.");
+      }else if(action === "4"){
+        if(confirm("Silinsin mi?")) deleteThread(threadId);
+      }
+    }
+
+    /* ----------------------------- Events ----------------------------- */
+    function bindEvents(){
+      // Sidebar mode
+      onClick("sbModeChat", ()=>{ state.ui.sidebarMode = "chat"; applyTheme(); persist(); });
+      onClick("sbModeProject", ()=>{ state.ui.sidebarMode = "project"; applyTheme(); persist(); });
+
+      // New chat
+      onClick("newChatBtn", ()=> newThread());
+
+      // Search
+      onEvent("chatSearchInput", "input", renderSidebar);
+      onClick("clearSearchBtn", ()=>{ const i = byId("chatSearchInput"); if(i) i.value = ""; renderSidebar(); });
+
+      // Tabs
+      $$(".tab").forEach(b => b.onclick = ()=> setRoute(b.dataset.route));
+      window.addEventListener("hashchange", renderRoute);
+
+      // Tools open/close
+      onClick("toolsBtn", openTools);
+      onClick("closeToolsBtn", closeTools);
+      onClick("toolsDoneBtn", closeTools);
+      byId("toolsBackdrop")?.addEventListener("click", (e)=>{ if(e.target.id === "toolsBackdrop") closeTools(); });
+
+      // Tools checkboxes
+      $$('#toolsBackdrop input[type="checkbox"][data-tool]').forEach(cb => {
+        cb.addEventListener("change", ()=>{
+          const thread = ensureThread();
+          setTool(thread.id, cb.dataset.tool, cb.checked);
+          state.ui.canvasOpen = shouldShowCanvas();
+          byId("canvasPanel")?.classList.toggle("hidden", !state.ui.canvasOpen);
+          persist();
+        });
+      });
+
+      // Featured model quick buttons
+      $$('#toolsBackdrop [data-featured]').forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-featured");
+          state.model = id;
+          persist();
+          await refreshModelPicker();
+          toast("ok","Model seçildi: " + id);
+        });
+      });
+
+      // Temp chat toggle
+      onClick("tempChatToggle", ()=>{
+        state.ui.tempChat = !state.ui.tempChat;
+        byId("tempChatToggle")?.setAttribute("aria-pressed", String(!!state.ui.tempChat));
+        persist();
+        toast("ok", state.ui.tempChat ? "Geçici Sohbet açık." : "Geçici Sohbet kapalı.");
+      });
+
+      // Deep research toggle (GPT web gibi: üst bar üzerinden)
+      const toggleDeep = ()=>{
+        state.ui.deepResearch = !state.ui.deepResearch;
+        byId("deepResearchToggleTop")?.setAttribute("aria-pressed", String(!!state.ui.deepResearch));
+        persist();
+        toast("ok", state.ui.deepResearch ? "Derin Araştırma açık." : "Derin Araştırma kapalı.");
+      };
+      onClick("deepResearchToggleTop", toggleDeep);
+
+      // Memory toggle
+      onClick("memoryToggle", ()=>{
+        state.ui.memory = !state.ui.memory;
+        applyTheme();
+        persist();
+        toast("ok", state.ui.memory ? "Hafıza açıldı." : "Hafıza kapatıldı.");
+      });
+
+      // Projects shortcut
+      onClick("projectsBtn", ()=> setRoute("projects"));
+      onClick("projectsBtn2", ()=> setRoute("projects"));
+
+      // Composer
+      onClick("sendBtn", sendUserMessage);
+      onEvent("messageInput", "keydown", (e)=>{
+        if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendUserMessage(); }
+      });
+      onEvent("messageInput", "input", (e)=>{ const cc = byId("charCount"); if(cc) cc.textContent = String(e.target.value.length); });
+
+      // File attach
+      onEvent("fileInput", "change", (e)=>{
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => addAttachment(f));
+        e.target.value = "";
+      });
+
+      // Voice mode (demo)
+      onClick("voiceModeBtn", async ()=>{
+        toast("ok","Sesli Mod (demo) başlatıldı.");
+        if(!window.puter?.ai?.speech2txt || !window.puter?.ai?.txt2speech){
+          toast("error","Sesli Mod için Puter.js STT/TTS gerekli.");
+          return;
+        }
+      });
+
+      // Sidebar drawer (mobile)
+      onClick("mobileDrawerBtn", ()=>{ byId("sidebar")?.classList.add("open"); byId("drawerBackdrop")?.classList.add("open"); });
+      onClick("drawerBackdrop", ()=>{ byId("sidebar")?.classList.remove("open"); byId("drawerBackdrop")?.classList.remove("open"); });
+      onClick("sidebarToggleBtn", ()=> toast("ok","Sidebar dar/geniş (demo)."));
+
+      // User menu
+      onClick("userMenuBtn", (e)=>{ e.stopPropagation(); byId("userMenu")?.classList.toggle("open"); });
+      document.addEventListener("click", ()=> byId("userMenu")?.classList.remove("open"));
+      byId("userMenu")?.addEventListener("click", (e)=>{
+        const btn = e.target.closest("button[data-action]");
+        if(!btn) return;
+        const a = btn.dataset.action;
+        byId("userMenu")?.classList.remove("open");
+        if(a === "settings") openSettings("Ayarlar");
+        if(a === "usage") openSettings("Kullanım ve Maliyet");
+        if(a === "billing") openSettings("Ödeme Ayarları");
+        if(a === "logout") doLogout();
+      });
+
+      // Settings modal
+      onClick("closeSettingsBtn", closeSettings);
+      byId("settingsBackdrop")?.addEventListener("click", (e)=>{ if(e.target.id === "settingsBackdrop") closeSettings(); });
+      onClick("settingsSaveBtn", ()=>{
+        state.ui.theme = byId("themeSelect").value;
+        state.ui.accent = byId("accentSelect").value;
+        state.ui.font = byId("fontSelect").value;
+        persist();
+        restoreSettingsBody();
+        applyTheme();
+        toast("ok","Kaydedildi.");
+        closeSettings();
+      });
+
+      // Data control toggles
+      onClick("saveHistoryToggle", ()=>{
+        state.ui.saveHistory = !state.ui.saveHistory;
+        byId("saveHistoryToggle")?.setAttribute("aria-pressed", String(!!state.ui.saveHistory));
+        if(state.ui.saveHistory) persist();
+        toast("ok", state.ui.saveHistory ? "Geçmiş kaydı açık." : "Geçmiş kaydı kapalı.");
+      });
+      onClick("telemetryToggle", ()=>{ state.ui.telemetry = !state.ui.telemetry; byId("telemetryToggle")?.setAttribute("aria-pressed", String(!!state.ui.telemetry)); persist(); });
+      onClick("includeFilesToggle", ()=>{ state.ui.includeFiles = !state.ui.includeFiles; byId("includeFilesToggle")?.setAttribute("aria-pressed", String(!!state.ui.includeFiles)); persist(); });
+
+      // Canvas
+      onClick("canvasCloseBtn", ()=>{
+        state.ui.canvasOpen = false;
+        byId("canvasPanel")?.classList.add("hidden");
+        byId("app")?.classList.remove("canvas-open");
+        persist();
+      });
+      onClick("copyCanvasBtn", ()=> copyText(byId("canvasEditor")?.value || ""));
+      onClick("setLangPython", ()=> setCanvasLang("python"));
+      onClick("setLangJS", ()=> setCanvasLang("javascript"));
+      onClick("setLangTXT", ()=> setCanvasLang("metin"));
+
+      // Keyboard global
+      window.addEventListener("keydown", (e)=>{
+        if(e.key === "Escape"){
+          if(byId("toolsBackdrop")?.classList.contains("open")) closeTools();
+          if(byId("settingsBackdrop")?.classList.contains("open")) closeSettings();
+        }
+        if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
+          e.preventDefault();
+          newThread();
+        }
+      });
+
+      // Model picker (hidden)
+      byId("modelPicker")?.addEventListener("change", (e)=>{
+        state.model = e.target.value;
+        const t = getActiveThread();
+        if(t) t.model = state.model;
+        persist();
+        toast("ok","Model seçildi.");
+        refreshModelPicker();
+      });
+
+      // Tools modal: açıldığında checkbox’ları senkronla
+      byId("toolsBackdrop")?.addEventListener("transitionend", ()=> syncToolsCheckboxes());
+    }
+
+    function setCanvasLang(lang){
+      const n = byId("canvasLang");
+      if(n) n.textContent = lang;
+      toast("ok","Dil seçildi: " + lang);
+    }
+
+    function syncToolsCheckboxes(){
+      const thread = ensureThread();
+      const tools = getToolsForThread(thread.id);
+      $$('#toolsBackdrop input[type="checkbox"][data-tool]').forEach(cb => {
+        cb.checked = !!tools[cb.dataset.tool];
+      });
+    }
+
+    function openTools(){
+      syncToolsCheckboxes();
+      byId("toolsBackdrop")?.classList.add("open");
+    }
+
+    function closeTools(){
+      byId("toolsBackdrop")?.classList.remove("open");
+    }
+
+    // Ayarlar modalı, zoom reuse ile değişmişse geri kur
+    const SETTINGS_BODY_SNAPSHOT = document.getElementById("settingsBody")?.innerHTML || "";
+    function restoreSettingsBody(){
+      const body = byId("settingsBody");
+      if(body && body.innerHTML !== SETTINGS_BODY_SNAPSHOT) body.innerHTML = SETTINGS_BODY_SNAPSHOT;
+    }
+
+    function openSettings(title){
+      restoreSettingsBody();
+      byId("settingsTitle").textContent = title;
+      byId("themeSelect").value = state.ui.theme;
+      byId("accentSelect").value = state.ui.accent;
+      byId("fontSelect").value = state.ui.font;
+      byId("settingsBackdrop")?.classList.add("open");
+    }
+
+    function closeSettings(){
+      byId("settingsBackdrop")?.classList.remove("open");
+    }
+
+    async function doLogout(){
+      try{
+        if(window.puter?.auth?.signOut) await window.puter.auth.signOut();
+        toast("ok","Çıkış yapıldı.");
+      }catch(_){
+        toast("error","Çıkış başarısız.");
+      }
+    }
+
+    /* ----------------------------- Render All ----------------------------- */
+    function renderAll(){
+      applyTheme();
+      renderSidebar();
+      renderTabs();
+      renderRoute();
+      renderAttachBar();
+    }
+
+    /* ----------------------------- Self Tests ----------------------------- */
+    function runSelfTests(){
+      const required = [
+        "newChatBtn","chatSearchInput","chatList","pinnedList","toolsBtn",
+        "sendBtn","messageInput","routeOutlet","statusLine","toolsBackdrop",
+        "settingsBackdrop","canvasPanel","tempChatToggle","deepResearchToggleTop"
+      ];
+      const missing = required.filter(id => !byId(id));
+      if(missing.length){
+        console.warn("Eksik elementler:", missing);
+        toast("error", "UI eksik elementler var: " + missing.join(", "));
+      }
+    }
+
+    /* ----------------------------- Boot ----------------------------- */
+    async function boot(){
+      if(state.threads.length === 0) newThread();
+      else if(!state.activeThreadId) state.activeThreadId = state.threads[0].id;
+
+      bindEvents();
+      applyTheme();
+      renderAll();
+      runSelfTests();
+
+      // Puter user bilgisi (varsa)
+      try{
+        if(window.puter?.auth?.getUser){
+          const u = await window.puter.auth.getUser();
+          if(u?.username){
+            byId("username").textContent = u.username;
+            byId("avatar").textContent = u.username[0].toUpperCase();
+          }
+        }
+      }catch(_){/* ignore */}
+
+      await refreshModelPicker();
+      if(!location.hash) setRoute("chat");
+    }
+
+    boot();
+  </script>
+
+  <script defer src="/static/kame-ui.js"></script>
+</body>
+</html>
