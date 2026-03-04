@@ -963,89 +963,13 @@ def merhaba_dünya():
       </div>
     </div>
 
-    <!-- Ayarlar / Ödeme / Kullanım Modal -->
-    <div class="backdrop" id="settingsBackdrop" aria-hidden="true">
-      <div class="modal" role="dialog" aria-label="Ayarlar">
-        <div class="modal-head">
-          <div style="font-weight:800;" id="settingsTitle">Ayarlar</div>
-          <button class="iconbtn" id="closeSettingsBtn" aria-label="Kapat">✕</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="card">
-            <h3>Görünüm</h3>
-            <div class="field">
-              <label>Tema</label>
-              <select id="themeSelect">
-                <option value="light">Açık</option>
-                <option value="dark">Koyu</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Vurgu rengi</label>
-              <select id="accentSelect">
-                <option value="#2563eb">Mavi</option>
-                <option value="#16a34a">Yeşil</option>
-                <option value="#7c3aed">Mor</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Yazı boyutu</label>
-              <select id="fontSelect">
-                <option value="small">Küçük</option>
-                <option value="medium" selected>Orta</option>
-                <option value="large">Büyük</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Veri Denetimleri</h3>
-            <div class="field">
-              <button class="toggle" id="saveHistoryToggle" aria-pressed="true" aria-label="Sohbet geçmişini kaydet">
-                <span class="switch" aria-hidden="true"></span>
-                <span>Sohbet geçmişini kaydet</span>
-              </button>
-            </div>
-            <div class="field">
-              <button class="toggle" id="telemetryToggle" aria-pressed="false" aria-label="Telemetri / hata raporu">
-                <span class="switch" aria-hidden="true"></span>
-                <span>Telemetri / hata raporu</span>
-              </button>
-            </div>
-            <div class="field">
-              <button class="toggle" id="includeFilesToggle" aria-pressed="false" aria-label="Dosyaları model bağlamına dahil et">
-                <span class="switch" aria-hidden="true"></span>
-                <span>Dosyaları model bağlamına dahil et</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="card" style="grid-column:1 / -1;">
-            <h3>Ödeme Ayarları</h3>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-              <div class="card" style="box-shadow:none;">
-                <h3 style="margin:0 0 6px;">Fiyat gösterimi</h3>
-                <div style="color:var(--muted); font-size:13px; line-height:1.45;">
-                  Tüm fiyatlar TL + USD birlikte gösterilir.<br />
-                  Örnek: <b>₺12,90 (≈ $0.40)</b>
-                </div>
-              </div>
-              <div class="card" style="box-shadow:none;">
-                <h3 style="margin:0 0 6px;">Ödeme kanalları</h3>
-                <div style="color:var(--muted); font-size:13px; line-height:1.55;">
-                  <b>Türkiye:</b> iyzico, PayTR, Param, Shopier<br/>
-                  <b>Global:</b> PayPal, Stripe
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-foot">
-          <button class="ghost" id="settingsSaveBtn">Kaydet</button>
-        </div>
-      </div>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <div id="modals" class="modals">
+      <section id="global-search-modal" role="dialog" aria-modal="true" hidden>
+        <input id="global-search-input" type="search" placeholder="Komut veya sayfa ara" />
+      </section>
+      <section id="error-modal" role="dialog" aria-modal="true" hidden></section>
+      <section id="paywall-modal" role="dialog" aria-modal="true" hidden></section>
     </div>
   </div>
 
