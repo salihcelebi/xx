@@ -1190,6 +1190,14 @@ def merhaba_dünya():
       "openai/gpt-5.2-pro",
     ];
 
+    // Gereksinim-9: kame-ui.js ile birebir model havuz kimliklerini sabit tut.
+    const MODEL_GROUPS = {
+      M0: ["openai/gpt-4.1-nano", "openai/gpt-4o-mini", "mistralai/mistral-small-24b-instruct-2501"],
+      Mmid: ["openai/gpt-4.1-mini", "mistralai/mistral-small-3.2-24b-instruct"],
+      M1: ["deepseek/deepseek-reasoner", "deepseek/deepseek-r1", "x-ai/grok-4"],
+      Mcode: ["openai/gpt-5.1-codex-mini", "openai/gpt-5.1-codex-max"],
+    };
+
     const DEFAULT_TOOLS = {
       web: false,
       files: false,
@@ -1442,28 +1450,113 @@ def merhaba_dünya():
       return route === "kodlama" || !!tools.coding;
     }
 
+    function detectModeFromText(userText, route){
+      // Gereksinim-5.3: mode tespitini kullanıcı isteği + rota ile tek fonksiyonda yap.
+      const t = String(userText || "").toLowerCase();
+      if(route === "video" || t.includes("video")) return "video";
+      if(route === "gorsel" || t.includes("görsel") || t.includes("image") || t.includes("resim")) return "image";
+      if(route === "ses" || t.includes("tts") || t.includes("ses üret")) return "tts";
+      if(t.includes("stt") || t.includes("transcribe") || t.includes("ses yazıya")) return "stt";
+      if(route === "dublaj" || t.includes("dublaj") || t.includes("speech2speech")) return "dubbing";
+      if(route === "kodlama" || t.includes("kod") || t.includes("refactor") || t.includes("debug")) return "code";
+      return "chat";
+    }
+
+    function computeRiskScore(userText){
+      // Gereksinim-2.3: risk ∈ [0,1] skorunu zorunlu metrik olarak üret.
+      const t = String(userText || "");
+      const W = t.trim().split(/\s+/).filter(Boolean).length;
+      let risk = 0.20;
+      if(W > 100) risk += 0.20;
+      if(/(stack trace|exception|error|bug|refactor|hata|debug|trace)/i.test(t)) risk += 0.20;
+      if(/(adım|kural|zorunlu|mutlaka|şart|constraint|requirements)/i.test(t)) risk += 0.20;
+      if(/(ödeme|para|fatura|hukuk|güvenlik|security|kvkk|gdpr|pii)/i.test(t)) risk += 0.20;
+      return Math.max(0, Math.min(1, risk));
+    }
+
+    function computeMemeScore(thread){
+      // Gereksinim-7: teşekkür/oldu/tamam (+), çalışmadı/anlamadım (-), şikayet (-- ) sinyallerini puanlar.
+      const signals = (thread?.messages || []).slice(-8).map(m => String(m.content || "").toLowerCase()).join(" \n ");
+      let delta = 0;
+      if(/(teşekkür|eyvallah|oldu|tamam)/i.test(signals)) delta += 0.25;
+      if(/(devam|sürdür|ekle)/i.test(signals)) delta += 0.10;
+      if(/(çalışmadı|anlamadım|olmadı)/i.test(signals)) delta -= 0.25;
+      if(/(şikayet|berbat|rezalet)/i.test(signals)) delta -= 0.35;
+      return Math.max(0, Math.min(1, 0.50 + delta));
+    }
+
+    function pickFirstAvailable(catalog, ids){
+      // Gereksinim-4: S(model,P)=1 olmayan modeli hiç seçme.
+      for(const id of ids){
+        if(catalog.has(id)) return id;
+      }
+      return null;
+    }
+
+    function selectModelByKameRules({ mode, risk, catalog }){
+      // Gereksinim-5/9: kame-ui.js karar ağacını koruyarak M0/M1 ve mode bazlı seçim yap.
+      if(mode === "chat"){
+        if(risk <= 0.45) return pickFirstAvailable(catalog, MODEL_GROUPS.M0) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+        if(risk <= 0.70) return pickFirstAvailable(catalog, MODEL_GROUPS.Mmid) || pickFirstAvailable(catalog, MODEL_GROUPS.M1);
+        return pickFirstAvailable(catalog, MODEL_GROUPS.M1) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+      }
+      if(mode === "code") return risk <= 0.55 ? pickFirstAvailable(catalog, ["openai/gpt-5.1-codex-mini"]) : pickFirstAvailable(catalog, ["openai/gpt-5.1-codex-max"]);
+      if(mode === "video") return risk > 0.70 ? "sora-2-pro" : "sora-2";
+      if(mode === "image") return pickFirstAvailable(catalog, MODEL_GROUPS.Mmid) || pickFirstAvailable(catalog, MODEL_GROUPS.M0);
+      if(mode === "tts" || mode === "stt" || mode === "dubbing") return pickFirstAvailable(catalog, MODEL_GROUPS.M0) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+      return pickFirstAvailable(catalog, MODEL_GROUPS.M0) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+    }
+
+    function computeKameSummary({ risk, meme, retryCount }){
+      // Gereksinim-10: KAM/ROI/KAME formüllerini sabit parametrelerle hesapla (UI debug alanı için).
+      const R = 100;
+      const Cost = Number((8 + (risk * 12) + (retryCount * 3)).toFixed(2));
+      const KAM = R - Cost;
+      const ROI = KAM / Math.max(Cost, 0.01);
+      const penalty = (risk > 0.75 ? 0.10 : 0) + (retryCount > 1 ? 0.10 : 0) + (meme < 0.25 ? 0.15 : 0);
+      const norm = 1 / (1 + Math.exp(-(KAM / 25)));
+      const KAME = (0.60 * norm) + ((1 - 0.60) * meme) - penalty;
+      return { R, Cost, KAM, ROI, KAME };
+    }
+
+    async function chooseModelForPrompt({ thread, promptText, retryCount = 0 }){
+      // Gereksinim-4/5/8: paket erişilebilirlik filtresi + max 1 retry için seçimi tek yerden yap.
+      const all = await listModelsSmart();
+      const catalog = {
+        ids: all.map(m => m.id),
+        has: (id) => all.some(m => m.id === id),
+      };
+      const mode = detectModeFromText(promptText, getRoute());
+      const risk = computeRiskScore(promptText);
+      const meme = computeMemeScore(thread);
+      const selected = selectModelByKameRules({ mode, risk, catalog }) || state.model || DEFAULT_FEATURED_MODELS[0];
+      return { mode, risk, meme, selected, kame: computeKameSummary({ risk, meme, retryCount }) };
+    }
+
     async function listModelsSmart(){
-      // Basit cache: 12 saat
+      // Gereksinim-1: cache akışı korunur, sadece normalize alanları genişletilir.
       const TTL = 12 * 60 * 60 * 1000;
       const fresh = (Date.now() - (state.modelCache.updatedAt || 0)) < TTL;
       if(fresh && Array.isArray(state.modelCache.items) && state.modelCache.items.length) return state.modelCache.items;
 
       if(!window.puter?.ai?.listModels){
-        // Puter yoksa: sadece featured fallback
+        // Gereksinim-1: Puter yoksa null-safe fallback döner, UI çökmez.
         return DEFAULT_FEATURED_MODELS.map(id => ({ id, name:id, provider: id.split("/")[0] }));
       }
 
       try{
         setStatus("Model listesi yükleniyor…");
         const items = await window.puter.ai.listModels();
-        // Beklenen alanlar değişebilir; güvenli normalize et.
+        // Gereksinim-1: createdAt/updatedAt/release ve ham fiyat bilgilerini normalize ederek taşır.
         const normalized = (Array.isArray(items) ? items : [])
           .map(m => ({
             id: m.id || m.model || m.name,
             name: m.name || m.id || m.model,
             provider: m.provider || (String(m.id || m.model || "").split("/")[0] || "Bilinmeyen"),
             modes: m.modes || m.capabilities || [],
-            price: m.price || m.pricing || null,
+            priceRaw: m.price || m.pricing || m.priceHint || null,
+            createdAt: m.createdAt || m.created || m.releaseAt || m.releasedAt || m.date || null,
+            updatedAt: m.updatedAt || m.updated || null,
           }))
           .filter(x => x.id);
 
@@ -1497,6 +1590,118 @@ def merhaba_dünya():
       });
     }
 
+
+    function parsePriceToNumberUsd(priceRaw){
+      // Gereksinim-2A: string/object fiyatları tek numerik değere indirir, parse edilemezse Infinity döner.
+      if(priceRaw == null) return Infinity;
+      if(typeof priceRaw === "number") return Number.isFinite(priceRaw) ? priceRaw : Infinity;
+      if(typeof priceRaw === "string"){
+        const match = priceRaw.replace(",", ".").match(/\d+(?:\.\d+)?/);
+        return match ? Number(match[0]) : Infinity;
+      }
+      if(typeof priceRaw === "object"){
+        const input = Number(priceRaw.input ?? priceRaw.inputCost ?? priceRaw.prompt ?? NaN);
+        const output = Number(priceRaw.output ?? priceRaw.outputCost ?? priceRaw.completion ?? NaN);
+        if(Number.isFinite(input) && Number.isFinite(output)) return input + output;
+        if(Number.isFinite(input)) return input;
+        if(Number.isFinite(output)) return output;
+      }
+      return Infinity;
+    }
+
+    function parseVersionScore(id){
+      // Gereksinim-2B: model id içindeki sürüm numaralarını karşılaştırılabilir diziye çevirir.
+      const nums = String(id || "").match(/\d+(?:\.\d+)?/g);
+      if(!nums || !nums.length) return null;
+      return nums.flatMap(n => String(n).split(".").map(x => Number(x))).filter(Number.isFinite);
+    }
+
+    function compareVersionScore(a, b){
+      // Gereksinim-2B/C: major/minor/patch mantığıyla dizi karşılaştırması yapar.
+      const len = Math.max(a?.length || 0, b?.length || 0);
+      for(let i=0;i<len;i++){
+        const av = a?.[i] ?? 0;
+        const bv = b?.[i] ?? 0;
+        if(av !== bv) return av - bv;
+      }
+      return 0;
+    }
+
+    function modelOldnessKey(m){
+      // Gereksinim-2C: tarih varsa tarih, yoksa sürüm, o da yoksa id fallback anahtarı üretir.
+      const ts = Date.parse(m.updatedAt || m.createdAt || "");
+      if(Number.isFinite(ts)) return { kind:"time", value:ts };
+      const version = parseVersionScore(m.id);
+      if(version) return { kind:"version", value:version };
+      return { kind:"id", value:String(m.id || "").toLowerCase() };
+    }
+
+    function compareOldness(a, b){
+      // Gereksinim-2C: oldest/newest hesapları için tek karşılaştırma noktası.
+      const ka = modelOldnessKey(a);
+      const kb = modelOldnessKey(b);
+      if(ka.kind === "time" && kb.kind === "time") return ka.value - kb.value;
+      if(ka.kind === "version" && kb.kind === "version") return compareVersionScore(ka.value, kb.value);
+      return String(a.id || "").localeCompare(String(b.id || ""));
+    }
+
+    function pickRepresentative4PerProvider(models){
+      // Gereksinim-2D: provider başına [ESKİ, YENİ, UCUZ, PAHALI] + gerekirse EK ile 4 modele tamamlar.
+      const grouped = models.reduce((acc, m) => {
+        const provider = String(m.provider || "Bilinmeyen");
+        if(!acc[provider]) acc[provider] = [];
+        acc[provider].push(m);
+        return acc;
+      }, {});
+
+      const providerGroups = {};
+      Object.entries(grouped).forEach(([provider, list]) => {
+        const uniq = [];
+        const seen = new Set();
+        const pushTagged = (model, tag) => {
+          if(!model || seen.has(model.id)) return;
+          seen.add(model.id);
+          uniq.push({
+            ...model,
+            tag,
+            priceNum: parsePriceToNumberUsd(model.priceRaw),
+            ageKey: modelOldnessKey(model),
+          });
+        };
+
+        const byOldness = [...list].sort(compareOldness);
+        const byPriceAsc = [...list].sort((a,b) => parsePriceToNumberUsd(a.priceRaw) - parsePriceToNumberUsd(b.priceRaw));
+        const byPriceDesc = [...list].sort((a,b) => {
+          const pa = parsePriceToNumberUsd(a.priceRaw);
+          const pb = parsePriceToNumberUsd(b.priceRaw);
+          const na = Number.isFinite(pa);
+          const nb = Number.isFinite(pb);
+          if(na && !nb) return -1;
+          if(!na && nb) return 1;
+          return pb - pa;
+        });
+
+        pushTagged(byOldness[0], "ESKİ");
+        pushTagged(byOldness[byOldness.length - 1], "YENİ");
+        pushTagged(byPriceAsc[0], "UCUZ");
+        pushTagged(byPriceDesc[0], "PAHALI");
+
+        const fillers = [...list].sort((a,b) => {
+          const priceDiff = parsePriceToNumberUsd(a.priceRaw) - parsePriceToNumberUsd(b.priceRaw);
+          if(priceDiff !== 0) return priceDiff;
+          return compareOldness(b, a);
+        });
+        for(const model of fillers){
+          if(uniq.length >= 4) break;
+          pushTagged(model, "EK");
+        }
+
+        providerGroups[provider] = uniq.slice(0, 4);
+      });
+
+      return providerGroups;
+    }
+
     async function refreshModelPicker(){
       const picker = $("#modelPicker");
       const route = getRoute();
@@ -1506,6 +1711,7 @@ def merhaba_dünya():
       const featuredSet = new Set(DEFAULT_FEATURED_MODELS);
       const featured = filtered.filter(m => featuredSet.has(m.id));
       const rest = filtered.filter(m => !featuredSet.has(m.id));
+      const groups = pickRepresentative4PerProvider(rest);
 
       picker.innerHTML = "";
       picker.appendChild(el("option", { value:"" }, ["Model Seç"]));
@@ -1516,18 +1722,37 @@ def merhaba_dünya():
         picker.appendChild(og);
       }
 
-      if(rest.length){
-        const og2 = el("optgroup", { label:"Tüm Modeller" });
-        rest.slice(0, 250).forEach(m => {
-          const label = `${m.name} (${m.provider})`;
-          og2.appendChild(el("option", { value:m.id }, [ label ]));
-        });
-        picker.appendChild(og2);
-      }
+      // Gereksinim-3: tüm modeller yerine provider başına en fazla 4 temsil model gösterilir.
+      const providerPriority = ["openai", "google", "anthropic", "mistralai", "x-ai", "deepseek", "meta"];
+      const providers = Object.keys(groups).sort((a, b) => {
+        const ai = providerPriority.indexOf(String(a).toLowerCase());
+        const bi = providerPriority.indexOf(String(b).toLowerCase());
+        if(ai === -1 && bi === -1) return a.localeCompare(b);
+        if(ai === -1) return 1;
+        if(bi === -1) return -1;
+        return ai - bi;
+      });
 
-      // Seçimi uygula
-      if(state.model) picker.value = state.model;
-      else if(featured[0]?.id) picker.value = featured[0].id;
+      providers.forEach(provider => {
+        const items = groups[provider] || [];
+        if(!items.length) return;
+        const og = el("optgroup", { label:`${provider.toUpperCase()} • 4 Model` });
+        items.forEach(m => {
+          const priceText = Number.isFinite(m.priceNum) ? ` (≈$${m.priceNum})` : "";
+          og.appendChild(el("option", { value:m.id }, [ `${m.name} — ${m.tag}${priceText}` ]));
+        });
+        picker.appendChild(og);
+      });
+
+      // Gereksinim-3: aktif model listede yoksa önce featured[0], sonra ilk provider modeli fallback olur.
+      const allOptions = $$("option[value]", picker).map(o => o.value).filter(Boolean);
+      if(state.model && allOptions.includes(state.model)) {
+        picker.value = state.model;
+      } else if(featured[0]?.id) {
+        picker.value = featured[0].id;
+      } else if(providers[0] && groups[providers[0]]?.[0]?.id) {
+        picker.value = groups[providers[0]][0].id;
+      }
 
       state.model = picker.value || state.model;
       persist();
@@ -2246,47 +2471,55 @@ def merhaba_dünya():
         merged.push({ role:"system", content: sys + (memory ? "\nHAFIZA ÖZETİ:\n" + memory : "") });
         msgs.forEach(m => merged.push(m));
 
-        const model = state.model || thread.model || DEFAULT_FEATURED_MODELS[0];
+        const latestUser = [...thread.messages].reverse().find(m => m.role === "user");
+        const promptText = latestUser?.content || "";
+        let retryCount = 0;
+        let selection = await chooseModelForPrompt({ thread, promptText, retryCount });
+        let model = state.model || thread.model || selection.selected || DEFAULT_FEATURED_MODELS[0];
+        // Gereksinim-1/10: model/risk/meme/KAME hesap özetini mesaj metasında sakla.
+        assistantMsg.meta = { mode: selection.mode, risk: selection.risk, meme: selection.meme, kame: selection.kame, model };
 
-        // Puter.js chat streaming (varsa)
         if(window.puter?.ai?.chat){
-          // Not: Tool çağrıları Puter tarafında farklı şekillerde olabilir.
-          // Burada “araç seçimi” sinyali olarak options.tools/purpose gönderiyoruz (demo).
           const options = {
             model,
             stream: true,
             tools: Object.entries(tools).filter(([,v])=>v).map(([k])=>k),
           };
 
-          // Puter streaming API şekli değişebilir; bu yüzden esnek ele al.
           const res = await window.puter.ai.chat(merged, options);
 
-          // 1) AsyncIterator ise
           if(res && typeof res[Symbol.asyncIterator] === "function"){
             for await (const chunk of res){
               const text = extractText(chunk);
               if(text) appendChunk(assistantMsg, text);
             }
           }
-          // 2) res.stream() gibi bir fonksiyon varsa
           else if(res && typeof res.stream === "function"){
             await res.stream({
               onChunk: (c)=> appendChunk(assistantMsg, extractText(c)),
               onDone: ()=>{}
             });
           }
-          // 3) düz cevap ise
           else{
             const text = extractText(res);
             appendChunk(assistantMsg, text || "Model yanıt vermedi.");
           }
 
-          // Deep Research: demo citations
+          // Gereksinim-8: meme düşük ve çıktı boş kaldıysa yalnız 1 kez kalite modeliyle retry yap.
+          if(!assistantMsg.content.trim() && selection.meme < 0.75){
+            retryCount = 1;
+            selection = await chooseModelForPrompt({ thread, promptText, retryCount });
+            const allRetryModels = await listModelsSmart();
+            const retryCatalog = { has:(id)=> allRetryModels.some(m=>m.id===id) };
+            model = pickFirstAvailable(retryCatalog, MODEL_GROUPS.M1) || model;
+            const retryRes = await window.puter.ai.chat(merged, { ...options, model, stream:false });
+            appendChunk(assistantMsg, extractText(retryRes) || "Model yanıt vermedi.");
+          }
+
           if(state.ui.deepResearch || tools.web){
             assistantMsg.citations = makeDemoCitations();
           }
         }else{
-          // Puter yoksa: demo yanıt
           await fakeStream(assistantMsg,
             "Demo mod: Puter.js bağlı değil.\n\n- Araçlar seçimini “GPT Tools” menüsünden yap.\n- Model seçimini sağ üstten değiştir.\n- Kodlama açınca sağ panel (Canvas) otomatik gelir.\n\n```python\ndef merhaba_dünya():\n    print(\"Merhaba, Dünya!\")\n```\n"
           );
@@ -2309,6 +2542,7 @@ def merhaba_dünya():
         $("#sendBtn").disabled = false;
       }
     }
+
 
     function extractText(any){
       if(any == null) return "";
