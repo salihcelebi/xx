@@ -11,11 +11,18 @@ import { dictionaries } from './config/i18n.js';
 import { mountTopbar } from './ui/shell/topbar.js';
 import { mountSidebar } from './ui/shell/sidebar.js';
 import { initAdmin } from './config/admin.js';
+import { DEFAULT_BASELINE_COMMIT } from './config/env.js';
 import { initAdminToggle } from './ui/components/AdminToggle.js';
+import { loadPolicyEffect } from './store/slices/policySlice.js';
 
 const commandBus = new Map();
 
 initAdmin();
+
+if (typeof window !== 'undefined') {
+  window.__XX_DEFAULT_COMMIT__ = DEFAULT_BASELINE_COMMIT;
+  console.info(`[xx] varsayılan commit: ${DEFAULT_BASELINE_COMMIT}`);
+}
 
 function getEls() {
   return {
@@ -138,7 +145,7 @@ function setupLanguageSwitcher(els, toast) {
     if (!dictionaries[select.value]) {
       toast.show('info', dictionaries.tr.translationFailed);
     }
-    renderFromState(els);
+    renderFromState(els, toast);
   });
 }
 
@@ -195,7 +202,15 @@ function setupUsagePolling(els) {
   run();
 }
 
-function renderFromState(els) {
+
+function mapModelLockReasonToToast(reason) {
+  if (reason === 'MODE_UNSUPPORTED') return 'Bu model seçili modda kullanılamıyor.';
+  if (reason === 'LOCKED_MODEL_BLOCKED') return 'Bu model paketinizde kilitli.';
+  if (reason === 'PACKAGE_POLICY_BLOCK') return 'Bu model policy kuralı nedeniyle seçilemez.';
+  return 'Bu model şu anda seçilemedi.';
+}
+
+function renderFromState(els, toast) {
   const state = getState();
   els.adminLink.hidden = state.app.userRole !== 'admin';
   els.empty.textContent = dictionaries[state.app.language]?.empty || dictionaries.tr.empty;
@@ -207,8 +222,9 @@ function renderFromState(els) {
     root: els.topbar,
     state,
     mode: getRouterState().currentMode,
-    onModelChange: (modelId) => dispatch({ type: 'app/setFeatureFlags', payload: { selectedModelId: modelId } }),
+    onModelChange: (modelId) => dispatch({ type: 'app/setSelectedModel', payload: modelId }),
     onToolsChange: () => {},
+    onModelLocked: ({ reason } = {}) => toast?.show('warn', mapModelLockReasonToToast(reason)),
     onTempChange: (value) => dispatch({ type: 'app/setFeatureFlags', payload: { temporaryChat: value } }),
   });
   initAdminToggle();
@@ -240,6 +256,7 @@ async function init() {
   });
 
   hydrateAppPreferences(dispatch);
+  loadPolicyEffect({ dispatch, getState });
   await setAppLanguage(dispatch, getState().app.language);
   await refreshUsage(dispatch);
 
@@ -249,13 +266,13 @@ async function init() {
     onRoute: (route) => {
       dispatch(appActions.setRoute(route));
       logEvent('route_change', { route });
-      renderFromState(els);
+      renderFromState(els, toast);
       const isEmpty = els.outlet.querySelector('[data-empty="true"]');
       els.empty.hidden = !isEmpty;
     },
     onModeChanged: async (mode) => {
       dispatch(appActions.setMode(mode));
-      renderFromState(els);
+      renderFromState(els, toast);
     },
     onWarning: (message) => {
       toast.show('warn', message);
@@ -265,7 +282,7 @@ async function init() {
     },
   });
 
-  renderFromState(els);
+  renderFromState(els, toast);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
