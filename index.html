@@ -62,9 +62,12 @@
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 300px 1fr 380px;
+      grid-template-columns: 300px minmax(0, 1fr);
       gap:12px;
       padding:12px;
+    }
+    .app.canvas-open{
+      grid-template-columns: 300px minmax(0, 1fr) 380px;
     }
     .panel{
       background:var(--surface);
@@ -710,6 +713,7 @@
     }
     @media (max-width: 880px){
       .app{grid-template-columns: 1fr; padding:0; gap:0}
+      .app.canvas-open{grid-template-columns: 1fr;}
       .sidebar{
         position:fixed;
         top:0; left:0; bottom:0;
@@ -1323,6 +1327,33 @@ def merhaba_dünya():
     function nowTs(){ return Date.now(); }
     function uid(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
 
+    function safeBind(selector, eventName, handler, { required=false } = {}){
+      const node = $(selector);
+      if(!node){
+        if(required) console.warn(`[UI-BIND-MISS] ${selector} bulunamadı.`);
+        return null;
+      }
+      node.addEventListener(eventName, handler);
+      return node;
+    }
+
+    function runUISelfTest(){
+      const requiredIds = [
+        "#app", "#sidebar", "#chatPane", "#messageInput", "#sendBtn", "#modelPicker", "#routeTabs", "#canvasPanel"
+      ];
+      const missing = requiredIds.filter(sel => !$(sel));
+      if(missing.length){
+        console.warn("[UI-SELF-TEST] Eksik kritik elemanlar:", missing);
+        toast("error", `Arayüzde eksik parça var: ${missing.join(', ')}`);
+      }
+    }
+
+    function syncCanvasLayout(){
+      const open = !!state.ui.canvasOpen;
+      $("#app")?.classList.toggle("canvas-open", open);
+      $("#canvasPanel")?.classList.toggle("hidden", !open);
+    }
+
     function relativeTime(ts){
       const diff = Date.now() - ts;
       const s = Math.floor(diff/1000);
@@ -1376,7 +1407,7 @@ def merhaba_dünya():
       $("#includeFilesToggle").setAttribute("aria-pressed", String(!!state.ui.includeFiles));
 
       // Canvas panel davranışı
-      $("#canvasPanel").classList.toggle("hidden", !state.ui.canvasOpen);
+      syncCanvasLayout();
     }
 
     /* ----------------------------- Threads CRUD ----------------------------- */
@@ -1842,7 +1873,7 @@ def merhaba_dünya():
       } else if(isDesktop && (getRoute() === "kodlama" || getToolsForThread(ensureThread().id).coding)) {
         state.ui.canvasOpen = true;
       }
-      $("#canvasPanel").classList.toggle("hidden", !state.ui.canvasOpen);
+      syncCanvasLayout();
     }
 
     function setRoute(route){
@@ -2945,10 +2976,10 @@ def merhaba_dünya():
       $("#sidebarModeProject")?.addEventListener("click", ()=>{ state.ui.sidebarMode = "project"; persist(); renderSidebar(); });
 
       // Composer send
-      $("#sendBtn").onclick = sendUserMessage;
+      safeBind("#sendBtn", "click", sendUserMessage, { required:true });
 
       // Enter vs Shift+Enter
-      $("#messageInput").addEventListener("keydown", (e)=>{
+      safeBind("#messageInput", "keydown", (e)=>{
         if(e.key === "Enter" && !e.shiftKey){
           e.preventDefault();
           sendUserMessage();
@@ -2956,12 +2987,12 @@ def merhaba_dünya():
       });
 
       // Char count
-      $("#messageInput").addEventListener("input", (e)=>{
+      safeBind("#messageInput", "input", (e)=>{
         $("#charCount").textContent = String(e.target.value.length);
       });
 
       // File attach
-      $("#fileInput").addEventListener("change", (e)=>{
+      safeBind("#fileInput", "change", (e)=>{
         const files = Array.from(e.target.files || []);
         files.forEach(f => addAttachment(f));
         e.target.value = "";
@@ -3045,20 +3076,20 @@ def merhaba_dünya():
       };
 
       // Canvas close
-      $("#canvasCloseBtn").onclick = ()=>{
+      safeBind("#canvasCloseBtn", "click", ()=>{
         state.ui.canvasOpen = false;
-        $("#canvasPanel").classList.add("hidden");
+        syncCanvasLayout();
         persist();
-      };
-      $("#copyCanvasBtn").onclick = ()=>{
+      });
+      safeBind("#copyCanvasBtn", "click", ()=>{
         copyText($("#canvasEditor").value);
-      };
-      $("#setLangPython").onclick = ()=> setCanvasLang("python");
-      $("#setLangJS").onclick = ()=> setCanvasLang("javascript");
-      $("#setLangTXT").onclick = ()=> setCanvasLang("metin");
+      });
+      safeBind("#setLangPython", "click", ()=> setCanvasLang("python"));
+      safeBind("#setLangJS", "click", ()=> setCanvasLang("javascript"));
+      safeBind("#setLangTXT", "click", ()=> setCanvasLang("metin"));
 
       // Tools modal: açıldığında checkbox’ları thread’e göre senkronla
-      $("#toolsBackdrop").addEventListener("transitionend", ()=> syncToolsCheckboxes());
+      safeBind("#toolsBackdrop", "transitionend", ()=> syncToolsCheckboxes());
     }
 
     function setCanvasLang(lang){
@@ -3129,6 +3160,7 @@ def merhaba_dünya():
       applyTheme();
       applyLayoutMode();
       renderAll();
+      runUISelfTest();
 
       // Puter user bilgisi (varsa)
       try{
