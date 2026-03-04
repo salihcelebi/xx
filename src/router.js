@@ -2,7 +2,7 @@
 // NISAI.MD'de netleştir: Router listener sorumluluğunun tamamen app.js'te mi kalacağı.
 
 export const DEFAULT_ROUTE = '/chat';
-export const ROUTES = Object.freeze(['/chat', '/video', '/image', '/tts', '/dubbing', '/code', '/history', '/billing', '/admin']);
+export const ROUTES = Object.freeze(['/chat', '/video', '/image', '/tts', '/dubbing', '/code', '/history', '/billing', '/admin', '/puter-lab']);
 
 // Pure helper: hash veya route girdisini normalize eder.
 export function normalizeRoute(input = '') {
@@ -36,6 +36,7 @@ const pageRegistry = {
   '/history': () => import('./pages/historyPage.js'),
   '/billing': () => import('./pages/billingPage.js'),
   '/admin': () => import('./pages/adminPage.js'),
+  '/puter-lab': () => import('./pages/puterLabPage.js'),
 };
 
 let currentRoute = DEFAULT_ROUTE;

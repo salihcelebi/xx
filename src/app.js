@@ -173,6 +173,17 @@ function setupCommandBus(els) {
   });
 }
 
+
+function setupPuterLabBridge(toast) {
+  window.addEventListener('message', (event) => {
+    if (event?.data?.type !== 'puterlab:selection') return;
+    const payload = event.data.payload || {};
+    if (payload.mode) dispatch(appActions.setMode(payload.mode));
+    if (payload.modelId) dispatch(appActions.setSelectedModel(payload.modelId));
+    toast?.show('ok', `PuterLab seçimi uygulandı: ${payload.mode || '-'} / ${payload.modelId || '-'}`);
+  });
+}
+
 function setupPaywallHook(els, toast) {
   document.addEventListener('click', (event) => {
     if (!event.target.matches('[data-pro-only="true"]')) return;
@@ -249,6 +260,7 @@ async function init() {
   setupUserMenu(els);
   setupCommandBus(els);
   setupPaywallHook(els, toast);
+  setupPuterLabBridge(toast);
   setupUsagePolling(els);
 
   subscribe((state) => {

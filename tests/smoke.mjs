@@ -33,6 +33,7 @@ assert.equal(isValidRoute('/image'), true);
 assert.equal(isValidRoute('/tts'), true);
 assert.equal(isValidRoute('/dubbing'), true);
 assert.equal(isValidRoute('/code'), true);
+assert.equal(isValidRoute('/puter-lab'), true);
 assert.equal(isValidRoute('/assets'), false);
 assert.equal(getCurrentRoute('#/unknown'), DEFAULT_ROUTE);
 

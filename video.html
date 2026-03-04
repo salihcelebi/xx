@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Video • TXT→Video Job Paneli</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    :root{--bg:#0b1220;--surface:#0f172a;--text:#e5e7eb;--muted:#9ca3af;--border:#1f2a44;--accent:#60a5fa;--ok:#22c55e;--danger:#ef4444}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}.grid{display:grid;grid-template-columns:1fr 360px;gap:12px}.card{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:12px}
+    @media (max-width:950px){.grid{grid-template-columns:1fr}}
+    textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0a1427;color:var(--text)}
+    .row{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--border);background:#1d2f57;color:var(--text);padding:9px 10px;border-radius:12px;cursor:pointer}
+    .btn.primary{background:#22447f}.btn.danger{background:#5b2230}.bar{height:10px;border:1px solid var(--border);border-radius:99px;overflow:hidden}.bar>div{height:100%;width:0;background:var(--accent)}
+    .muted{font-size:12px;color:var(--muted)} .gallery{display:grid;gap:8px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="grid">
+    <section class="card">
+      <h2>Video Job Akışı</h2>
+      <textarea id="prompt" placeholder="Video prompt"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="createBtn">Üret</button>
+        <button class="btn danger" id="cancelBtn" disabled>İptal</button>
+        <button class="btn" id="retryBtn" disabled>Tekrar Dene</button>
+      </div>
+      <div style="margin-top:10px" id="jobBox">
+        <div class="row"><b id="status">IDLE</b><span id="progressText">0%</span></div>
+        <div class="bar"><div id="bar"></div></div>
+        <div class="muted" id="meta">—</div>
+      </div>
+      <div style="margin-top:10px" id="result"></div>
+    </section>
+
+    <aside class="card">
+      <h3>Ayarlar</h3>
+      <label class="muted">Model</label>
+      <select id="modelSelect"></select>
+      <label class="muted">Süre</label>
+      <select id="seconds"><option value="4">4</option><option value="8">8</option><option value="12">12</option></select>
+      <h3>Galeri</h3>
+      <div class="gallery" id="gallery"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+  const FALLBACK=["openai/sora-2","openai/sora-2-pro","together/ltx-video","openrouter/video","google/video-model","anthropic/video","together/vid-gen"];
+  const els={
+    prompt:document.getElementById('prompt'),createBtn:document.getElementById('createBtn'),cancelBtn:document.getElementById('cancelBtn'),retryBtn:document.getElementById('retryBtn'),
+    status:document.getElementById('status'),progressText:document.getElementById('progressText'),bar:document.getElementById('bar'),meta:document.getElementById('meta'),result:document.getElementById('result'),
+    modelSelect:document.getElementById('modelSelect'),seconds:document.getElementById('seconds'),gallery:document.getElementById('gallery')
+  };
+  let timer=null, aborter=null, lastPayload=null;
+
+  const clamp=(n)=>Math.max(0,Math.min(100,Number(n||0)));
+  const setStatus=(s,p)=>{ const v=clamp(p); els.status.textContent=s; els.progressText.textContent=v+'%'; els.bar.style.width=v+'%'; };
+  function fillModels(arr){ els.modelSelect.innerHTML=''; arr.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;els.modelSelect.appendChild(o);}); }
+  async function listModels(){
+    try{ if(window.puter?.ai?.listModels){ const r=await window.puter.ai.listModels(); const a=Array.isArray(r)?r:(Array.isArray(r?.models)?r.models:[]); const ids=a.map(x=>x?.id||x?.model||x?.name||x).filter(Boolean).map(String); return ids.filter(x=>/sora|video|txt2vid|t2v/i.test(x)).slice(0,20);} }catch(_){ }
+    return FALLBACK;
+  }
+  function addGallery(url, model){
+    const box=document.createElement('div'); box.className='card'; box.style.padding='8px';
+    box.innerHTML=`<video src="${url}" controls style="width:100%"></video><div class="muted">${model}</div>`;
+    els.gallery.prepend(box);
+  }
+  async function run(payload){
+    lastPayload=payload; aborter=new AbortController();
+    setStatus('RUNNING',2); els.meta.textContent=`Model: ${payload.model}`; els.cancelBtn.disabled=false; els.retryBtn.disabled=true; els.result.innerHTML='';
+    let p=2; timer=setInterval(()=>{p=clamp(p+Math.random()*10); if(p>92)p=92; setStatus('RUNNING',p);},900);
+    try{
+      const vid=await window.puter.ai.txt2vid(payload.prompt,{model:payload.model,seconds:Number(payload.seconds),testMode:true,signal:aborter.signal});
+      clearInterval(timer); timer=null; setStatus('SUCCEEDED',100); els.cancelBtn.disabled=true; els.retryBtn.disabled=true;
+      const v = vid instanceof HTMLVideoElement ? vid : Object.assign(document.createElement('video'),{src:(typeof vid==='string'?vid:(vid?.src||vid?.url||''))});
+      v.controls=true; v.style.width='100%';
+      els.result.innerHTML=''; els.result.appendChild(v);
+      const url=v.currentSrc||v.src||''; if(url) addGallery(url,payload.model);
+    }catch(e){
+      clearInterval(timer); timer=null; setStatus(aborter?.signal?.aborted?'CANCELLED':'FAILED',0); els.cancelBtn.disabled=true; els.retryBtn.disabled=false; els.meta.textContent='Hata: '+(e?.message||e);
+    }
+  }
+
+  els.createBtn.onclick=()=>{ const prompt=els.prompt.value.trim(); if(!prompt) return; run({prompt,model:els.modelSelect.value,seconds:els.seconds.value}); };
+  els.cancelBtn.onclick=()=>{ aborter?.abort(); };
+  els.retryBtn.onclick=()=>{ if(lastPayload) run(lastPayload); };
+
+  listModels().then(fillModels);
+})();
+</script>
+</body>
+</html>

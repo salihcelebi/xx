@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PuterLab • Mod & Model Seçici</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    :root{--bg:#0b1220;--surface:#0f172a;--text:#e5e7eb;--muted:#9ca3af;--border:#1f2a44;--accent:#60a5fa;--ok:#22c55e;--danger:#ef4444}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}.card{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:14px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--border);background:#1a2846;color:var(--text);padding:8px 10px;border-radius:12px;cursor:pointer}
+    .btn.primary{background:#223b6e}.list{display:grid;gap:8px;max-height:360px;overflow:auto}.item{border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;justify-content:space-between;gap:8px}
+    input{width:100%;padding:9px;border-radius:10px;border:1px solid var(--border);background:#0a1427;color:var(--text)}
+    .muted{color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h2>PuterLab • Mod & Model Seçici</h2>
+    <div class="muted">3–5 önerilen + 7 popüler + canlı tüm modeller araması</div>
+    <div style="margin:10px 0" class="muted">Puter.js: <b id="apiState">kontrol ediliyor…</b></div>
+
+    <h3>1) Mod</h3>
+    <div class="row" id="modeRow"></div>
+
+    <h3>2) Önerilen</h3>
+    <div class="row" id="recommendedRow"></div>
+
+    <h3>3) 7 Popüler</h3>
+    <div class="row" id="popularRow"></div>
+
+    <h3>4) Tüm Modeller</h3>
+    <input id="searchInput" placeholder="Model ara…" />
+    <div class="list" id="modelsList" style="margin-top:8px"></div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="emitSelectionBtn">Seçimi Uygulamaya Gönder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const LS_KEY = 'puterLab.selection.v1';
+  const MODES = ['chat','code','video','image','tts','dubbing'];
+  const RECOMMENDED = ['openai/gpt-4o-mini','openai/gpt-4o','anthropic/claude-3-5-sonnet','google/gemini-1.5-flash','deepseek/deepseek-r1'];
+  const POPULAR = ['openai/gpt-4o-mini','openai/gpt-4o','anthropic/claude-3-5-sonnet','anthropic/claude-3-5-haiku','google/gemini-1.5-flash','google/gemini-1.5-pro','deepseek/deepseek-r1'];
+
+  const state = JSON.parse(localStorage.getItem(LS_KEY) || '{"mode":"chat","modelId":"openai/gpt-4o-mini","from":"popular"}');
+  const els = {
+    apiState: document.getElementById('apiState'), modeRow: document.getElementById('modeRow'),
+    recommendedRow: document.getElementById('recommendedRow'), popularRow: document.getElementById('popularRow'),
+    searchInput: document.getElementById('searchInput'), modelsList: document.getElementById('modelsList'), emitSelectionBtn: document.getElementById('emitSelectionBtn')
+  };
+  let liveModels = null;
+
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  function btn(text, onClick, active=false){ const b=document.createElement('button'); b.className='btn'+(active?' primary':''); b.textContent=text; b.onclick=onClick; return b; }
+  function modeMatch(id){ const s=String(id).toLowerCase(); if(state.mode==='video')return /sora|video|t2v|txt2vid/.test(s); if(state.mode==='image')return /image|img|dall|flux/.test(s); if(state.mode==='tts')return /tts|speech|voice/.test(s); if(state.mode==='dubbing')return /speech2speech|dubbing|voice-changer/.test(s); if(state.mode==='code')return /code|coder|codex|dev/.test(s); return true; }
+
+  async function listModelsSafe(){
+    try{
+      if(window.puter?.ai?.listModels){
+        const res = await window.puter.ai.listModels();
+        const arr = Array.isArray(res) ? res : (Array.isArray(res?.models) ? res.models : []);
+        return arr.map(x => x?.id || x?.model || x?.name || x).filter(Boolean).map(String);
+      }
+    }catch(_){ }
+    return null;
+  }
+
+  function renderRows(){
+    els.modeRow.innerHTML='';
+    MODES.forEach(m => els.modeRow.appendChild(btn(m, ()=>{state.mode=m; save(); renderRows(); renderList();}, state.mode===m)));
+    els.recommendedRow.innerHTML='';
+    RECOMMENDED.forEach(id => els.recommendedRow.appendChild(btn(id, ()=>{state.modelId=id; state.from='recommended'; save(); renderRows(); renderList();}, state.modelId===id)));
+    els.popularRow.innerHTML='';
+    POPULAR.forEach(id => els.popularRow.appendChild(btn(id, ()=>{state.modelId=id; state.from='popular'; save(); renderRows(); renderList();}, state.modelId===id)));
+  }
+
+  function renderList(){
+    const q = els.searchInput.value.trim().toLowerCase();
+    els.modelsList.innerHTML='';
+    if(!liveModels){ els.modelsList.innerHTML='<div class="muted">Canlı liste alınamadı, fallback aktif.</div>'; return; }
+    liveModels.filter(id => (!q || id.toLowerCase().includes(q)) && modeMatch(id)).slice(0,80).forEach(id => {
+      const item=document.createElement('div'); item.className='item';
+      const left=document.createElement('div'); left.innerHTML=`<b>${id}</b><div class="muted">${state.mode} filtresi</div>`;
+      const right=btn(state.modelId===id?'Seçildi':'Seç', ()=>{state.modelId=id; state.from='live'; save(); renderRows(); renderList();}, state.modelId===id);
+      item.append(left,right); els.modelsList.appendChild(item);
+    });
+  }
+
+  function emitSelection(){
+    const payload = { ...state, ts: Date.now() };
+    window.dispatchEvent(new CustomEvent('puterlab:selection', { detail: payload }));
+    try{ window.parent?.postMessage({ type:'puterlab:selection', payload }, '*'); }catch(_){ }
+    alert(`Seçim gönderildi\nMod: ${payload.mode}\nModel: ${payload.modelId}`);
+  }
+
+  async function init(){
+    els.apiState.textContent = window.puter?.ai ? 'aktif' : 'yok (fallback)';
+    els.apiState.style.color = window.puter?.ai ? 'var(--ok)' : 'var(--danger)';
+    renderRows();
+    els.searchInput.addEventListener('input', renderList);
+    els.emitSelectionBtn.addEventListener('click', emitSelection);
+    liveModels = await listModelsSafe();
+    renderList();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
