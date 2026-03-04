@@ -706,6 +706,13 @@
       background:linear-gradient(0deg, var(--surface), var(--surface-2));
     }
 
+
+    .global-header,.global-footer{max-width:1600px;margin:8px auto;padding:0 12px}
+    .admin-shell{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+    .admin-shell .right{display:flex;gap:8px;align-items:center}
+    body.admin-mode .logo{box-shadow:0 0 0 2px rgba(245,158,11,.35)}
+    body.admin-mode #statusLine{border-color:rgba(245,158,11,.35)}
+
     /* RESPONSIVE */
     @media (max-width: 1180px){
       .app{grid-template-columns: 300px 1fr; }
@@ -739,6 +746,7 @@
 <body>
   <!-- /index.html → #topbar, #sidebar, #route-outlet, #toasts, #modals mount noktalarını oluştur. -->
   <div class="drawer-backdrop" id="drawerBackdrop" aria-hidden="true"></div>
+  <div class="global-header" id="globalHeaderMount"></div>
 
   <div class="app" id="app">
     <!-- SOL SIDEBAR -->
@@ -1178,6 +1186,7 @@ def merhaba_dünya():
               canvasOpen: s.ui?.canvasOpen ?? true,
               sidebarMode: s.ui?.sidebarMode || "chat",
               draftsByRoute: s.ui?.draftsByRoute || {},
+              isAdmin: !!s.ui?.isAdmin,
             },
             activeRoute: s.activeRoute ?? "chat",
             activeThreadId: s.activeThreadId ?? null,
@@ -1204,6 +1213,7 @@ def merhaba_dünya():
           canvasOpen: true,
           sidebarMode: "chat",
           draftsByRoute: {},
+          isAdmin: false,
         },
         activeRoute: "chat",
         activeThreadId: null,
@@ -1301,6 +1311,53 @@ def merhaba_dünya():
       $("#statusLine").classList.remove("show");
     }
 
+    function applyAdminExperience(){
+      document.body.classList.toggle("admin-mode", !!state.ui.isAdmin);
+      $$("[data-admin-state]").forEach(n=> n.textContent = state.ui.isAdmin ? "Admin" : "Kullanıcı");
+      $$("[data-admin-only]").forEach(n=> n.style.display = state.ui.isAdmin ? "inline-flex" : "none");
+      const status = $("#statusText");
+      if(status && state.ui.isAdmin) status.textContent = "Admin oturumu aktif.";
+    }
+
+    function toggleAdminLogin(source = "header"){
+      if(state.ui.isAdmin){
+        state.ui.isAdmin = false;
+        persist();
+        applyAdminExperience();
+        toast("ok", `Admin çıkışı (${source}).`);
+        return;
+      }
+      const secret = prompt("Admin doğrulama kodu:") || "";
+      if(secret.trim() !== "admin123"){
+        toast("error", "Admin doğrulama başarısız.");
+        return;
+      }
+      state.ui.isAdmin = true;
+      persist();
+      applyAdminExperience();
+      toast("ok", `Admin girişi başarılı (${source}).`);
+    }
+
+    async function loadShellFragment(mountId, file){
+      const mount = document.getElementById(mountId);
+      if(!mount) return;
+      try{
+        const html = await fetch(file).then(r => r.ok ? r.text() : "");
+        mount.innerHTML = html || "";
+      }catch(_){
+        mount.innerHTML = "";
+      }
+    }
+
+    function wireShellAdminActions(){
+      document.addEventListener("click", (e)=>{
+        const btn = e.target.closest("#headerAdminLoginBtn, #footerAdminLoginBtn, #headerAdminLogoutBtn, #footerAdminLogoutBtn");
+        if(!btn) return;
+        if(btn.id.includes("Logout")) toggleAdminLogin(btn.id.includes("header") ? "header" : "footer");
+        else toggleAdminLogin(btn.id.includes("header") ? "header" : "footer");
+      });
+    }
+
     function toast(type, message){
       const host = $("#toasts");
       const t = el("div", { class:"toast", role:"status" }, [
@@ -1332,6 +1389,7 @@ def merhaba_dünya():
 
       // Canvas panel davranışı
       syncCanvasLayout();
+      applyAdminExperience();
     }
 
     /* ----------------------------- Threads CRUD ----------------------------- */
@@ -3079,6 +3137,10 @@ def merhaba_dünya():
       // İlk thread yoksa oluştur
       if(state.threads.length === 0) newThread();
       else if(!state.activeThreadId) state.activeThreadId = state.threads[0].id;
+
+      await loadShellFragment("globalHeaderMount", "/header.html");
+      await loadShellFragment("globalFooterMount", "/footer.html");
+      wireShellAdminActions();
 
       bindEvents();
       applyTheme();
