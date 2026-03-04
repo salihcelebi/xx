@@ -8,3 +8,9 @@ export const isDevelopment =
   hostname.includes('puter.com');
 
 export const isProduction = !isDevelopment;
+
+
+export const POLICY_STORAGE_KEYS = Object.freeze({
+  draft: "nisai:policy:draft:v1",
+  published: "nisai:policy:published:v1",
+});
