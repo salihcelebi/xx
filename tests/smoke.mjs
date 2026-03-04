@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { microcentsToUsd, computeDiff, beginDiff } from '../src/services/usageService.js';
-import { DEFAULT_ROUTE, normalizeRoute, isValidRoute, getCurrentRoute } from '../src/router.js';
+import { DEFAULT_ROUTE, normalizeRoute, isValidRoute, getCurrentRoute, routeToMode } from '../src/router.js';
 import { createStore, rootReducer, selectLanguage, selectMode } from '../src/store/store.js';
 import { chatActions, chatReducer, initialChatState, selectChatBusy } from '../src/store/slices/chatSlice.js';
 import { videoActions, videoReducer, initialVideoState, selectGallery } from '../src/store/slices/videoSlice.js';
@@ -13,7 +13,10 @@ import {
   selectPaymentProviders,
 } from '../src/store/slices/billingSlice.js';
 import { adminActions, adminReducer, initialAdminState, selectAdminActiveTab, selectAdminForbidden } from '../src/store/slices/adminSlice.js';
+import { initialPolicyState } from '../src/store/slices/policySlice.js';
 import { beginBaseline, computeDiff as computeUsageDiff, microcentsToTlText } from '../src/services/puterUsage.js';
+import { inferModes } from '../src/services/modelCatalog.js';
+import { filterModelsByPolicy, canSelectModel, DEFAULT_POLICY } from '../src/services/policyService.js';
 
 import { createVideoJob, getJobSnapshot } from '../src/services/generation/videoService.js';
 import { synthesizeSpeech } from '../src/services/generation/ttsService.js';
@@ -26,8 +29,17 @@ assert.equal(computeDiff({ appTotalsMicrocents: 25 }), 15);
 assert.equal(normalizeRoute('#/video'), '/video');
 assert.equal(normalizeRoute('chat'), '/chat');
 assert.equal(isValidRoute('/admin'), true);
+assert.equal(isValidRoute('/image'), true);
+assert.equal(isValidRoute('/tts'), true);
+assert.equal(isValidRoute('/dubbing'), true);
+assert.equal(isValidRoute('/code'), true);
+assert.equal(isValidRoute('/puter-lab'), true);
 assert.equal(isValidRoute('/assets'), false);
 assert.equal(getCurrentRoute('#/unknown'), DEFAULT_ROUTE);
+
+assert.equal(routeToMode('/video'), 'video');
+assert.equal(routeToMode('/image'), 'image');
+assert.equal(routeToMode('/unknown'), 'chat');
 
 const preloaded = {
   app: {
@@ -37,6 +49,7 @@ const preloaded = {
   video: initialVideoState,
   billing: initialBillingState,
   admin: initialAdminState,
+  policy: initialPolicyState,
 };
 
 const store = createStore(preloaded);
@@ -103,6 +116,8 @@ adminState = adminReducer(adminState, adminActions.setError({ code: 'ADMIN_ERR' 
 assert.equal(adminState.ui.lastError.code, 'ADMIN_ERR');
 adminState = adminReducer(adminState, adminActions.setActiveTab({ tab: 'Ayarlar' }));
 assert.equal(selectAdminActiveTab({ admin: adminState }), 'Ayarlar');
+adminState = adminReducer(adminState, adminActions.addLog({ level: 'error', code: 'TEST', message: 'x' }));
+assert.equal(adminState.logs.length, 1);
 
 
 // puterUsage minimum scenarios
@@ -124,5 +139,28 @@ assert.ok(tts.meta.requestType === 'tts');
 const image = await generateImage({ prompt: 'dağ manzarası', modelId: 'image-fast', testMode: true });
 assert.equal(image.ok, true);
 assert.ok(image.meta.requestType === 'image');
+
+
+// modelCatalog inferModes + policy filter scenarios
+const inferred = inferModes({ id: 'provider/super-video-tts-model', tags: ['text-to-video', 'text-to-speech'] });
+assert.ok(inferred.includes('video'));
+assert.ok(inferred.includes('tts'));
+
+const policy = JSON.parse(JSON.stringify(DEFAULT_POLICY));
+policy.packages.free.chat.allowList = ['openai/gpt-4.1-mini'];
+const filteredByPolicy = filterModelsByPolicy([
+  { id: 'openai/gpt-4.1-mini', modes: ['chat'], isLocked: false },
+  { id: 'openai/gpt-5.1', modes: ['chat'], isLocked: true },
+], { policy, selectedPackage: 'free', activeMode: 'chat' });
+assert.equal(filteredByPolicy.length, 1);
+assert.equal(filteredByPolicy[0].id, 'openai/gpt-4.1-mini');
+
+const blocked = canSelectModel({ id: 'openai/gpt-5.1', modes: ['chat'], isLocked: false }, { policy, selectedPackage: 'free', activeMode: 'chat' });
+assert.equal(blocked.allowed, false);
+assert.equal(blocked.reason, 'PACKAGE_POLICY_BLOCK');
+
+const lockedBlocked = canSelectModel({ id: 'openai/gpt-4.1-mini', modes: ['chat'], isLocked: true }, { policy, selectedPackage: 'free', activeMode: 'chat' });
+assert.equal(lockedBlocked.allowed, false);
+assert.equal(lockedBlocked.reason, 'LOCKED_MODEL_BLOCKED');
 
 console.log('smoke tests passed');
