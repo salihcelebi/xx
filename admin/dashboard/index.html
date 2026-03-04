@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yönetim Paneli - Dashboard</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial;margin:0;background:#f5f7fb;color:#111827}
+    .wrap{max-width:1200px;margin:0 auto;padding:20px}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px}
+    h1{margin:0 0 12px}
+    h2{font-size:16px;margin:0 0 8px}
+    ul{margin:0;padding-left:18px}
+    .badge{display:inline-block;background:#eef4ff;color:#1d4ed8;border-radius:999px;padding:2px 8px;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Yönetim Paneli <span class="badge">Tam Türkçe</span></h1>
+    <div class="grid">
+      <section class="card">
+        <h2>Dosya Bağımlılıkları</h2>
+        <ul>
+          <li><b>index.html</b> → static/kame-ui.js + index.css + puter.js</li>
+          <li><b>src/app.js</b> → router + store + ui shell</li>
+          <li><b>src/router.js</b> → pages/* render modülleri</li>
+          <li><b>src/services/*</b> → puter.ai/usage/auth köprüsü</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Paket / Özellik Matrisi</h2>
+        <ul>
+          <li>Free: temel chat + sınırlı model</li>
+          <li>Pro: video/görsel/ses + gelişmiş model havuzu</li>
+          <li>Enterprise: tüm tool'lar + admin raporlama + denetim logları</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Operasyon Notları</h2>
+        <ul>
+          <li>Tool uyumsuzlukları route değişiminde otomatik kapanır.</li>
+          <li>Mod bazlı taslaklar localStorage üzerinde tutulur.</li>
+          <li>Provider değişiminde kurumsal renk teması otomatik uygulanır.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

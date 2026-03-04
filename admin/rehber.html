@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SaaS Platformu - Admin Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            900: '#14532d',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-800">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-dark-900 text-white flex flex-col hidden md:flex transition-all duration-300">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-700/50">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-blue-500 flex items-center justify-center font-bold shadow-lg shadow-brand-500/20">AI</div>
+            <h1 class="text-xl font-bold tracking-tight">SaaS Admin</h1>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="switchTab('dashboard')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500/10 text-brand-500 transition-colors tab-btn" data-tab="dashboard">
+                <i class="fa-solid fa-chart-pie"></i> Gelir Simülatörü
+            </button>
+            <button onclick="switchTab('pricing')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors tab-btn" data-tab="pricing">
+                <i class="fa-solid fa-coins"></i> Kredi & Maliyet
+            </button>
+            <button onclick="switchTab('guide')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors tab-btn" data-tab="guide">
+                <i class="fa-solid fa-book-open"></i> Strateji Rehberi
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-700/50">
+            <div class="bg-slate-800 p-4 rounded-xl text-xs text-slate-400">
+                <p class="font-semibold text-slate-200 mb-1"><i class="fa-solid fa-circle-info"></i> Sistem Notu</p>
+                Hesaplamalar sektör ortalaması olan %40-60 kullanım oranına göre optimize edilmiştir.
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- Header (Mobile nav & User info) -->
+        <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm z-10">
+            <div class="flex items-center gap-3">
+                <button class="md:hidden text-slate-500 hover:text-slate-800"><i class="fa-solid fa-bars text-xl"></i></button>
+                <h2 class="text-xl font-semibold text-slate-800" id="page-title">Gelir Simülatörü (Kar Projeksiyonu)</h2>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="bg-brand-100 text-brand-900 px-3 py-1 rounded-full text-xs font-bold border border-brand-500/20"><i class="fa-solid fa-bolt text-brand-500 mr-1"></i> Puter.js Aktif</span>
+                <div class="w-9 h-9 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-slate-600 font-bold">AD</div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-auto p-4 md:p-8">
+            
+            <!-- TAB 1: DASHBOARD / SIMULATOR -->
+            <div id="tab-dashboard" class="tab-content active space-y-6">
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-4 text-blue-800 shadow-sm">
+                    <i class="fa-solid fa-circle-info text-2xl mt-0.5"></i>
+                    <div>
+                        <h3 class="font-bold mb-1">SORU 1: Bu Fiyatlandırma İle Ne Kadar Para Kazanırım?</h3>
+                        <p class="text-sm">Yapay zeka modellerinde maliyetler <strong>kullanım bazlıdır</strong>. Abonelik modelinde, kullanıcıların ortalama kullanım oranlarını (aktif/pasif kullanıcı dengesi) baz almalıyız. Sektör ortalamasında bir kullanıcının paketteki haklarının sadece %40-60'ını kullandığı varsayılır.</p>
+                        <p class="text-xs mt-2 opacity-80">*Not: Ödeme altyapısı komisyonları (~%3) ve sunucu/marketing giderleri bu tabloya dahil edilmemiştir, sadece API brüt karlılığı hesaplanmıştır.</p>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="text-slate-500 text-sm font-medium mb-1">Toplam Hedef Kitle</div>
+                        <div class="text-3xl font-bold text-slate-800" id="total-users-display">400</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="text-slate-500 text-sm font-medium mb-1">Toplam Aylık Ciro</div>
+                        <div class="text-3xl font-bold text-slate-800" id="total-revenue-display">147.600 ₺</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="text-slate-500 text-sm font-medium mb-1">Aylık API Maliyeti</div>
+                        <div class="text-3xl font-bold text-rose-500" id="total-cost-display">49.200 ₺</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-brand-500 to-brand-600 p-6 rounded-2xl shadow-md text-white">
+                        <div class="text-brand-50 text-sm font-medium mb-1">Aylık Net Kazanç</div>
+                        <div class="text-3xl font-bold" id="total-profit-display">98.400 ₺</div>
+                        <div class="text-xs bg-white/20 inline-block px-2 py-1 rounded mt-2" id="avg-margin-display">Ort. Kar Marjı: %66</div>
+                    </div>
+                </div>
+
+                <!-- Main Calculator Content -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Table Section -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 class="font-bold text-slate-800"><i class="fa-solid fa-sliders text-brand-500 mr-2"></i> Paket Satış Simülatörü</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-500">
+                                    <tr>
+                                        <th class="p-4 font-semibold">Paket Adı</th>
+                                        <th class="p-4 font-semibold text-center">Fiyat</th>
+                                        <th class="p-4 font-semibold w-32">Müşteri Sayısı</th>
+                                        <th class="p-4 font-semibold text-right">Brüt Ciro</th>
+                                        <th class="p-4 font-semibold text-right text-rose-500">API Maliyeti</th>
+                                        <th class="p-4 font-semibold text-right text-brand-600">Net Kazanç</th>
+                                        <th class="p-4 font-semibold text-center">Marj</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="simulator-body" class="divide-y divide-slate-100">
+                                    <!-- Rendered via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col">
+                        <h3 class="font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3"><i class="fa-solid fa-chart-donut text-blue-500 mr-2"></i> Gelir / Maliyet Analizi</h3>
+                        <div class="flex-1 relative min-h-[250px] flex items-center justify-center">
+                            <canvas id="profitChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: KREDİ & MALİYET -->
+            <div id="tab-pricing" class="tab-content space-y-6">
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5 shadow-sm text-indigo-900">
+                    <h3 class="font-bold text-lg mb-2"><i class="fa-solid fa-lightbulb text-yellow-500 mr-2"></i> SORU 2: En Akılcı Paketler ve Kredi Satın Alma (4x-10x) Fiyatlandırması</h3>
+                    <p class="mb-3 text-sm">Mevcut paketleriniz özellik açısından çok zengin ancak "Sınırsız (Unlimited)" paketi sizi iflasa sürükleyebilir. AI projelerinde hiçbir şey sınırsız olamaz. Bunun yerine <strong>Kredi Sistemi</strong> kurmalısınız.</p>
+                    <ul class="list-disc pl-5 space-y-1 text-sm font-medium">
+                        <li>Abonelikler kredi vermelidir (Örn: Pro Master 15.000 Kredi).</li>
+                        <li>Özellikler ekstra kredi tüketsin.</li>
+                        <li>Asıl 4x-10x kar edeceğiniz yer: <strong>Ek Kredi Paketi satışı.</strong></li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg"><i class="fa-solid fa-calculator text-indigo-500 mr-2"></i> LLM Modelleri Ekstra Kredi Satış Fiyatlandırması</h3>
+                            <p class="text-xs text-slate-500 mt-1">1 Milyon Token (~750.000 kelime) veya 1 İşlem bazlıdır. Kur: 1$ = 34₺. Tablo üzerinden çarpanları düzenleyebilirsiniz.</p>
+                        </div>
+                        <div class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-lg text-sm font-bold shadow-inner">
+                            Strateji: "100.000 Kredi = 300 ₺"
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500">
+                                <tr>
+                                    <th class="p-4 font-semibold">Kategori</th>
+                                    <th class="p-4 font-semibold">AI Modeli (LLM/Araç)</th>
+                                    <th class="p-4 font-semibold">Senin Maliyetin (Raw)</th>
+                                    <th class="p-4 font-semibold w-32">Satış Çarpanı</th>
+                                    <th class="p-4 font-semibold">Müşteriye Satış</th>
+                                    <th class="p-4 font-semibold text-brand-600">Kar Marjı</th>
+                                    <th class="p-4 font-semibold">Satış Stratejisi & Algı</th>
+                                </tr>
+                            </thead>
+                            <tbody id="models-body" class="divide-y divide-slate-100">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: GUIDE -->
+            <div id="tab-guide" class="tab-content space-y-6">
+                
+                <div class="text-center py-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Admin Strateji Rehberi</h2>
+                    <p class="text-slate-500 mt-2">Finansal çöküşleri önleme, churn (müşteri kaybı) oranını düşürme ve API kurgusu üzerine kritik yanıtlar.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Soru 1 -->
+                    <div class="bg-white rounded-2xl p-6 shadow-md border-t-4 border-rose-500 flex flex-col h-full">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-3">API Sömürüsünü (Abuse) Engelleme</h3>
+                        <p class="text-sm font-semibold text-slate-600 mb-2 italic">"999₺'lik sınırsız pakette finansal çöküşümü nasıl engellerim?"</p>
+                        <p class="text-sm text-slate-600 mb-4 flex-1">Hiçbir AI modelini tamamen "sınırsız" yapamazsınız. Bir kullanıcı bot yazıp 1 gecede 50.000 ₺ API faturası çıkarabilir.</p>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <h4 class="font-bold text-rose-600 text-sm mb-1">Çözüm: FUP & Throttling</h4>
+                            <p class="text-xs text-slate-700">Adil Kullanım Politikası (FUP) uygulayın. Görünürde sınırsızdır, arka planda limitler vardır (Saatte 50 GPT-4o isteği gibi). Limit aşımında daha ucuz modellere hız/kalite düşürerek (throttling) yönlendirin.</p>
+                        </div>
+                    </div>
+
+                    <!-- Soru 2 -->
+                    <div class="bg-white rounded-2xl p-6 shadow-md border-t-4 border-blue-500 flex flex-col h-full">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-server"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-3">Puter.js Mimari Kurgusu</h3>
+                        <p class="text-sm font-semibold text-slate-600 mb-2 italic">"'Puter.js Cloud Güvencesiyle' yazısı ve 'Kullanıcı Öder' modeli nasıl çelişmeden çalışacak?"</p>
+                        <p class="text-sm text-slate-600 mb-4 flex-1">Varsayılan Puter.js, müşteriden kendi Puter hesabını ister ve faturayı ona keser. Bu durumda abonelik satamazsınız.</p>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <h4 class="font-bold text-blue-600 text-sm mb-1">Çözüm: API Gateway (Proxy)</h4>
+                            <p class="text-xs text-slate-700">İstekler sizin arka plan sunucunuza (veya Puter Serverless Worker'a) gider. Puter API'lerine bağlanan hesap <strong>sizin hesabınızdır.</strong> Fatura size kesilir, siz müşteriden "kredi" düşersiniz.</p>
+                        </div>
+                    </div>
+
+                    <!-- Soru 3 -->
+                    <div class="bg-white rounded-2xl p-6 shadow-md border-t-4 border-brand-500 flex flex-col h-full">
+                        <div class="w-12 h-12 bg-brand-100 text-brand-500 rounded-full flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-users-gear"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-3">Abone Kaybını (Churn) Önleme</h3>
+                        <p class="text-sm font-semibold text-slate-600 mb-2 italic">"Pasif ve aktif müşteriler dengesini sağlayarak abone iptallerini nasıl önlerim?"</p>
+                        <p class="text-sm text-slate-600 mb-4 flex-1">SaaS projelerinin en büyük sorunu: Parasını verip kullanmayan müşterinin 2. ay aboneliğini iptal etmesidir.</p>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <div>
+                                <h4 class="font-bold text-brand-600 text-sm mb-1">Çözüm 1: Pasifler İçin Rollover</h4>
+                                <p class="text-xs text-slate-700">"Devreden Kredi" sistemi. Kullanılmayan hakların %50'si devreder. "İptal edersem birikimim yanar" hissi yaratır (Loss Aversion).</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-brand-600 text-sm mb-1">Çözüm 2: Aktifler İçin Top-up</h4>
+                                <p class="text-xs text-slate-700">Kredi %80'e gelince otomatik email atın: "İş akışın bölünmesin, %20 indirimle ek kredi al" (Upsell fırsatı).</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="mt-12 py-6 border-t border-slate-200 text-center text-slate-500 text-sm">
+                AI SaaS Projeksiyon ve Yönetim Paneli &copy; 2026. Tüm hesaplamalar dinamiktir.
+            </footer>
+
+        </div>
+    </main>
+
+    <script>
+        // --- DATA STRUCTURES ---
+
+        // Simulator Data (Soru 1)
+        const packages = [
+            { id: 'ogrenci', icon: '🎓', name: 'Öğrenci', price: 29, cost: 12, users: 100 },
+            { id: 'promaster', icon: '🚀', name: 'Pro Master', price: 149, cost: 45, users: 100 },
+            { id: 'creator', icon: '🎬', name: 'Creator', price: 299, cost: 85, users: 100 },
+            { id: 'master', icon: '💎', name: 'Master Unlimited', price: 999, cost: 350, users: 100 },
+        ];
+
+        // Models Data (Soru 2)
+        const models = [
+            { cat: 'Amiral LLM', name: 'GPT-4o (1M Input)', costUsd: 2.5, costTl: 85, multi: 4, note: 'Premium kalite, makul kar.' },
+            { cat: 'Amiral LLM', name: 'GPT-4o (1M Output)', costUsd: 10, costTl: 340, multi: 4, note: 'Çıktı maliyetli olduğu için x4 ideal.' },
+            { cat: 'Amiral LLM', name: 'Claude 3.5 Sonnet (1M In)', costUsd: 3, costTl: 102, multi: 4, note: 'Yazılımcılar çok kullanır.' },
+            { cat: 'Amiral LLM', name: 'Claude 3.5 Sonnet (1M Out)', costUsd: 15, costTl: 510, multi: 4, note: 'En pahalı çıktılardan biri.' },
+            { cat: 'Hızlı LLM', name: 'GPT-4o Mini (1M Input)', costUsd: 0.15, costTl: 5, multi: 10, note: 'Çok ucuz olduğu için 10x marj kaldırır.' },
+            { cat: 'Hızlı LLM', name: 'GPT-4o Mini (1M Output)', costUsd: 0.60, costTl: 20, multi: 10, note: 'Standart sohbetler için en karlı model.' },
+            { cat: 'Hızlı LLM', name: 'Gemini 1.5 Flash (1M In)', costUsd: 0.07, costTl: 2.5, multi: 10, note: 'Ucuz model, yüksek hacim = Yüksek Kar.' },
+            { cat: 'Hızlı LLM', name: 'Llama 3.1 8B (1M Token)', costUsd: 0.05, costTl: 2, multi: 10, note: 'Açık kaynak maliyeti sıfıra yakındır.' },
+            { cat: 'Görsel', name: 'DALL-E 3 HD (Adet)', costUsd: 0.04, costTl: 1.3, multi: 5, note: 'Görsel başı kredi düşmek çok karlıdır.' },
+            { cat: 'Görsel', name: 'Midjourney API (Adet)', costUsd: 0.08, costTl: 2.5, multi: 5, note: 'Yüksek talep görür, premium özellik.' },
+            { cat: 'Görsel', name: 'Stable Diffusion XL (Adet)', costUsd: 0.003, costTl: 0.1, multi: 10, note: 'Toplu görsel üretimi için ideal.' },
+            { cat: 'Ses', name: 'ElevenLabs (1000 Karakter)', costUsd: 0.15, costTl: 5, multi: 4, note: 'Ses klonlama pahalıdır, çarpanı abartma.' },
+            { cat: 'Video', name: 'Sora / Runway (1 Sn)', costUsd: 0.17, costTl: 6, multi: 4, note: 'Video maliyetlidir, saniye bazlı kredi düş.' }
+        ];
+
+        // Formatters
+        const formatMoney = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(val);
+
+        // --- CHART SETUP ---
+        let profitChartInstance = null;
+        function initChart() {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            profitChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: packages.map(p => p.name),
+                    datasets: [
+                        { label: 'Net Kazanç', backgroundColor: '#22c55e', data: [] },
+                        { label: 'Maliyet', backgroundColor: '#f43f5e', data: [] }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // --- RENDERING SIMULATOR ---
+        function renderSimulator() {
+            const tbody = document.getElementById('simulator-body');
+            tbody.innerHTML = '';
+            
+            let totalUsers = 0, totalRev = 0, totalCost = 0;
+
+            packages.forEach((pkg, index) => {
+                const brüt = pkg.price * pkg.users;
+                const maliyet = pkg.cost * pkg.users;
+                const net = brüt - maliyet;
+                const marj = brüt > 0 ? ((net / brüt) * 100).toFixed(0) : 0;
+
+                totalUsers += pkg.users;
+                totalRev += brüt;
+                totalCost += maliyet;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 font-medium"><span class="mr-2">${pkg.icon}</span> ${pkg.name}</td>
+                    <td class="p-4 text-center font-bold text-slate-700">${pkg.price} ₺</td>
+                    <td class="p-4">
+                        <input type="number" min="0" value="${pkg.users}" 
+                               class="w-full border border-slate-200 rounded px-2 py-1 text-center focus:outline-none focus:border-brand-500"
+                               onchange="updateUsers(${index}, this.value)">
+                    </td>
+                    <td class="p-4 text-right font-semibold">${formatMoney(brüt)}</td>
+                    <td class="p-4 text-right text-rose-500 font-semibold">${formatMoney(maliyet)}</td>
+                    <td class="p-4 text-right text-brand-600 font-bold">${formatMoney(net)}</td>
+                    <td class="p-4 text-center">
+                        <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">%${marj}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Update Totals
+            const totalNet = totalRev - totalCost;
+            const avgMarj = totalRev > 0 ? ((totalNet / totalRev) * 100).toFixed(0) : 0;
+
+            document.getElementById('total-users-display').textContent = totalUsers;
+            document.getElementById('total-revenue-display').textContent = formatMoney(totalRev);
+            document.getElementById('total-cost-display').textContent = formatMoney(totalCost);
+            document.getElementById('total-profit-display').textContent = formatMoney(totalNet);
+            document.getElementById('avg-margin-display').textContent = `Ort. Kar Marjı: %${avgMarj}`;
+
+            // Update Chart
+            if(profitChartInstance) {
+                profitChartInstance.data.datasets[0].data = packages.map(p => (p.price * p.users) - (p.cost * p.users));
+                profitChartInstance.data.datasets[1].data = packages.map(p => p.cost * p.users);
+                profitChartInstance.update();
+            }
+        }
+
+        window.updateUsers = function(index, val) {
+            packages[index].users = parseInt(val) || 0;
+            renderSimulator();
+        }
+
+        // --- RENDERING PRICING MODELS ---
+        function renderModels() {
+            const tbody = document.getElementById('models-body');
+            tbody.innerHTML = '';
+
+            models.forEach((m, index) => {
+                const satisFiyati = m.costTl * m.multi;
+                // Formül dökümandaki formül ile %400 vs göstermek üzerine tasarlandı: (Satış / Maliyet) * 100 veya Çarpan * 100.
+                const marj = m.multi * 100;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4"><span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-xs font-bold">${m.cat}</span></td>
+                    <td class="p-4 font-medium text-slate-800">${m.name}</td>
+                    <td class="p-4 text-slate-500">~${m.costTl} ₺ <span class="text-xs">($${m.costUsd})</span></td>
+                    <td class="p-4">
+                        <div class="flex items-center">
+                            <input type="number" min="1" step="0.5" value="${m.multi}" 
+                                   class="w-16 border border-slate-200 rounded-l px-2 py-1 text-center focus:outline-none focus:border-indigo-500"
+                                   onchange="updateMulti(${index}, this.value)">
+                            <span class="bg-slate-100 border border-l-0 border-slate-200 px-2 py-1 rounded-r text-slate-500">x</span>
+                        </div>
+                    </td>
+                    <td class="p-4 font-bold text-slate-800">${formatMoney(satisFiyati)}</td>
+                    <td class="p-4 text-brand-600 font-bold">%${marj}</td>
+                    <td class="p-4 text-xs text-slate-500">${m.note}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.updateMulti = function(index, val) {
+            models[index].multi = parseFloat(val) || 1;
+            renderModels();
+        }
+
+        // --- NAVIGATION ---
+        const titles = {
+            'dashboard': 'Gelir Simülatörü (Kar Projeksiyonu)',
+            'pricing': 'Kredi ve Maliyet Hesaplayıcı (4x-10x)',
+            'guide': 'Admin Strateji ve Mimari Rehberi'
+        };
+
+        window.switchTab = function(tabId) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.tab === tabId) {
+                    btn.classList.replace('text-slate-400', 'text-brand-500');
+                    btn.classList.replace('hover:bg-slate-800', 'bg-brand-500/10');
+                    btn.classList.remove('hover:text-white');
+                } else {
+                    btn.classList.replace('text-brand-500', 'text-slate-400');
+                    btn.classList.replace('bg-brand-500/10', 'hover:bg-slate-800');
+                    btn.classList.add('hover:text-white');
+                }
+            });
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            // Update Header Title
+            document.getElementById('page-title').textContent = titles[tabId];
+        }
+
+        // --- INIT ---
+        window.onload = () => {
+            initChart();
+            renderSimulator();
+            renderModels();
+        };
+
+    </script>
+</body>
+</html>

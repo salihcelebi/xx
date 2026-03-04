@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html lang="tr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ChatGPTR - 500+ AI Modeli Tek Panelde</title>
+
+    <script src="https://js.puter.com/v2/"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #FDFDFD; color: #0F172A; }
+
+        .glass-card { background: rgba(25A5, 255, 255, 1); border: 1px solid #E2E8F0; }
+
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+
+        
+
+        /* Punch Card Stilleri */
+
+        .punch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 4rem; }
+
+        .punch-card { 
+
+            border-radius: 2rem; 
+
+            padding: 2rem; 
+
+            text-align: center;
+
+            transition: all 0.3s ease;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            border: 1px solid rgba(0,0,0,0.05);
+
+            position: relative;
+
+            overflow: hidden;
+
+        }
+
+        .punch-card:hover { transform: translateY(-8px); filter: brightness(1.05); }
+
+
+
+        /* Fiyat ve Zemin Renkleri (Fakirden Lüxe Geçiş) */
+
+        .bg-student { background: #F8FAFC; color: #64748B; } /* Sade açık gri */
+
+        .bg-pro { background: #E2E8F0; color: #1E293B; }    /* Metalik Gümüş/Gri */
+
+        .bg-creator { background: #1E293B; color: #F8FAFC; } /* Gece Mavisi / Profesyonel */
+
+        .bg-unlimited { 
+
+            background: #000000; 
+
+            color: #FFFFFF; 
+
+            border: 2px solid #D4AF37; /* Gold detay */
+
+        } 
+
+
+
+        .punch-price {
+
+            font-size: 1.5rem;
+
+            font-weight: 800;
+
+            margin-top: 0.75rem;
+
+        }
+
+
+
+        .punch-subtext {
+
+            font-size: 0.7rem;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.05em;
+
+            font-weight: 700;
+
+            opacity: 0.7;
+
+            margin-top: 4px;
+
+        }
+
+
+
+        /* Liste Stilleri */
+
+        .status-icon { font-size: 24px; font-weight: bold; width: 32px; display: inline-flex; justify-content: center; }
+
+        .check-yes { color: #10B981; }
+
+        .check-no { color: #EF4444; }
+
+
+
+        .feature-item { 
+
+            display: flex; 
+
+            align-items: center; 
+
+            padding: 10px 0; 
+
+            border-bottom: 1px solid #F1F5F9;
+
+            font-size: 13.5px;
+
+            font-weight: 500;
+
+        }
+
+
+
+        .scroll-container {
+
+            max-height: 500px;
+
+            overflow-y: auto;
+
+            padding-right: 10px;
+
+            scrollbar-width: thin;
+
+            scrollbar-color: #E2E8F0 transparent;
+
+        }
+
+        .scroll-container::-webkit-scrollbar { width: 6px; }
+
+        .scroll-container::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+
+
+
+        .card-anim { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        .card-anim:hover { transform: scale(1.02); box-shadow: 0 40px 80px -15px rgba(0,0,0,0.1); }
+
+    </style>
+
+</head>
+
+<body class="min-h-screen">
+
+
+
+    <header class="pt-16 pb-8 px-8 text-center">
+
+        <div class="inline-block bg-slate-100 px-4 py-2 rounded-full text-xs font-black tracking-widest mb-4 uppercase text-slate-500">Premium AI Experience</div>
+
+        <h1 class="text-5xl font-black tracking-tighter mb-4 text-slate-900">Doğru Paketi Seçin, Sınırları Aşın</h1>
+
+        <p class="text-slate-500 max-w-2xl mx-auto font-medium">500+ Yapay Zeka modeli parmaklarınızın ucunda.</p>
+
+    </header>
+
+
+
+    <div class="max-w-[1400px] mx-auto pb-32 px-6">
+
+        
+
+        <!-- ÜSTTEKİ 4 PUNCH KUTUSU -->
+
+        <div class="punch-grid">
+
+            <!-- Öğrenci -->
+
+            <div class="punch-card bg-student shadow-sm">
+
+                <div class="text-2xl mb-1">🎓</div>
+
+                <div class="text-[10px] font-black uppercase tracking-widest opacity-60">Öğrenci</div>
+
+                <div class="text-lg font-extrabold leading-tight">15 LLM / 50 Model</div>
+
+                <div class="punch-price">29₺<span class="text-xs font-normal">/ay</span></div>
+
+                <div class="punch-subtext">Temel Eğitim Araçları</div>
+
+            </div>
+
+            
+
+            <!-- Pro Master -->
+
+            <div class="punch-card bg-pro shadow-md">
+
+                <div class="text-2xl mb-1">🚀</div>
+
+                <div class="text-[10px] font-black uppercase tracking-widest opacity-80">Pro Master</div>
+
+                <div class="text-lg font-extrabold leading-tight">45 LLM / 200 Model</div>
+
+                <div class="punch-price">149₺<span class="text-xs font-normal">/ay</span></div>
+
+                <div class="punch-subtext">Profesyonel İş Akışı</div>
+
+            </div>
+
+
+
+            <!-- Creator -->
+
+            <div class="punch-card bg-creator shadow-xl">
+
+                <div class="text-2xl mb-1">🎬</div>
+
+                <div class="text-[10px] font-black uppercase tracking-widest opacity-70">Creator</div>
+
+                <div class="text-lg font-extrabold leading-tight">65 LLM / 350 Model</div>
+
+                <div class="punch-price text-white">299₺<span class="text-xs font-normal">/ay</span></div>
+
+                <div class="punch-subtext text-slate-400">Yaratıcı Medya Gücü</div>
+
+            </div>
+
+
+
+            <!-- Master Unlimited -->
+
+            <div class="punch-card bg-unlimited shadow-2xl">
+
+                <div class="text-2xl mb-1">💎</div>
+
+                <div class="text-[10px] font-black uppercase tracking-widest text-amber-500">Elite Unlimited</div>
+
+                <div class="text-lg font-extrabold leading-tight">80 LLM / 500 Model</div>
+
+                <div class="punch-price text-amber-500">999₺<span class="text-xs font-normal">/ay</span></div>
+
+                <div class="punch-subtext text-amber-600">Sınırsız AI Evreni</div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- MEVCUT DETAYLI YAPI (Pricing Grid) -->
+
+        <div class="pricing-grid" id="pricing-container">
+
+            <!-- JavaScript tarafından doldurulacak -->
+
+        </div>
+
+    </div>
+
+
+
+    <script>
+
+        const features = [
+
+            "GPT-4o (Amiral Gemisi)", "Claude 3.5 Sonnet", "Gemini 1.5 Pro", "Llama 3.1 405B", "Mistral Large 2",
+
+            "Sora Video Üretimi", "DALL-E 3 HD Görsel", "Stable Diffusion XL", "Midjourney API Entegrasyonu", "Whisper Ses Tanıma",
+
+            "ElevenLabs Ses Klonlama", "AI Video Dublaj (50 Dil)", "PDF Analiz (1000+ Sayfa)", "Web Site Crawling", "Python Kod Çalıştırma",
+
+            "Matematiksel Problem Çözücü", "SQL Sorgu Oluşturucu", "JavaScript Debugger", "SEO Makale Yazarı", "E-Ticaret Ürün Açıklaması",
+
+            "Logo Tasarım Modülü", "Vektör Grafik Üretimi", "Sunum (PPT) Hazırlama", "Excel Formül Sihirbazı", "Duygu Analizi (Sentiment)",
+
+            "Otomatik E-posta Yanıtlayıcı", "Sosyal Medya Planlayıcı", "Hukuki Metin Analizi", "Tıbbi Terim Çevirici", "Şiir & Yaratıcı Yazarlık",
+
+            "Kod Refactoring", "Unit Test Yazımı", "Docker Dosyası Hazırlama", "Kubernetes Config Yönetimi", "React Bileşen Üretimi",
+
+            "Tailwind CSS Tasarımcı", "API Dökümantasyon Yazarı", "Git Commit Mesajı Üretici", "Regex Oluşturucu", "Bash Script Yazımı",
+
+            "Görselden Metne (OCR)", "Görsel Arkaplan Silme", "Görsel Çözünürlük Artırma", "Yüz Değiştirme (FaceSwap)", "Tarz Transferi (Style)",
+
+            "Video Altyazı Gömme", "Video Sahne Algılama", "Podcast Özetleyici", "YouTube Video Transkript", "Canlı Çeviri Odası",
+
+            "Akademik Referans Bulucu", "Plagiarism (İntihal) Kontrolü", "Grammar Check (Gelişmiş)", "Stil Düzeltici", "Sinematik Senaryo Yazımı",
+
+            "Oyun Tasarım Dokümanı", "NPC Diyalog Üretimi", "Prompt Mühendisliği Araçları", "Model Karşılaştırma Modu", "Özel Bilgi Tabanı (RAG)",
+
+            "Çoklu Dosya Karşılaştırma", "Gizli Veri Temizleme", "Yaratıcı Reklam Başlığı", "Persona Oluşturucu", "Müşteri Yolculuğu Haritası",
+
+            "Pazar Analizi Raporu", "Rakip Analizi Modülü", "SWOT Analizi Jeneratörü", "Haftalık Bülten Hazırlama", "Slogan Bulucu",
+
+            "Marka İsmi Önerici", "Domain İsmi Analizi", "Akıllı Takvim Yönetimi", "Sesli Not Özetleyici", "Toplantı Tutanak Yazarı",
+
+            "Zihin Haritası (Mindmap)", "Karar Destek Sistemi", "Kişisel Gelişim Koçu", "Diyet & Egzersiz Planı", "Yolculuk Rotası Planlayıcı"
+
+        ];
+
+
+
+        const plans = [
+
+            { name: "🎓 Öğrenci", price: "29₺", llmCount: 15, modelCount: 50, activeCount: 15, color: "slate-600" },
+
+            { name: "🚀 Pro Master", price: "149₺", llmCount: 45, modelCount: 200, activeCount: 40, color: "slate-900" },
+
+            { name: "🎬 Creator", price: "299₺", llmCount: 65, modelCount: 350, activeCount: 65, color: "indigo-600" },
+
+            { name: "💎 Master Unlimited", price: "999₺", llmCount: 80, modelCount: 500, activeCount: 80, color: "black" }
+
+        ];
+
+
+
+        function renderPlans() {
+
+            const container = document.getElementById('pricing-container');
+
+            
+
+            plans.forEach(plan => {
+
+                const card = document.createElement('div');
+
+                card.className = `card-anim glass-card p-8 rounded-[2.5rem] flex flex-col`;
+
+                
+
+                let featureListHtml = '';
+
+                features.forEach((feat, index) => {
+
+                    const isActive = index < plan.activeCount;
+
+                    featureListHtml += `
+
+                        <div class="feature-item ${isActive ? '' : 'text-slate-300'}">
+
+                            <span class="status-icon ${isActive ? 'check-yes' : 'check-no'}">
+
+                                ${isActive ? '✅' : '✕'}
+
+                            </span>
+
+                            ${feat}
+
+                        </div>
+
+                    `;
+
+                });
+
+
+
+                card.innerHTML = `
+
+                    <div class="mb-8">
+
+                        <div class="flex justify-between items-start">
+
+                             <h3 class="text-xl font-extrabold" style="color: ${plan.color === 'black' ? '#000' : plan.color}">${plan.name}</h3>
+
+                             <span class="text-[9px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500 uppercase">${plan.llmCount} LLM / ${plan.modelCount} MODEL</span>
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            <span class="text-5xl font-black">${plan.price}</span>
+
+                            <span class="text-slate-400 font-bold">/ay</span>
+
+                        </div>
+
+                    </div>
+
+                    
+
+                    <button class="w-full py-4 rounded-2xl font-black text-sm tracking-widest uppercase mb-8 transition-all ${plan.name.includes('Unlimited') || plan.name.includes('Creator') ? 'bg-black text-white shadow-xl hover:bg-slate-800' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+
+                        ABONE OL
+
+                    </button>
+
+
+
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">ÖZELLİK SETİ (${plan.activeCount}/80)</div>
+
+                    
+
+                    <div class="scroll-container flex-1">
+
+                        ${featureListHtml}
+
+                    </div>
+
+
+
+                    <p class="mt-6 text-[10px] text-center text-slate-400 font-bold uppercase tracking-tighter">Puter.js Cloud Güvencesiyle</p>
+
+                `;
+
+                container.appendChild(card);
+
+            });
+
+        }
+
+
+
+        window.onload = renderPlans;
+
+    </script>
+
+</body>
+
+</html>
