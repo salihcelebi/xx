@@ -10,6 +10,7 @@
 
   <!-- senin yazdığın kod -->
   <script defer src="/static/kame-ui.js"></script>
+  <link rel="stylesheet" href="/index.css" />
 
   <style>
     :root{
@@ -1205,6 +1206,19 @@ def merhaba_dünya():
       Mcode: ["openai/gpt-5.1-codex-mini", "openai/gpt-5.1-codex-max"],
     };
 
+    // DELİL-TEMA-1: Model provider değişince kurumsal renge geçişi tek noktadan yönet.
+    const PROVIDER_BRAND_THEME = {
+      openai: { accent: "#10a37f", surface2: "#eaf9f5" },
+      anthropic: { accent: "#d97706", surface2: "#fff6e8" },
+      google: { accent: "#1a73e8", surface2: "#edf4ff" },
+      x: { accent: "#111827", surface2: "#f3f4f6" },
+      "x-ai": { accent: "#111827", surface2: "#f3f4f6" },
+      mistralai: { accent: "#ff6a00", surface2: "#fff3eb" },
+      deepseek: { accent: "#2563eb", surface2: "#edf3ff" },
+      meta: { accent: "#0866ff", surface2: "#eef4ff" },
+      default: { accent: "#2563eb", surface2: "#f0f2f5" },
+    };
+
     const DEFAULT_TOOLS = {
       web: false,
       files: false,
@@ -1459,6 +1473,16 @@ def merhaba_dünya():
       const tools = getToolsForThread(thread.id);
       const route = getRoute();
       return route === "kodlama" || !!tools.coding;
+    }
+
+    function applyProviderTheme(modelId){
+      // DELİL-TEMA-2: index.css + CSS variable ile tema uygulaması (minimum müdahale).
+      const provider = String(modelId || state.model || "").split("/")[0].toLowerCase();
+      const key = provider === "x-ai" ? "x-ai" : (provider || "default");
+      const theme = PROVIDER_BRAND_THEME[key] || PROVIDER_BRAND_THEME.default;
+      document.body.dataset.provider = key;
+      document.documentElement.style.setProperty("--accent", theme.accent);
+      document.documentElement.style.setProperty("--surface-2", theme.surface2);
     }
 
     function detectModeFromText(userText, route){
@@ -1766,6 +1790,7 @@ def merhaba_dünya():
       }
 
       state.model = picker.value || state.model;
+      applyProviderTheme(state.model);
       persist();
     }
 
@@ -2837,6 +2862,7 @@ def merhaba_dünya():
         const t = getActiveThread();
         if(t) t.model = state.model;
         persist();
+        applyProviderTheme(state.model);
         if($("#sendBtn").disabled){
           toast("ok","Model değişimi sonraki yanıtta uygulanır.");
         }else{
@@ -2871,6 +2897,7 @@ def merhaba_dünya():
           const id = btn.getAttribute("data-featured");
           state.model = id;
           persist();
+          applyProviderTheme(id);
           await refreshModelPicker();
           toast("ok","Model seçildi: " + id);
         });
@@ -3116,6 +3143,7 @@ def merhaba_dünya():
 
       // İlk model listesi
       await refreshModelPicker();
+      applyProviderTheme(state.model || DEFAULT_FEATURED_MODELS[0]);
 
       // İlk route
       if(!location.hash) setRoute("chat");
