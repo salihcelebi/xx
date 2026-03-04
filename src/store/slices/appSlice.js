@@ -11,6 +11,7 @@ export const initialAppState = {
   lastRoute: '/chat',
   busy: { routeLoading: false, usagePolling: false },
   lastError: null,
+  selectedModel: null,
 };
 
 export function appReducer(state = initialAppState, action) {
@@ -29,6 +30,8 @@ export function appReducer(state = initialAppState, action) {
       return { ...state, busy: { ...state.busy, ...action.payload } };
     case 'app/setLastError':
       return { ...state, lastError: action.payload };
+    case 'app/setSelectedModel':
+      return { ...state, selectedModel: action.payload || null };
     default:
       return state;
   }
@@ -40,6 +43,7 @@ export const appActions = {
   setRoute: (route) => ({ type: 'app/setRoute', payload: route }),
   setBusy: (busyPatch) => ({ type: 'app/setBusy', payload: busyPatch }),
   setLastError: (error) => ({ type: 'app/setLastError', payload: error }),
+  setSelectedModel: (modelId) => ({ type: 'app/setSelectedModel', payload: modelId }),
 };
 
 // NISAI.MD gereksinim: async süreç slice/service tarafında, UI doğrudan service çağırmaz.

@@ -38,13 +38,16 @@ function getLogoKey(provider = '') {
   return p.toUpperCase();
 }
 
-function inferModes(raw = {}) {
+export function inferModes(raw = {}) {
   const id = String(raw?.id || raw?.model || '').toLowerCase();
   const type = String(raw?.type || raw?.kind || '').toLowerCase();
   const tags = Array.isArray(raw?.tags) ? raw.tags.map((tag) => String(tag).toLowerCase()) : [];
+  const declared = Array.isArray(raw?.modes) ? raw.modes.map((mode) => String(mode).toLowerCase()) : [];
 
   const has = (token) => id.includes(token) || type.includes(token) || tags.some((tag) => tag.includes(token));
   const modes = new Set();
+
+  declared.forEach((mode) => { if (APP_MODES.includes(mode)) modes.add(mode); });
 
   if (has('video') || has('txt2vid') || has('text-to-video')) modes.add('video');
   if (has('tts') || has('text-to-speech') || has('speech')) modes.add('tts');
@@ -62,7 +65,7 @@ function inferModes(raw = {}) {
   return [...modes].filter((mode) => APP_MODES.includes(mode));
 }
 
-function normalizeModel(raw = {}) {
+export function normalizeModel(raw = {}) {
   const id = raw?.id || raw?.model || null;
   const provider = getProvider(id);
 

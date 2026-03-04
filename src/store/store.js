@@ -4,6 +4,7 @@ import { chatReducer, initialChatState } from './slices/chatSlice.js';
 import { videoReducer, initialVideoState } from './slices/videoSlice.js';
 import { billingReducer, initialBillingState } from './slices/billingSlice.js';
 import { adminReducer, initialAdminState } from './slices/adminSlice.js';
+import { policyReducer, initialPolicyState } from './slices/policySlice.js';
 
 // NISAI.MD gereksinim: persistence sadece gerekli alanlarda ve version'lı anahtarla tutulur.
 const PERSIST_VERSION = 'v1';
@@ -39,6 +40,7 @@ function persistState(state) {
   storage.setItem(PERSIST_KEYS.language, state.app.language);
   storage.setItem(PERSIST_KEYS.lastRoute, state.app.lastRoute);
   storage.setItem(PERSIST_KEYS.uiPrefs, JSON.stringify(state.app.uiPrefs || {}));
+  storage.setItem(PERSIST_KEYS.selectedModel, state.app.selectedModel || '');
 }
 
 function buildInitialState() {
@@ -52,21 +54,26 @@ function buildInitialState() {
       // NISAI.MD'de netleştir: featureFlags kaynağı config dosyasında merkezlenebilir.
       featureFlags: { ...initialAppState.featureFlags, testMode: false },
       uiPrefs: persisted.uiPrefs,
+      selectedModel: persisted.selectedModel,
     },
     chat: initialChatState,
     video: initialVideoState,
     billing: initialBillingState,
     admin: initialAdminState,
+    policy: initialPolicyState,
   };
 }
 
 // NISAI.MD gereksinim: combine reducer referans korumalı, değişmeyen slice aynı kalır.
 export function rootReducer(state, action) {
+  const policyState = state.policy || initialPolicyState;
+
   const nextApp = appReducer(state.app, action);
   const nextChat = chatReducer(state.chat, action);
   const nextVideo = videoReducer(state.video, action);
   const nextBilling = billingReducer(state.billing, action);
   const nextAdmin = adminReducer(state.admin, action);
+  const nextPolicy = policyReducer(policyState, action);
 
   if (
     nextApp === state.app
@@ -74,6 +81,7 @@ export function rootReducer(state, action) {
     && nextVideo === state.video
     && nextBilling === state.billing
     && nextAdmin === state.admin
+    && nextPolicy === policyState
   ) {
     return state;
   }
@@ -84,6 +92,7 @@ export function rootReducer(state, action) {
     video: nextVideo,
     billing: nextBilling,
     admin: nextAdmin,
+    policy: nextPolicy,
   };
 }
 
