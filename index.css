@@ -1,0 +1,27 @@
+/* DELİL-TEMA-CSS-1: Provider seçimine göre kurumsal vurgu renkleri; index.html data-provider set eder. */
+body[data-provider="openai"] { --accent: #10a37f; --surface-2: #eaf9f5; }
+body[data-provider="anthropic"] { --accent: #d97706; --surface-2: #fff6e8; }
+body[data-provider="google"] { --accent: #1a73e8; --surface-2: #edf4ff; }
+body[data-provider="x-ai"], body[data-provider="x"] { --accent: #111827; --surface-2: #f3f4f6; }
+body[data-provider="mistralai"] { --accent: #ff6a00; --surface-2: #fff3eb; }
+body[data-provider="deepseek"] { --accent: #2563eb; --surface-2: #edf3ff; }
+body[data-provider="meta"] { --accent: #0866ff; --surface-2: #eef4ff; }
+
+/* DELİL-TEMA-CSS-2: Vurgu renk değişimini görsel olarak hissettir (minimum ek stil). */
+.topbar,
+.primary,
+.tab[aria-current="page"],
+.badge,
+#statusLine.show {
+  transition: border-color .2s ease, background-color .2s ease, color .2s ease;
+}
+
+.tab[aria-current="page"] {
+  border-bottom-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+.primary {
+  background: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, white) !important;
+}
