@@ -12,7 +12,4 @@ export const UI_KEYS = Object.freeze({
   videoUretiliyor: 'ui.videoUretiliyor',
   odemeAyarlari: 'ui.odemeAyarlari',
   kullanimMaliyet: 'ui.kullanimMaliyet',
-  policyModelKilitli: 'ui.policyModelKilitli',
-  policyYayinlandi: 'ui.policyYayinlandi',
-  policyTaslakKaydedildi: 'ui.policyTaslakKaydedildi',
 });

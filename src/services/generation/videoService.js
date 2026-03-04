@@ -108,17 +108,6 @@ function normalizeResult(videoEl, modelId, correlationId, startedAt) {
   };
 }
 
-function toProgressPayload(job = {}) {
-  return {
-    ...job,
-    run_id: job.id || null,
-    status: job.status || STATUS.QUEUED,
-    progress: clampProgress(job.progress),
-    result: job.result ?? null,
-    error: job.error ?? null,
-  };
-}
-
 function withTimeout(promise, timeoutMs = DEFAULT_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(Object.assign(new Error('timeout'), { code: 'TIMEOUT' })), timeoutMs);
@@ -143,7 +132,7 @@ function startProgressTicker(jobId, onProgress) {
     const increment = 1 + Math.floor(Math.random() * 3);
     const nextProgress = clampProgress(Math.min(85, current.progress + increment));
     const updated = updateJob(jobId, { progress: nextProgress });
-    if (updated) onProgress?.(toProgressPayload(updated));
+    if (updated) onProgress?.({ ...updated });
   }, PROGRESS_TICK_MS);
 
   return ticker;
@@ -202,7 +191,7 @@ export async function runVideoJob({ jobId, onProgress, signal, timeoutMs = DEFAU
 
   signal?.addEventListener?.('abort', cancelListener, { once: true });
   updateJob(jobId, { status: STATUS.RUNNING, progress: 5, controller, telemetry: { ...job.telemetry, startedAt } });
-  onProgress?.(toProgressPayload(JOB_STORE.get(jobId)));
+  onProgress?.({ ...JOB_STORE.get(jobId) });
 
   const ticker = startProgressTicker(jobId, onProgress);
 
@@ -229,7 +218,7 @@ export async function runVideoJob({ jobId, onProgress, signal, timeoutMs = DEFAU
       error: null,
       telemetry: { ...job.telemetry, endedAt: now(), durationMs: now() - startedAt },
     });
-    onProgress?.(toProgressPayload(updated));
+    onProgress?.({ ...updated });
 
     return {
       ok: true,
@@ -245,7 +234,7 @@ export async function runVideoJob({ jobId, onProgress, signal, timeoutMs = DEFAU
       error: mapped,
       telemetry: { ...job.telemetry, endedAt: now(), durationMs: now() - startedAt },
     });
-    onProgress?.(toProgressPayload(updated));
+    onProgress?.({ ...updated });
     return { ok: false, error: mapped, job: { ...updated } };
   } finally {
     signal?.removeEventListener?.('abort', cancelListener);
