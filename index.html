@@ -10,6 +10,7 @@
 
   <!-- senin yazdığın kod -->
   <script defer src="/static/kame-ui.js"></script>
+  <link rel="stylesheet" href="/index.css" />
 
   <style>
     :root{
@@ -61,9 +62,12 @@
     .app{
       height:100%;
       display:grid;
-      grid-template-columns: 300px 1fr 380px;
+      grid-template-columns: 300px minmax(0, 1fr);
       gap:12px;
       padding:12px;
+    }
+    .app.canvas-open{
+      grid-template-columns: 300px minmax(0, 1fr) 380px;
     }
     .panel{
       background:var(--surface);
@@ -375,6 +379,13 @@
       position:relative;
       box-shadow: 0 1px 0 rgba(0,0,0,.03);
       background:var(--assistant);
+    }
+    .bubble.system{
+      max-width:100%;
+      background:var(--surface-2);
+      color:var(--muted);
+      border-style:dashed;
+      font-size:12px;
     }
     .bubble.user{
       margin-left:auto;
@@ -702,6 +713,7 @@
     }
     @media (max-width: 880px){
       .app{grid-template-columns: 1fr; padding:0; gap:0}
+      .app.canvas-open{grid-template-columns: 1fr;}
       .sidebar{
         position:fixed;
         top:0; left:0; bottom:0;
@@ -1190,6 +1202,27 @@ def merhaba_dünya():
       "openai/gpt-5.2-pro",
     ];
 
+    // Gereksinim-9: kame-ui.js ile birebir model havuz kimliklerini sabit tut.
+    const MODEL_GROUPS = {
+      M0: ["openai/gpt-4.1-nano", "openai/gpt-4o-mini", "mistralai/mistral-small-24b-instruct-2501"],
+      Mmid: ["openai/gpt-4.1-mini", "mistralai/mistral-small-3.2-24b-instruct"],
+      M1: ["deepseek/deepseek-reasoner", "deepseek/deepseek-r1", "x-ai/grok-4"],
+      Mcode: ["openai/gpt-5.1-codex-mini", "openai/gpt-5.1-codex-max"],
+    };
+
+    // DELİL-TEMA-1: Model provider değişince kurumsal renge geçişi tek noktadan yönet.
+    const PROVIDER_BRAND_THEME = {
+      openai: { accent: "#10a37f", surface2: "#eaf9f5" },
+      anthropic: { accent: "#d97706", surface2: "#fff6e8" },
+      google: { accent: "#1a73e8", surface2: "#edf4ff" },
+      x: { accent: "#111827", surface2: "#f3f4f6" },
+      "x-ai": { accent: "#111827", surface2: "#f3f4f6" },
+      mistralai: { accent: "#ff6a00", surface2: "#fff3eb" },
+      deepseek: { accent: "#2563eb", surface2: "#edf3ff" },
+      meta: { accent: "#0866ff", surface2: "#eef4ff" },
+      default: { accent: "#2563eb", surface2: "#f0f2f5" },
+    };
+
     const DEFAULT_TOOLS = {
       web: false,
       files: false,
@@ -1219,6 +1252,8 @@ def merhaba_dünya():
               telemetry: !!s.ui?.telemetry,
               includeFiles: !!s.ui?.includeFiles,
               canvasOpen: s.ui?.canvasOpen ?? true,
+              sidebarMode: s.ui?.sidebarMode || "chat",
+              draftsByRoute: s.ui?.draftsByRoute || {},
             },
             activeRoute: s.activeRoute ?? "chat",
             activeThreadId: s.activeThreadId ?? null,
@@ -1243,6 +1278,8 @@ def merhaba_dünya():
           telemetry: false,
           includeFiles: false,
           canvasOpen: true,
+          sidebarMode: "chat",
+          draftsByRoute: {},
         },
         activeRoute: "chat",
         activeThreadId: null,
@@ -1289,6 +1326,33 @@ def merhaba_dünya():
 
     function nowTs(){ return Date.now(); }
     function uid(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
+
+    function safeBind(selector, eventName, handler, { required=false } = {}){
+      const node = $(selector);
+      if(!node){
+        if(required) console.warn(`[UI-BIND-MISS] ${selector} bulunamadı.`);
+        return null;
+      }
+      node.addEventListener(eventName, handler);
+      return node;
+    }
+
+    function runUISelfTest(){
+      const requiredIds = [
+        "#app", "#sidebar", "#chatPane", "#messageInput", "#sendBtn", "#modelPicker", "#routeTabs", "#canvasPanel"
+      ];
+      const missing = requiredIds.filter(sel => !$(sel));
+      if(missing.length){
+        console.warn("[UI-SELF-TEST] Eksik kritik elemanlar:", missing);
+        toast("error", `Arayüzde eksik parça var: ${missing.join(', ')}`);
+      }
+    }
+
+    function syncCanvasLayout(){
+      const open = !!state.ui.canvasOpen;
+      $("#app")?.classList.toggle("canvas-open", open);
+      $("#canvasPanel")?.classList.toggle("hidden", !open);
+    }
 
     function relativeTime(ts){
       const diff = Date.now() - ts;
@@ -1343,7 +1407,7 @@ def merhaba_dünya():
       $("#includeFilesToggle").setAttribute("aria-pressed", String(!!state.ui.includeFiles));
 
       // Canvas panel davranışı
-      $("#canvasPanel").classList.toggle("hidden", !state.ui.canvasOpen);
+      syncCanvasLayout();
     }
 
     /* ----------------------------- Threads CRUD ----------------------------- */
@@ -1440,6 +1504,99 @@ def merhaba_dünya():
       const tools = getToolsForThread(thread.id);
       const route = getRoute();
       return route === "kodlama" || !!tools.coding;
+    }
+
+    function applyProviderTheme(modelId){
+      // DELİL-TEMA-2: index.css + CSS variable ile tema uygulaması (minimum müdahale).
+      const provider = String(modelId || state.model || "").split("/")[0].toLowerCase();
+      const key = provider === "x-ai" ? "x-ai" : (provider || "default");
+      const theme = PROVIDER_BRAND_THEME[key] || PROVIDER_BRAND_THEME.default;
+      document.body.dataset.provider = key;
+      document.documentElement.style.setProperty("--accent", theme.accent);
+      document.documentElement.style.setProperty("--surface-2", theme.surface2);
+    }
+
+    function detectModeFromText(userText, route){
+      // Gereksinim-5.3: mode tespitini kullanıcı isteği + rota ile tek fonksiyonda yap.
+      const t = String(userText || "").toLowerCase();
+      if(route === "video" || t.includes("video")) return "video";
+      if(route === "gorsel" || t.includes("görsel") || t.includes("image") || t.includes("resim")) return "image";
+      if(route === "ses" || t.includes("tts") || t.includes("ses üret")) return "tts";
+      if(t.includes("stt") || t.includes("transcribe") || t.includes("ses yazıya")) return "stt";
+      if(route === "dublaj" || t.includes("dublaj") || t.includes("speech2speech")) return "dubbing";
+      if(route === "kodlama" || t.includes("kod") || t.includes("refactor") || t.includes("debug")) return "code";
+      return "chat";
+    }
+
+    function computeRiskScore(userText){
+      // Gereksinim-2.3: risk ∈ [0,1] skorunu zorunlu metrik olarak üret.
+      const t = String(userText || "");
+      const W = t.trim().split(/\s+/).filter(Boolean).length;
+      let risk = 0.20;
+      if(W > 100) risk += 0.20;
+      if(/(stack trace|exception|error|bug|refactor|hata|debug|trace)/i.test(t)) risk += 0.20;
+      if(/(adım|kural|zorunlu|mutlaka|şart|constraint|requirements)/i.test(t)) risk += 0.20;
+      if(/(ödeme|para|fatura|hukuk|güvenlik|security|kvkk|gdpr|pii)/i.test(t)) risk += 0.20;
+      return Math.max(0, Math.min(1, risk));
+    }
+
+    function computeMemeScore(thread){
+      // Gereksinim-7: teşekkür/oldu/tamam (+), çalışmadı/anlamadım (-), şikayet (-- ) sinyallerini puanlar.
+      const signals = (thread?.messages || []).slice(-8).map(m => String(m.content || "").toLowerCase()).join(" \n ");
+      let delta = 0;
+      if(/(teşekkür|eyvallah|oldu|tamam)/i.test(signals)) delta += 0.25;
+      if(/(devam|sürdür|ekle)/i.test(signals)) delta += 0.10;
+      if(/(çalışmadı|anlamadım|olmadı)/i.test(signals)) delta -= 0.25;
+      if(/(şikayet|berbat|rezalet)/i.test(signals)) delta -= 0.35;
+      return Math.max(0, Math.min(1, 0.50 + delta));
+    }
+
+    function pickFirstAvailable(catalog, ids){
+      // Gereksinim-4: S(model,P)=1 olmayan modeli hiç seçme.
+      for(const id of ids){
+        if(catalog.has(id)) return id;
+      }
+      return null;
+    }
+
+    function selectModelByKameRules({ mode, risk, catalog }){
+      // Gereksinim-5/9: kame-ui.js karar ağacını koruyarak M0/M1 ve mode bazlı seçim yap.
+      if(mode === "chat"){
+        if(risk <= 0.45) return pickFirstAvailable(catalog, MODEL_GROUPS.M0) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+        if(risk <= 0.70) return pickFirstAvailable(catalog, MODEL_GROUPS.Mmid) || pickFirstAvailable(catalog, MODEL_GROUPS.M1);
+        return pickFirstAvailable(catalog, MODEL_GROUPS.M1) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+      }
+      if(mode === "code") return risk <= 0.55 ? pickFirstAvailable(catalog, ["openai/gpt-5.1-codex-mini"]) : pickFirstAvailable(catalog, ["openai/gpt-5.1-codex-max"]);
+      if(mode === "video") return risk > 0.70 ? "sora-2-pro" : "sora-2";
+      if(mode === "image") return pickFirstAvailable(catalog, MODEL_GROUPS.Mmid) || pickFirstAvailable(catalog, MODEL_GROUPS.M0);
+      if(mode === "tts" || mode === "stt" || mode === "dubbing") return pickFirstAvailable(catalog, MODEL_GROUPS.M0) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+      return pickFirstAvailable(catalog, MODEL_GROUPS.M0) || pickFirstAvailable(catalog, MODEL_GROUPS.Mmid);
+    }
+
+    function computeKameSummary({ risk, meme, retryCount }){
+      // Gereksinim-10: KAM/ROI/KAME formüllerini sabit parametrelerle hesapla (UI debug alanı için).
+      const R = 100;
+      const Cost = Number((8 + (risk * 12) + (retryCount * 3)).toFixed(2));
+      const KAM = R - Cost;
+      const ROI = KAM / Math.max(Cost, 0.01);
+      const penalty = (risk > 0.75 ? 0.10 : 0) + (retryCount > 1 ? 0.10 : 0) + (meme < 0.25 ? 0.15 : 0);
+      const norm = 1 / (1 + Math.exp(-(KAM / 25)));
+      const KAME = (0.60 * norm) + ((1 - 0.60) * meme) - penalty;
+      return { R, Cost, KAM, ROI, KAME };
+    }
+
+    async function chooseModelForPrompt({ thread, promptText, retryCount = 0 }){
+      // Gereksinim-4/5/8: paket erişilebilirlik filtresi + max 1 retry için seçimi tek yerden yap.
+      const all = await listModelsSmart();
+      const catalog = {
+        ids: all.map(m => m.id),
+        has: (id) => all.some(m => m.id === id),
+      };
+      const mode = detectModeFromText(promptText, getRoute());
+      const risk = computeRiskScore(promptText);
+      const meme = computeMemeScore(thread);
+      const selected = selectModelByKameRules({ mode, risk, catalog }) || state.model || DEFAULT_FEATURED_MODELS[0];
+      return { mode, risk, meme, selected, kame: computeKameSummary({ risk, meme, retryCount }) };
     }
 
     async function listModelsSmart(){
@@ -1664,6 +1821,7 @@ def merhaba_dünya():
       }
 
       state.model = picker.value || state.model;
+      applyProviderTheme(state.model);
       persist();
     }
 
@@ -1676,7 +1834,51 @@ def merhaba_dünya():
       return allowed.has(r) ? r : "chat";
     }
 
+    function saveCurrentDraftByRoute(){
+      // Gereksinim-3.2: mod değişiminde taslak kaybını önlemek için route bazlı taslak sakla.
+      const r = getRoute();
+      const input = $("#messageInput");
+      if(!input) return;
+      state.ui.draftsByRoute[r] = input.value || "";
+    }
+
+    function restoreDraftByRoute(route){
+      // Gereksinim-3.2: seçilen moda ait taslağı geri yükle, yoksa boş bırak.
+      const input = $("#messageInput");
+      if(!input) return;
+      input.value = state.ui.draftsByRoute?.[route] || "";
+      $("#charCount").textContent = String(input.value.length);
+    }
+
+    function enforceToolCompatibilityByRoute(route){
+      // Gereksinim-3.3: modla uyumsuz tool kombinasyonlarını pasifleyip kullanıcıyı bilgilendir.
+      const thread = ensureThread();
+      const tools = getToolsForThread(thread.id);
+      const incompatible = {
+        video: ["tts", "dubbing"],
+        ses: ["video", "image"],
+        gorsel: ["tts", "dubbing"],
+      };
+      const off = (incompatible[route] || []).filter(k => tools[k]);
+      off.forEach(k => tools[k] = false);
+      if(off.length) toast("ok", `Uyumsuz araçlar pasif yapıldı: ${off.join(", ")}`);
+    }
+
+    function applyLayoutMode(){
+      // Gereksinim-1.1: desktop>=1180 üç panel, küçük ekran iki panel+drawer davranışı.
+      const isDesktop = window.innerWidth >= 1180;
+      document.body.dataset.layoutMode = isDesktop ? "desktop" : "compact";
+      if(!isDesktop && getRoute() !== "kodlama"){
+        state.ui.canvasOpen = false;
+      } else if(isDesktop && (getRoute() === "kodlama" || getToolsForThread(ensureThread().id).coding)) {
+        state.ui.canvasOpen = true;
+      }
+      syncCanvasLayout();
+    }
+
     function setRoute(route){
+      saveCurrentDraftByRoute();
+      enforceToolCompatibilityByRoute(route);
       location.hash = "#" + route;
     }
 
@@ -1692,6 +1894,7 @@ def merhaba_dünya():
 
       // Composer sadece chat rotasında görünür
       $("#composer").style.display = (r === "chat") ? "flex" : "none";
+      restoreDraftByRoute(r);
 
       // Coding: Canvas panel aç
       state.ui.canvasOpen = shouldShowCanvas();
@@ -2104,9 +2307,10 @@ def merhaba_dünya():
     }
 
     function renderBubble(msg, thread){
-      const b = el("div", { class: "bubble " + (msg.role === "user" ? "user" : ""), "data-id": msg.id });
+      const cls = msg.role === "user" ? "user" : (msg.role === "system" ? "system" : "");
+      const b = el("div", { class: "bubble " + cls, "data-id": msg.id });
 
-      if(msg.role !== "user"){
+      if(msg.role !== "user" && msg.role !== "system"){
         const tb = el("div", { class:"toolbar" }, [
           el("button", { class:"toolbtn", title:"Kopyala", onclick: ()=> copyText(msg.content || "") }, ["Kopyala"]),
           el("button", { class:"toolbtn", title:"Beğen", onclick: ()=> vote(msg.id, "like") }, ["Beğen"]),
@@ -2380,47 +2584,55 @@ def merhaba_dünya():
         merged.push({ role:"system", content: sys + (memory ? "\nHAFIZA ÖZETİ:\n" + memory : "") });
         msgs.forEach(m => merged.push(m));
 
-        const model = state.model || thread.model || DEFAULT_FEATURED_MODELS[0];
+        const latestUser = [...thread.messages].reverse().find(m => m.role === "user");
+        const promptText = latestUser?.content || "";
+        let retryCount = 0;
+        let selection = await chooseModelForPrompt({ thread, promptText, retryCount });
+        let model = state.model || thread.model || selection.selected || DEFAULT_FEATURED_MODELS[0];
+        // Gereksinim-1/10: model/risk/meme/KAME hesap özetini mesaj metasında sakla.
+        assistantMsg.meta = { mode: selection.mode, risk: selection.risk, meme: selection.meme, kame: selection.kame, model };
 
-        // Puter.js chat streaming (varsa)
         if(window.puter?.ai?.chat){
-          // Not: Tool çağrıları Puter tarafında farklı şekillerde olabilir.
-          // Burada “araç seçimi” sinyali olarak options.tools/purpose gönderiyoruz (demo).
           const options = {
             model,
             stream: true,
             tools: Object.entries(tools).filter(([,v])=>v).map(([k])=>k),
           };
 
-          // Puter streaming API şekli değişebilir; bu yüzden esnek ele al.
           const res = await window.puter.ai.chat(merged, options);
 
-          // 1) AsyncIterator ise
           if(res && typeof res[Symbol.asyncIterator] === "function"){
             for await (const chunk of res){
               const text = extractText(chunk);
               if(text) appendChunk(assistantMsg, text);
             }
           }
-          // 2) res.stream() gibi bir fonksiyon varsa
           else if(res && typeof res.stream === "function"){
             await res.stream({
               onChunk: (c)=> appendChunk(assistantMsg, extractText(c)),
               onDone: ()=>{}
             });
           }
-          // 3) düz cevap ise
           else{
             const text = extractText(res);
             appendChunk(assistantMsg, text || "Model yanıt vermedi.");
           }
 
-          // Deep Research: demo citations
+          // Gereksinim-8: meme düşük ve çıktı boş kaldıysa yalnız 1 kez kalite modeliyle retry yap.
+          if(!assistantMsg.content.trim() && selection.meme < 0.75){
+            retryCount = 1;
+            selection = await chooseModelForPrompt({ thread, promptText, retryCount });
+            const allRetryModels = await listModelsSmart();
+            const retryCatalog = { has:(id)=> allRetryModels.some(m=>m.id===id) };
+            model = pickFirstAvailable(retryCatalog, MODEL_GROUPS.M1) || model;
+            const retryRes = await window.puter.ai.chat(merged, { ...options, model, stream:false });
+            appendChunk(assistantMsg, extractText(retryRes) || "Model yanıt vermedi.");
+          }
+
           if(state.ui.deepResearch || tools.web){
             assistantMsg.citations = makeDemoCitations();
           }
         }else{
-          // Puter yoksa: demo yanıt
           await fakeStream(assistantMsg,
             "Demo mod: Puter.js bağlı değil.\n\n- Araçlar seçimini “GPT Tools” menüsünden yap.\n- Model seçimini sağ üstten değiştir.\n- Kodlama açınca sağ panel (Canvas) otomatik gelir.\n\n```python\ndef merhaba_dünya():\n    print(\"Merhaba, Dünya!\")\n```\n"
           );
@@ -2443,6 +2655,7 @@ def merhaba_dünya():
         $("#sendBtn").disabled = false;
       }
     }
+
 
     function extractText(any){
       if(any == null) return "";
@@ -2519,6 +2732,7 @@ def merhaba_dünya():
       const pinnedList = $("#pinnedList");
       const chatList = $("#chatList");
       const empty = $("#emptyChatsCard");
+      const isProjectMode = state.ui.sidebarMode === "project";
 
       const q = ($("#chatSearchInput")?.value || "").trim().toLowerCase();
 
@@ -2537,16 +2751,25 @@ def merhaba_dünya():
       pinnedList.innerHTML = "";
       chatList.innerHTML = "";
 
-      $("#pinnedWrap").style.display = pinned.length ? "block" : "none";
+      $("#pinnedWrap").style.display = (!isProjectMode && pinned.length) ? "block" : "none";
 
-      if(filtered.length === 0){
+      if(filtered.length === 0 && !isProjectMode){
         empty.style.display = "block";
       }else{
         empty.style.display = "none";
       }
 
-      pinned.forEach(t => pinnedList.appendChild(chatItem(t)));
-      rest.forEach(t => chatList.appendChild(chatItem(t)));
+      if(!isProjectMode){
+        pinned.forEach(t => pinnedList.appendChild(chatItem(t)));
+        rest.forEach(t => chatList.appendChild(chatItem(t)));
+      }else{
+        // Gereksinim-2.1: proje modunda solda başlık/filtre/bildirim odaklı sade liste göster.
+        chatList.appendChild(el("div", { class:"card" }, [
+          el("div", { style:"font-weight:750; margin-bottom:6px;" }, ["Proje Modu"]),
+          el("div", { style:"color:var(--muted); font-size:13px;" }, ["Klasör/başlık/filtre görünümü aktif."]),
+          el("div", { class:"badge", style:"margin-top:8px;" }, ["Bildirim: 2 görev bekliyor"]),
+        ]));
+      }
 
       $("#chatCountBadge").textContent = String(threads.length);
 
@@ -2575,6 +2798,7 @@ def merhaba_dünya():
         persist();
         renderAll();
         focusComposer();
+        const cv = $("#chatView"); if(cv) cv.scrollTop = cv.scrollHeight;
       };
       wrap.onkeydown = (e) => {
         if(e.key === "Enter"){
@@ -2582,6 +2806,7 @@ def merhaba_dünya():
           persist();
           renderAll();
           focusComposer();
+          const cv = $("#chatView"); if(cv) cv.scrollTop = cv.scrollHeight;
         }
       };
       return wrap;
@@ -2660,6 +2885,7 @@ def merhaba_dünya():
 
       // Route change
       window.addEventListener("hashchange", () => renderRoute());
+      window.addEventListener("resize", applyLayoutMode);
 
       // Model picker
       $("#modelPicker").addEventListener("change", (e)=>{
@@ -2667,7 +2893,12 @@ def merhaba_dünya():
         const t = getActiveThread();
         if(t) t.model = state.model;
         persist();
-        toast("ok","Model seçildi.");
+        applyProviderTheme(state.model);
+        if($("#sendBtn").disabled){
+          toast("ok","Model değişimi sonraki yanıtta uygulanır.");
+        }else{
+          toast("ok","Model seçildi.");
+        }
       });
 
       // Tools open/close
@@ -2697,6 +2928,7 @@ def merhaba_dünya():
           const id = btn.getAttribute("data-featured");
           state.model = id;
           persist();
+          applyProviderTheme(id);
           await refreshModelPicker();
           toast("ok","Model seçildi: " + id);
         });
@@ -2714,7 +2946,10 @@ def merhaba_dünya():
       $("#deepResearchToggle").onclick = ()=>{
         state.ui.deepResearch = !state.ui.deepResearch;
         $("#deepResearchToggle").setAttribute("aria-pressed", String(!!state.ui.deepResearch));
+        const thread = ensureThread();
+        thread.messages.push({ id: uid("m"), role:"system", content: state.ui.deepResearch ? "Derin Araştırma modu açıldı: daha uzun ve kanıtlı yanıt." : "Derin Araştırma modu kapatıldı: normal kısa moda dönüldü.", createdAt: nowTs() });
         persist();
+        renderMessages();
         toast("ok", state.ui.deepResearch ? "Derin Araştırma açık." : "Derin Araştırma kapalı.");
       };
 
@@ -2729,11 +2964,22 @@ def merhaba_dünya():
       // Projects shortcut
       $("#projectsBtn").onclick = ()=> setRoute("projects");
 
+      // Gereksinim-2.1: sidebar için Sohbet/Proje mod geçişi.
+      if(!$("#sidebarModeChat")){
+        const host = $("#projectsBtn")?.parentElement;
+        if(host){
+          host.prepend(el("button", { class:"pill", id:"sidebarModeProject", "aria-label":"Proje modu" }, ["Proje Modu"]));
+          host.prepend(el("button", { class:"pill", id:"sidebarModeChat", "aria-label":"Sohbet modu" }, ["Sohbet Modu"]));
+        }
+      }
+      $("#sidebarModeChat")?.addEventListener("click", ()=>{ state.ui.sidebarMode = "chat"; persist(); renderSidebar(); });
+      $("#sidebarModeProject")?.addEventListener("click", ()=>{ state.ui.sidebarMode = "project"; persist(); renderSidebar(); });
+
       // Composer send
-      $("#sendBtn").onclick = sendUserMessage;
+      safeBind("#sendBtn", "click", sendUserMessage, { required:true });
 
       // Enter vs Shift+Enter
-      $("#messageInput").addEventListener("keydown", (e)=>{
+      safeBind("#messageInput", "keydown", (e)=>{
         if(e.key === "Enter" && !e.shiftKey){
           e.preventDefault();
           sendUserMessage();
@@ -2741,12 +2987,12 @@ def merhaba_dünya():
       });
 
       // Char count
-      $("#messageInput").addEventListener("input", (e)=>{
+      safeBind("#messageInput", "input", (e)=>{
         $("#charCount").textContent = String(e.target.value.length);
       });
 
       // File attach
-      $("#fileInput").addEventListener("change", (e)=>{
+      safeBind("#fileInput", "change", (e)=>{
         const files = Array.from(e.target.files || []);
         files.forEach(f => addAttachment(f));
         e.target.value = "";
@@ -2830,20 +3076,20 @@ def merhaba_dünya():
       };
 
       // Canvas close
-      $("#canvasCloseBtn").onclick = ()=>{
+      safeBind("#canvasCloseBtn", "click", ()=>{
         state.ui.canvasOpen = false;
-        $("#canvasPanel").classList.add("hidden");
+        syncCanvasLayout();
         persist();
-      };
-      $("#copyCanvasBtn").onclick = ()=>{
+      });
+      safeBind("#copyCanvasBtn", "click", ()=>{
         copyText($("#canvasEditor").value);
-      };
-      $("#setLangPython").onclick = ()=> setCanvasLang("python");
-      $("#setLangJS").onclick = ()=> setCanvasLang("javascript");
-      $("#setLangTXT").onclick = ()=> setCanvasLang("metin");
+      });
+      safeBind("#setLangPython", "click", ()=> setCanvasLang("python"));
+      safeBind("#setLangJS", "click", ()=> setCanvasLang("javascript"));
+      safeBind("#setLangTXT", "click", ()=> setCanvasLang("metin"));
 
       // Tools modal: açıldığında checkbox’ları thread’e göre senkronla
-      $("#toolsBackdrop").addEventListener("transitionend", ()=> syncToolsCheckboxes());
+      safeBind("#toolsBackdrop", "transitionend", ()=> syncToolsCheckboxes());
     }
 
     function setCanvasLang(lang){
@@ -2912,7 +3158,9 @@ def merhaba_dünya():
 
       bindEvents();
       applyTheme();
+      applyLayoutMode();
       renderAll();
+      runUISelfTest();
 
       // Puter user bilgisi (varsa)
       try{
@@ -2927,9 +3175,17 @@ def merhaba_dünya():
 
       // İlk model listesi
       await refreshModelPicker();
+      applyProviderTheme(state.model || DEFAULT_FEATURED_MODELS[0]);
 
       // İlk route
       if(!location.hash) setRoute("chat");
+
+      // Gereksinim-1.2: ilk girişte yeni sohbet odakla, dönüşte son konuşmayı aç.
+      if(state.threads.length <= 1 && state.threads[0]?.messages?.length === 0){
+        focusComposer();
+      }else if(state.activeThreadId){
+        renderMessages();
+      }
     }
 
     boot();
