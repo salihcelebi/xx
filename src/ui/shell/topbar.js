@@ -3,9 +3,18 @@ import { renderModelPicker } from '../components/ModelPicker.js';
 import { renderToolsMenu } from '../components/ToolsMenu.js';
 import { renderToggle } from '../components/Toggle.js';
 import { renderStatusLine } from '../components/StatusLine.js';
+import { filterModelsByPolicy } from '../../services/policyService.js';
 
 // GPT benzeri üst bar: başlık + model + araçlar + geçici sohbet.
-export async function mountTopbar({ root, state, mode = 'chat', onModelChange, onToolsChange, onTempChange }) {
+export async function mountTopbar({
+  root,
+  state,
+  mode = 'chat',
+  onModelChange,
+  onToolsChange,
+  onTempChange,
+  onModelLocked,
+}) {
   if (!root) return;
 
   const statusEl = document.querySelector('#status-bar');
@@ -47,11 +56,23 @@ export async function mountTopbar({ root, state, mode = 'chat', onModelChange, o
       modelSlot.innerHTML = '<button type="button">Yenile</button>';
       return;
     }
+
+    const filtered = filterModelsByPolicy(result.models, {
+      policy: state?.policy?.activePolicy,
+      selectedPackage: state?.policy?.selectedPackage || 'free',
+      activeMode: mode,
+    });
+
     modelSlot.innerHTML = '';
     modelSlot.append(renderModelPicker({
       models: result.models,
+      activeMode: mode,
+      policy: state?.policy?.activePolicy,
+      selectedPackage: state?.policy?.selectedPackage || 'free',
       selectedModelId: state?.app?.selectedModel,
       onSelect: onModelChange,
+      onLockedSelect: onModelLocked,
+      featuredModels: filtered.slice(0, 5).map((model) => model.id),
     }));
   } catch {
     modelSlot.textContent = 'Model yüklenemedi';

@@ -1,0 +1,22 @@
+<div id="tab-ses-root" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+  <div class="card">
+    <h3>Ses Üretimi (TTS)</h3>
+    <div style="color:var(--muted); font-size:13px; line-height:1.55;">Metni seslendir ve çıktıyı dinle.</div>
+    <div class="field">
+      <label>Metin</label>
+      <textarea id="ttsText" rows="4" placeholder="Okutulacak metin"></textarea>
+    </div>
+    <div class="field">
+      <label>Ses</label>
+      <select id="ttsVoice">
+        <option value="female-1">Kadın 1</option>
+        <option value="male-1">Erkek 1</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      <button class="primary" id="ttsBtn" style="width:fit-content;">Ses Oluştur</button>
+      <span class="badge" id="ttsStatus">Hazır</span>
+    </div>
+    <div id="ttsOut" style="margin-top:10px;"></div>
+  </div>
+</div>

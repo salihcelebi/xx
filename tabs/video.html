@@ -1,0 +1,13 @@
+<div id="tab-video-root" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+  <div class="card">
+    <h3>Video Üretimi</h3>
+    <div style="color:var(--muted); font-size:13px; line-height:1.55; margin-bottom:10px;">
+      video.html içeriği index içine gömülü çalışır; kullanıcı tıklamasında öncelik video.html sayfasına verilir.
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <button class="primary" id="openVideoPageBtn" style="width:fit-content;">Video Sayfasını Aç</button>
+      <span class="badge">Sora 2 / Sora 2 Pro filtreleri video.html ile birebir</span>
+    </div>
+    <iframe id="videoEmbedFrame" src="/video.html" title="Video Üretici" style="width:100%; min-height:900px; border:1px solid var(--border); border-radius:14px; background:#fff;"></iframe>
+  </div>
+</div>

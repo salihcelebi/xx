@@ -1,0 +1,23 @@
+<div id="tab-gorsel-root" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+  <div class="card">
+    <h3>Görsel Üretimi</h3>
+    <div style="color:var(--muted); font-size:13px; line-height:1.55;">Prompt yaz ve “Oluştur”a bas.</div>
+    <div class="field">
+      <label>Prompt</label>
+      <input id="imgPrompt" placeholder="Örn: cyberpunk şehir manzarası" />
+    </div>
+    <div class="field">
+      <label>Boyut</label>
+      <select id="imgSize">
+        <option value="1024x1024">1024x1024</option>
+        <option value="1536x1024">1536x1024</option>
+        <option value="1024x1536">1024x1536</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      <button class="primary" id="imgBtn" style="width:fit-content;">Oluştur</button>
+      <span class="badge" id="imgStatus">Hazır</span>
+    </div>
+    <div id="imgOut" style="margin-top:10px;"></div>
+  </div>
+</div>
