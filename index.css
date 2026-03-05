@@ -1,0 +1,53 @@
+/* DELİL-TEMA-CSS-1: Provider seçimine göre kurumsal vurgu renkleri; index.html data-provider set eder. */
+body[data-provider="openai"] { --accent: #10a37f; --surface-2: #eaf9f5; --prov:#10a37f; }
+body[data-provider="anthropic"] { --accent: #d97706; --surface-2: #fff6e8; --prov:#d97706; }
+body[data-provider="google"] { --accent: #1a73e8; --surface-2: #edf4ff; --prov:#1a73e8; }
+body[data-provider="x-ai"], body[data-provider="x"] { --accent: #111827; --surface-2: #f3f4f6; --prov:#111827; }
+body[data-provider="mistralai"] { --accent: #ff6a00; --surface-2: #fff3eb; --prov:#ff6a00; }
+body[data-provider="deepseek"] { --accent: #2563eb; --surface-2: #edf3ff; --prov:#2563eb; }
+body[data-provider="meta"] { --accent: #0866ff; --surface-2: #eef4ff; --prov:#0866ff; }
+
+/* DELİL-TEMA-CSS-2: GPT benzeri yalın yüzey + yumuşak geçişler. */
+:root { --prov: var(--accent, #2563eb); }
+.app, .panel, .topbar, .composer, .canvas, .chatitem, .tab, .pill, .chip button {
+  transition: border-color .2s ease, background-color .2s ease, color .2s ease, box-shadow .2s ease;
+}
+
+/* Ana yerleşim: canvas kapalıyken iki kolon, açıkken üç kolon hissini güçlendir. */
+.app { align-items: stretch; }
+.app.canvas-open .canvas { display: flex !important; }
+
+/* Üst bar + sekme dili: ChatGPT benzeri net vurgu. */
+.topbar { backdrop-filter: blur(8px); }
+.tab[aria-current="page"] {
+  border-bottom-color: var(--prov) !important;
+  color: var(--prov) !important;
+  background: color-mix(in srgb, var(--prov) 10%, transparent);
+}
+
+.primary {
+  background: var(--prov) !important;
+  border-color: color-mix(in srgb, var(--prov) 44%, white) !important;
+}
+
+/* Model/provider chip görselliği */
+.pill[aria-pressed="true"],
+.chip button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--prov) 42%, white) !important;
+  background: color-mix(in srgb, var(--prov) 14%, white) !important;
+  color: var(--prov) !important;
+}
+
+/* Sohbet balonları okunabilirlik */
+.bubble.assistant { border-left: 3px solid color-mix(in srgb, var(--prov) 48%, transparent); }
+.bubble.user { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--prov) 20%, transparent); }
+
+/* Sağ panel / canvas başlığı provider ile hizalı */
+.canvas-head,
+.canvas-title { color: var(--prov); }
+
+/* Durum çubuğu */
+#statusLine.show {
+  border-color: color-mix(in srgb, var(--prov) 35%, white) !important;
+  background: color-mix(in srgb, var(--prov) 10%, white) !important;
+}

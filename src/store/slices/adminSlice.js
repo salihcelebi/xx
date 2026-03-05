@@ -42,6 +42,7 @@ export const initialAdminState = {
     activeTab: 'Modeller',
     lastError: null,
   },
+  logs: [],
 };
 
 export const adminActions = {
@@ -56,6 +57,8 @@ export const adminActions = {
   setLoadingFlags: (payload) => ({ type: 'admin/setLoadingFlags', payload }),
   setError: (payload) => ({ type: 'admin/setError', payload }),
   clearError: () => ({ type: 'admin/clearError' }),
+  addLog: (payload) => ({ type: 'admin/addLog', payload }),
+  clearLogs: () => ({ type: 'admin/clearLogs' }),
 };
 
 export function adminReducer(state = initialAdminState, action) {
@@ -144,6 +147,23 @@ export function adminReducer(state = initialAdminState, action) {
     case 'admin/clearError':
       return { ...state, ui: { ...state.ui, lastError: null } };
 
+
+    case 'admin/addLog': {
+      const nextItem = {
+        level: action.payload?.level || 'info',
+        code: action.payload?.code || 'ADMIN_LOG',
+        message: action.payload?.message || '',
+        details: action.payload?.details || null,
+        ts: action.payload?.ts || now(),
+      };
+      const logs = [...(state.logs || []), nextItem];
+      if (logs.length > 200) logs.shift();
+      return { ...state, logs };
+    }
+
+    case 'admin/clearLogs':
+      return { ...state, logs: [] };
+
     default:
       return state;
   }
@@ -215,3 +235,5 @@ export const selectAdminActiveTab = (state) => state.admin.ui.activeTab;
 // - admin olmayan kullanıcıda redirect mi, sadece forbidden panel mi?
 // - model catalog cache TTL kesin değeri.
 // - usage monitoring veri modeli ve service contract.
+
+export const selectAdminLogs = (state) => state.admin.logs || [];

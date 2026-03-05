@@ -12,4 +12,7 @@ export const tr = Object.freeze({
   'ui.videoUretiliyor': 'Video üretiliyor…',
   'ui.odemeAyarlari': 'Ödeme Ayarları',
   'ui.kullanimMaliyet': 'Kullanım ve Maliyet',
+  'ui.policyModelKilitli': 'Bu model seçili paket için kilitli.',
+  'ui.policyYayinlandi': 'Policy yayınlandı.',
+  'ui.policyTaslakKaydedildi': 'Taslak kaydedildi.',
 });
