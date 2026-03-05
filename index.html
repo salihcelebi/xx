@@ -1914,71 +1914,34 @@ def merhaba_dünya():
       const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
         el("div", { class:"card" }, [
           el("h3", { html:"Video Üretimi" }),
-          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
-            "Prompt yaz ve “Üret”e bas. (Demo: gerçek txt2vid çağrısı bağlanabilir.)"
+          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55; margin-bottom:10px;" }, [
+            "video.html içeriği index içine gömülü çalışır; kullanıcı tıklamasında öncelik video.html sayfasına verilir."
           ]),
-          el("div", { class:"field" }, [
-            el("label", {}, ["Prompt"]),
-            el("input", { id:"videoPrompt", placeholder:"Örn: İstanbul’da yağmurlu bir akşam, sinematik…" })
+          el("div", { style:"display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;" }, [
+            el("button", { class:"primary", id:"openVideoPageBtn", style:"width:fit-content;" }, ["Video Sayfasını Aç"]),
+            el("span", { class:"badge" }, ["Sora 2 / Sora 2 Pro filtreleri video.html ile birebir"]) 
           ]),
-          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
-            el("button", { class:"primary", id:"videoGenBtn", style:"width:fit-content;" }, ["Üret"]),
-            el("span", { class:"badge", id:"videoStatus" }, ["Hazır"])
-          ]),
-          el("div", { class:"card", id:"videoOut", style:"margin-top:10px; display:none;" }, [])
+          el("iframe", {
+            id:"videoEmbedFrame",
+            src:"/video.html",
+            title:"Video Üretici",
+            style:"width:100%; min-height:900px; border:1px solid var(--border); border-radius:14px; background:#fff;"
+          })
         ])
       ]);
 
       setTimeout(() => {
-        const btn = $("#videoGenBtn");
-        if(!btn) return;
-        btn.onclick = async () => {
-          const prompt = ($("#videoPrompt")?.value || "").trim();
-          if(!prompt){ toast("error","Prompt boş olamaz."); return; }
-
-          try{
-            $("#videoStatus").textContent = "Üretiliyor…";
-            setStatus("Video üretiliyor…");
-
-            // Gerçek akış için: puter.ai.txt2vid(prompt, options) çağır.
-            if(window.puter?.ai?.txt2vid){
-              const vid = await window.puter.ai.txt2vid(prompt, { model: state.model || undefined });
-              const url = (vid?.url || vid?.src || vid);
-              showVideo(url);
-            }else{
-              // Demo bekleme
-              await new Promise(r => setTimeout(r, 1200));
-              showVideo(null);
-            }
-
-            $("#videoStatus").textContent = "Tamam";
-            clearStatus();
-          }catch(e){
-            clearStatus();
-            $("#videoStatus").textContent = "Hata";
-            toast("error","Video üretimi başarısız.");
-          }
-        };
-
-        function showVideo(url){
-          const out = $("#videoOut");
-          out.style.display = "block";
-          out.innerHTML = "";
-          out.appendChild(el("div", { style:"font-weight:800; margin-bottom:8px;" }, ["Önizleme"]));
-          if(url){
-            const v = el("video", { controls:"true", style:"width:100%; border-radius:14px; border:1px solid var(--border);" });
-            v.src = url;
-            out.appendChild(v);
-          }else{
-            out.appendChild(el("div", { style:"color:var(--muted);" }, [
-              "Demo mod: Puter.js txt2vid bağlı değil. Puter aktifse gerçek video burada oynatılır."
-            ]));
-          }
+        const openBtn = $("#openVideoPageBtn");
+        if(openBtn){
+          openBtn.onclick = () => {
+            window.location.href = "/video.html";
+          };
         }
       }, 0);
 
       return card;
     }
+
 
     function renderImagePage(){
       const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
@@ -2863,7 +2826,14 @@ def merhaba_dünya():
       });
 
       // Tabs
-      $$(".tab").forEach(b => b.onclick = ()=> setRoute(b.dataset.route));
+      $$(".tab").forEach(b => b.onclick = ()=> {
+        if(b.dataset.route === "video"){
+          // Kullanıcı tıklamasında video.html açılışına öncelik ver.
+          window.location.href = "/video.html";
+          return;
+        }
+        setRoute(b.dataset.route);
+      });
 
       // Route change
       window.addEventListener("hashchange", () => renderRoute());

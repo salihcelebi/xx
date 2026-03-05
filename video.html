@@ -1,96 +1,384 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Video • TXT→Video Job Paneli</title>
-  <script src="https://js.puter.com/v2/"></script>
-  <style>
-    :root{--bg:#0b1220;--surface:#0f172a;--text:#e5e7eb;--muted:#9ca3af;--border:#1f2a44;--accent:#60a5fa;--ok:#22c55e;--danger:#ef4444}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}.grid{display:grid;grid-template-columns:1fr 360px;gap:12px}.card{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:12px}
-    @media (max-width:950px){.grid{grid-template-columns:1fr}}
-    textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0a1427;color:var(--text)}
-    .row{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--border);background:#1d2f57;color:var(--text);padding:9px 10px;border-radius:12px;cursor:pointer}
-    .btn.primary{background:#22447f}.btn.danger{background:#5b2230}.bar{height:10px;border:1px solid var(--border);border-radius:99px;overflow:hidden}.bar>div{height:100%;width:0;background:var(--accent)}
-    .muted{font-size:12px;color:var(--muted)} .gallery{display:grid;gap:8px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Üretici - Puter AI</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .model-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .btn-generate {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn-generate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            display: block;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .video-result {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .video-result.show {
+            display: block;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .example-btn {
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95em;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="grid">
-    <section class="card">
-      <h2>Video Job Akışı</h2>
-      <textarea id="prompt" placeholder="Video prompt"></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="btn primary" id="createBtn">Üret</button>
-        <button class="btn danger" id="cancelBtn" disabled>İptal</button>
-        <button class="btn" id="retryBtn" disabled>Tekrar Dene</button>
-      </div>
-      <div style="margin-top:10px" id="jobBox">
-        <div class="row"><b id="status">IDLE</b><span id="progressText">0%</span></div>
-        <div class="bar"><div id="bar"></div></div>
-        <div class="muted" id="meta">—</div>
-      </div>
-      <div style="margin-top:10px" id="result"></div>
-    </section>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Video Üretici</h1>
+            <p>Yapay zeka ile profesyonel videolar oluşturun</p>
+        </div>
 
-    <aside class="card">
-      <h3>Ayarlar</h3>
-      <label class="muted">Model</label>
-      <select id="modelSelect"></select>
-      <label class="muted">Süre</label>
-      <select id="seconds"><option value="4">4</option><option value="8">8</option><option value="12">12</option></select>
-      <h3>Galeri</h3>
-      <div class="gallery" id="gallery"></div>
-    </aside>
-  </div>
-</div>
+        <div class="card">
+            <div class="form-group">
+                <label for="prompt">Video Açıklaması</label>
+                <textarea 
+                    id="prompt" 
+                    placeholder="Örnek: İstanbul'da gün batımında Boğaz köprüsü, sinematik çekim, 4K kalite, drone görüntüsü"
+                ></textarea>
+            </div>
 
-<script>
-(function(){
-  const FALLBACK=["openai/sora-2","openai/sora-2-pro","together/ltx-video","openrouter/video","google/video-model","anthropic/video","together/vid-gen"];
-  const els={
-    prompt:document.getElementById('prompt'),createBtn:document.getElementById('createBtn'),cancelBtn:document.getElementById('cancelBtn'),retryBtn:document.getElementById('retryBtn'),
-    status:document.getElementById('status'),progressText:document.getElementById('progressText'),bar:document.getElementById('bar'),meta:document.getElementById('meta'),result:document.getElementById('result'),
-    modelSelect:document.getElementById('modelSelect'),seconds:document.getElementById('seconds'),gallery:document.getElementById('gallery')
-  };
-  let timer=null, aborter=null, lastPayload=null;
+            <div class="form-group">
+                <label for="model">Model Seçin</label>
+                <select id="model">
+                    <option value="sora-2">Sora 2 (Hızlı - 4 saniye)</option>
+                    <option value="sora-2-pro">Sora 2 Pro (Kaliteli - 8 saniye)</option>
+                </select>
+                <div class="model-info" id="modelInfo">
+                    Sora 2: Hızlı üretim, 4 saniyelik videolar, 720p kalite
+                </div>
+            </div>
 
-  const clamp=(n)=>Math.max(0,Math.min(100,Number(n||0)));
-  const setStatus=(s,p)=>{ const v=clamp(p); els.status.textContent=s; els.progressText.textContent=v+'%'; els.bar.style.width=v+'%'; };
-  function fillModels(arr){ els.modelSelect.innerHTML=''; arr.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;els.modelSelect.appendChild(o);}); }
-  async function listModels(){
-    try{ if(window.puter?.ai?.listModels){ const r=await window.puter.ai.listModels(); const a=Array.isArray(r)?r:(Array.isArray(r?.models)?r.models:[]); const ids=a.map(x=>x?.id||x?.model||x?.name||x).filter(Boolean).map(String); return ids.filter(x=>/sora|video|txt2vid|t2v/i.test(x)).slice(0,20);} }catch(_){ }
-    return FALLBACK;
-  }
-  function addGallery(url, model){
-    const box=document.createElement('div'); box.className='card'; box.style.padding='8px';
-    box.innerHTML=`<video src="${url}" controls style="width:100%"></video><div class="muted">${model}</div>`;
-    els.gallery.prepend(box);
-  }
-  async function run(payload){
-    lastPayload=payload; aborter=new AbortController();
-    setStatus('RUNNING',2); els.meta.textContent=`Model: ${payload.model}`; els.cancelBtn.disabled=false; els.retryBtn.disabled=true; els.result.innerHTML='';
-    let p=2; timer=setInterval(()=>{p=clamp(p+Math.random()*10); if(p>92)p=92; setStatus('RUNNING',p);},900);
-    try{
-      const vid=await window.puter.ai.txt2vid(payload.prompt,{model:payload.model,seconds:Number(payload.seconds),testMode:true,signal:aborter.signal});
-      clearInterval(timer); timer=null; setStatus('SUCCEEDED',100); els.cancelBtn.disabled=true; els.retryBtn.disabled=true;
-      const v = vid instanceof HTMLVideoElement ? vid : Object.assign(document.createElement('video'),{src:(typeof vid==='string'?vid:(vid?.src||vid?.url||''))});
-      v.controls=true; v.style.width='100%';
-      els.result.innerHTML=''; els.result.appendChild(v);
-      const url=v.currentSrc||v.src||''; if(url) addGallery(url,payload.model);
-    }catch(e){
-      clearInterval(timer); timer=null; setStatus(aborter?.signal?.aborted?'CANCELLED':'FAILED',0); els.cancelBtn.disabled=true; els.retryBtn.disabled=false; els.meta.textContent='Hata: '+(e?.message||e);
-    }
-  }
+            <div class="form-group">
+                <label>Örnek Promptlar</label>
+                <div class="examples">
+                    <button class="example-btn" onclick="setPrompt('İstanbul Boğazı\'nda gün batımı, sinematik çekim, drone görüntüsü')">🌅 Boğaz Manzarası</button>
+                    <button class="example-btn" onclick="setPrompt('Uzayda yavaşça dönen dünya, yıldızlar parlıyor, 4K kalite')">🌍 Uzay Görüntüsü</button>
+                    <button class="example-btn" onclick="setPrompt('Orman içinde akan berrak bir dere, kuş sesleri, doğa')">🌲 Doğa Manzarası</button>
+                    <button class="example-btn" onclick="setPrompt('Şehir trafiği time-lapse, gece ışıkları, hızlı çekim')">🌃 Şehir Işıkları</button>
+                </div>
+            </div>
 
-  els.createBtn.onclick=()=>{ const prompt=els.prompt.value.trim(); if(!prompt) return; run({prompt,model:els.modelSelect.value,seconds:els.seconds.value}); };
-  els.cancelBtn.onclick=()=>{ aborter?.abort(); };
-  els.retryBtn.onclick=()=>{ if(lastPayload) run(lastPayload); };
+            <button class="btn-generate" id="generateBtn" onclick="generateVideo()">
+                🎥 Video Oluştur
+            </button>
 
-  listModels().then(fillModels);
-})();
-</script>
+            <div class="spinner" id="spinner"></div>
+            
+            <div class="status" id="status"></div>
+
+            <div class="video-result" id="videoResult">
+                <h3 style="margin-bottom: 15px; color: #333;">✨ Videonuz Hazır!</h3>
+                <video id="videoPlayer" controls></video>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by Puter.js AI • Sora Video Models</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('model').addEventListener('change', function() {
+            const modelInfo = document.getElementById('modelInfo');
+            const model = this.value;
+            
+            if (model === 'sora-2') {
+                modelInfo.textContent = 'Sora 2: Hızlı üretim, 4 saniyelik videolar, 720p kalite';
+            } else if (model === 'sora-2-pro') {
+                modelInfo.textContent = 'Sora 2 Pro: Yüksek kalite, 8 saniyelik videolar, 1080p kalite';
+            }
+        });
+
+        function setPrompt(text) {
+            document.getElementById('prompt').value = text;
+        }
+
+        async function generateVideo() {
+            const prompt = document.getElementById('prompt').value.trim();
+            const model = document.getElementById('model').value;
+            const generateBtn = document.getElementById('generateBtn');
+            const spinner = document.getElementById('spinner');
+            const videoResult = document.getElementById('videoResult');
+            const videoPlayer = document.getElementById('videoPlayer');
+
+            if (!prompt) {
+                showStatus('error', '❌ Lütfen bir video açıklaması girin!');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Video Oluşturuluyor...';
+            spinner.classList.add('show');
+            videoResult.classList.remove('show');
+            showStatus('loading', '🎬 Video üretiliyor... Bu işlem 30-60 saniye sürebilir.');
+
+            try {
+                console.log('Video üretimi başlatılıyor:', { prompt, model });
+
+                const options = {
+                    model: model,
+                    seconds: model === 'sora-2-pro' ? 8 : 4
+                };
+
+                const video = await puter.ai.txt2vid(prompt, options);
+                
+                console.log('Video üretildi:', video);
+
+                let videoUrl;
+                if (typeof video === 'string') {
+                    videoUrl = video;
+                } else if (video.src) {
+                    videoUrl = video.src;
+                } else if (video.url) {
+                    videoUrl = video.url;
+                } else if (video instanceof HTMLVideoElement) {
+                    videoUrl = video.src;
+                } else {
+                    throw new Error('Video URL alınamadı');
+                }
+
+                videoPlayer.src = videoUrl;
+                videoResult.classList.add('show');
+                showStatus('success', '✅ Video başarıyla oluşturuldu!');
+
+                setTimeout(() => {
+                    videoPlayer.play().catch(e => console.log('Otomatik oynatma engellendi:', e));
+                }, 500);
+
+            } catch (error) {
+                console.error('Video üretim hatası:', error);
+                showStatus('error', '❌ Video oluşturulamadı: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🎥 Video Oluştur';
+                spinner.classList.remove('show');
+            }
+        }
+
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = message;
+        }
+
+        document.getElementById('prompt').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                generateVideo();
+            }
+        });
+
+        console.log('Video üretici hazır! Puter.js yüklendi:', typeof puter !== 'undefined');
+    </script>
 </body>
 </html>
