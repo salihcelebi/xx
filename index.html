@@ -837,7 +837,7 @@
             <option value="">Model Seç</option>
           </select>
 
-          <button class="iconbtn" id="toolsBtn" aria-label="Araçlar menüsü">GPT Tools ▾</button>
+          <button class="iconbtn" id="toolsBtn" aria-label="Araçlar menüsü">AI Tools ▾</button>
 
           <button class="toggle" id="tempChatToggle" aria-pressed="false" aria-label="Geçici Sohbet">
             <span class="switch" aria-hidden="true"></span>
@@ -923,46 +923,8 @@ def merhaba_dünya():
           <div style="font-weight:800;">Araçlar aktifleştirildi.</div>
           <button class="iconbtn" id="closeToolsBtn" aria-label="Kapat">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="card">
-            <h3>Kullanılabilir Araçlar:</h3>
-            <div class="field">
-              <label><input type="checkbox" data-tool="web" /> Web Araması</label>
-              <label><input type="checkbox" data-tool="files" /> Dosya/Knowledge Araması</label>
-              <label><input type="checkbox" data-tool="image" /> Görsel Üretimi</label>
-              <label><input type="checkbox" data-tool="video" /> Video Üretimi</label>
-              <label><input type="checkbox" data-tool="tts" /> Ses Üretimi</label>
-              <label><input type="checkbox" data-tool="dubbing" /> Dublaj</label>
-              <label><input type="checkbox" data-tool="coding" /> Kodlama</label>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Durum</h3>
-            <div style="color:var(--muted); font-size:13px; line-height:1.45;">
-              İhtiyacınız olan fonksiyonları seçebilirsiniz.<br />
-              Seçimler sohbet bazında kaydedilir.
-            </div>
-
-            <div class="field">
-              <label>Hızlı Model Seçim (5’li)</label>
-              <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                <button class="pill" data-featured="mistralai/mistral-small-3.2-24b-instruct">Mistral Small</button>
-                <button class="pill" data-featured="google/gemma-2-27b-it">Gemma 2</button>
-                <button class="pill" data-featured="openai/gpt-5.1">GPT-5.1</button>
-                <button class="pill" data-featured="x-ai/grok-4">Grok-4</button>
-                <button class="pill" data-featured="openai/gpt-5.2-pro">GPT-5.2 Pro</button>
-              </div>
-            </div>
-
-            <div class="field">
-              <label>Hafıza</label>
-              <button class="toggle" id="memoryToggle" aria-pressed="false" aria-label="Hafıza Açık/Kapalı" style="width:fit-content;">
-                <span class="switch" aria-hidden="true"></span>
-                <span id="memoryToggleText">Hafıza Kapalı</span>
-              </button>
-            </div>
-          </div>
+        <div class="modal-body" id="aiToolsPanelMount">
+          <div class="card"><div style="color:var(--muted)">AI Tools yükleniyor…</div></div>
         </div>
 
         <div class="modal-foot">
@@ -1869,335 +1831,203 @@ def merhaba_dünya():
       $$(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.route === r ? "page" : "false"));
     }
 
-    function renderRoute(){
+    async function renderRoute(){
       const outlet = $("#routeOutlet");
       const r = getRoute();
       state.activeRoute = r;
 
-      // Composer sadece chat rotasında görünür
       $("#composer").style.display = (r === "chat") ? "flex" : "none";
       restoreDraftByRoute(r);
 
-      // Coding: Canvas panel aç
       state.ui.canvasOpen = shouldShowCanvas();
       $("#canvasPanel").classList.toggle("hidden", !state.ui.canvasOpen);
 
-      // Route içerikleri
       outlet.innerHTML = "";
-      if(r === "chat") outlet.appendChild(renderChatPage());
-      else if(r === "video") outlet.appendChild(renderVideoPage());
-      else if(r === "gorsel") outlet.appendChild(renderImagePage());
-      else if(r === "ses") outlet.appendChild(renderTtsPage());
-      else if(r === "dublaj") outlet.appendChild(renderDubbingPage());
-      else if(r === "kodlama") outlet.appendChild(renderCodingPage());
-      else if(r === "projects") outlet.appendChild(renderProjectsPage());
+      if(["chat","video","gorsel","ses","dublaj","kodlama"].includes(r)){
+        await renderTabFromFile(r);
+        setupRouteAfterLoad(r);
+      } else if(r === "projects"){
+        outlet.appendChild(renderProjectsPage());
+      }
 
       renderTabs();
       refreshModelPicker();
-
       persist();
     }
 
     /* ----------------------------- Pages ----------------------------- */
-    function renderChatPage(){
-      const wrap = el("div", { style:"display:flex; flex-direction:column; min-height:0; flex:1;" });
+    const TAB_HTML_BY_ROUTE = {
+      chat: "/tabs/chat.html",
+      video: "/tabs/video.html",
+      gorsel: "/tabs/gorsel.html",
+      ses: "/tabs/ses.html",
+      dublaj: "/tabs/dublaj.html",
+      kodlama: "/tabs/model-sec.html"
+    };
 
-      const view = el("div", { class:"chatview", id:"chatView", "aria-label":"Sohbet akışı" });
-      wrap.appendChild(view);
+    const tabHtmlCache = new Map();
 
+    async function fetchHtmlPartial(path){
+      if(tabHtmlCache.has(path)) return tabHtmlCache.get(path);
+      const res = await fetch(path, { cache: "no-cache" });
+      if(!res.ok) throw new Error(`HTML yüklenemedi: ${path}`);
+      const html = await res.text();
+      tabHtmlCache.set(path, html);
+      return html;
+    }
+
+    async function renderTabFromFile(route){
+      const outlet = $("#routeOutlet");
+      const path = TAB_HTML_BY_ROUTE[route];
+      if(!path || !outlet) return;
+      try{
+        outlet.innerHTML = await fetchHtmlPartial(path);
+      }catch(err){
+        outlet.innerHTML = '<div class="card" style="margin:16px;"><h3>Yükleme Hatası</h3><div style="color:var(--muted)">Sekme içeriği yüklenemedi.</div></div>';
+        console.error(err);
+      }
+    }
+
+    async function loadAiToolsPanel(){
+      const mount = $("#aiToolsPanelMount");
+      if(!mount) return;
+      try{
+        mount.innerHTML = await fetchHtmlPartial('/panel/ai-tools.html');
+      }catch(err){
+        mount.innerHTML = '<div class="card"><div style="color:var(--muted)">AI Tools paneli yüklenemedi.</div></div>';
+      }
+    }
+
+    function setupChatTab(){
       renderMessages();
-
-      return wrap;
     }
 
-    function renderVideoPage(){
-      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
-        el("div", { class:"card" }, [
-          el("h3", { html:"Video Üretimi" }),
-          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55; margin-bottom:10px;" }, [
-            "video.html içeriği index içine gömülü çalışır; kullanıcı tıklamasında öncelik video.html sayfasına verilir."
-          ]),
-          el("div", { style:"display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;" }, [
-            el("button", { class:"primary", id:"openVideoPageBtn", style:"width:fit-content;" }, ["Video Sayfasını Aç"]),
-            el("span", { class:"badge" }, ["Sora 2 / Sora 2 Pro filtreleri video.html ile birebir"]) 
-          ]),
-          el("iframe", {
-            id:"videoEmbedFrame",
-            src:"/video.html",
-            title:"Video Üretici",
-            style:"width:100%; min-height:900px; border:1px solid var(--border); border-radius:14px; background:#fff;"
-          })
-        ])
-      ]);
-
-      setTimeout(() => {
-        const openBtn = $("#openVideoPageBtn");
-        if(openBtn){
-          openBtn.onclick = () => {
-            window.location.href = "/video.html";
-          };
-        }
-      }, 0);
-
-      return card;
+    function setupVideoTab(){
+      const openBtn = $("#openVideoPageBtn");
+      if(openBtn){
+        openBtn.onclick = () => { window.location.href = "/video.html"; };
+      }
     }
 
-
-    function renderImagePage(){
-      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
-        el("div", { class:"card" }, [
-          el("h3", { html:"Görsel Üretimi" }),
-          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
-            "Prompt yaz ve “Oluştur”a bas. (Demo: gerçek txt2img çağrısı bağlanabilir.)"
-          ]),
-          el("div", { class:"field" }, [
-            el("label", {}, ["Prompt"]),
-            el("input", { id:"imgPrompt", placeholder:"Örn: Minimal ikon seti, düz renkler…" })
-          ]),
-          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
-            el("button", { class:"primary", id:"imgGenBtn", style:"width:fit-content;" }, ["Oluştur"]),
-            el("button", { class:"ghost", id:"imgReBtn" }, ["Yeniden üret"]),
-            el("span", { class:"badge", id:"imgStatus" }, ["Hazır"])
-          ]),
-          el("div", { id:"imgGrid", style:"margin-top:10px; display:grid; grid-template-columns:repeat(2,1fr); gap:10px;" })
-        ])
-      ]);
-
-      setTimeout(() => {
-        const gen = async () => {
-          const prompt = ($("#imgPrompt")?.value || "").trim();
-          if(!prompt){ toast("error","Prompt boş olamaz."); return; }
-          try{
-            $("#imgStatus").textContent = "Oluşturuluyor…";
-            setStatus("Görsel üretiliyor…");
-
-            if(window.puter?.ai?.txt2img){
-              const res = await window.puter.ai.txt2img(prompt, { model: state.model || undefined });
-              // Puter çıktısı HTMLImageElement olabilir; url da olabilir.
-              addImage(res);
-            }else{
-              await new Promise(r => setTimeout(r, 900));
-              addImage(null);
-            }
-
-            $("#imgStatus").textContent = "Tamam";
-            clearStatus();
-          }catch(e){
-            clearStatus();
-            $("#imgStatus").textContent = "Hata";
-            toast("error","Görsel üretimi başarısız.");
-          }
-        };
-
-        $("#imgGenBtn").onclick = gen;
-        $("#imgReBtn").onclick = gen;
-
-        function addImage(res){
-          const grid = $("#imgGrid");
-          const wrap = el("div", { class:"card", style:"padding:10px;" });
-          const img = document.createElement("img");
-          img.style.width = "100%";
-          img.style.borderRadius = "14px";
-          img.style.border = "1px solid var(--border)";
-          img.alt = "Üretilen görsel";
-
-          const src = (res && typeof res === "object" && "src" in res) ? res.src
-                    : (typeof res === "string" ? res : null);
-
-          if(src){
-            img.src = src;
+    function setupImageTab(){
+      const btn = $("#imgBtn");
+      if(!btn) return;
+      btn.onclick = async () => {
+        const prompt = $("#imgPrompt")?.value?.trim();
+        const size = $("#imgSize")?.value || "1024x1024";
+        if(!prompt){ toast("error","Prompt giriniz."); return; }
+        try{
+          $("#imgStatus").textContent = "Üretiliyor…";
+          setStatus("Görsel üretiliyor…");
+          let imageSrc = null;
+          if(window.puter?.ai?.txt2img){
+            const res = await window.puter.ai.txt2img(prompt, { size, model: state.model || undefined });
+            imageSrc = (res?.src || res?.url || res);
           }else{
-            img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
-              `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500">
-                <rect width="100%" height="100%" fill="#e5e7eb"/>
-                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#6b7280" font-family="Arial" font-size="22">
-                  Demo görsel (Puter bağlı değil)
-                </text>
-              </svg>`
-            );
+            await new Promise(r => setTimeout(r, 900));
           }
-
-          wrap.appendChild(img);
-          wrap.appendChild(el("div", { style:"display:flex; gap:8px; margin-top:8px; justify-content:flex-end;" }, [
-            el("button", { class:"ghost", onclick: ()=> openZoom(img.src) }, ["Büyüt"])
-          ]));
-          grid.prepend(wrap);
+          const out = $("#imgOut");
+          out.innerHTML = "";
+          if(imageSrc){
+            const img = el("img", { src:imageSrc, alt:"Üretilen görsel", style:"max-width:100%; border-radius:12px; border:1px solid var(--border);" });
+            out.appendChild(img);
+          }else{
+            out.appendChild(el("div", { style:"color:var(--muted);" }, ["Demo mod: Puter.js txt2img bağlı değil."]));
+          }
+          $("#imgStatus").textContent = "Tamam";
+          clearStatus();
+        }catch(_){
+          clearStatus();
+          $("#imgStatus").textContent = "Hata";
+          toast("error","Görsel üretimi başarısız.");
         }
+      };
+    }
 
-        function openZoom(src){
-          const bd = $("#settingsBackdrop"); // basit reuse: ayarlar modalını zoom olarak kullanma (demo)
-          const modal = bd.querySelector(".modal");
-          $("#settingsTitle").textContent = "Görsel Önizleme";
-          modal.querySelector(".modal-body").innerHTML =
-            `<div class="card" style="grid-column:1 / -1;">
-              <img src="${escapeHTML(src)}" alt="Önizleme" style="width:100%; border-radius:14px; border:1px solid var(--border);" />
-            </div>`;
-          bd.classList.add("open");
+    function setupTtsTab(){
+      const btn = $("#ttsBtn");
+      if(!btn) return;
+      btn.onclick = async () => {
+        const text = $("#ttsText")?.value?.trim();
+        const voice = $("#ttsVoice")?.value || "female-1";
+        if(!text){ toast("error","Metin giriniz."); return; }
+        try{
+          $("#ttsStatus").textContent = "Üretiliyor…";
+          setStatus("Ses üretiliyor…");
+          let audioSrc = null;
+          if(window.puter?.ai?.txt2speech){
+            const res = await window.puter.ai.txt2speech(text, { voice, model: state.model || undefined });
+            audioSrc = (res?.src || res?.url || res);
+          }else{
+            await new Promise(r => setTimeout(r, 900));
+          }
+          const out = $("#ttsOut");
+          out.innerHTML = "";
+          if(audioSrc){
+            const a = el("audio", { controls:"true", style:"width:100%;" });
+            a.src = audioSrc;
+            out.appendChild(a);
+          }else{
+            out.appendChild(el("div", { style:"color:var(--muted);" }, ["Demo mod: Puter.js txt2speech bağlı değil."]));
+          }
+          $("#ttsStatus").textContent = "Tamam";
+          clearStatus();
+        }catch(_){
+          clearStatus();
+          $("#ttsStatus").textContent = "Hata";
+          toast("error","Ses üretimi başarısız.");
         }
-      }, 0);
-
-      return card;
+      };
     }
 
-    function renderTtsPage(){
-      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
-        el("div", { class:"card" }, [
-          el("h3", { html:"Ses Üretimi" }),
-          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
-            "Metni yaz ve “Oluştur”a bas. Dil varsayılan: Türkçe (TR)."
-          ]),
-          el("div", { class:"field" }, [
-            el("label", {}, ["Metin"]),
-            el("input", { id:"ttsText", placeholder:"Örn: Merhaba! Bugün sana kısa bir özet vereceğim…" })
-          ]),
-          el("div", { class:"field" }, [
-            el("label", {}, ["Dil"]),
-            el("select", { id:"ttsLang" }, [
-              el("option", { value:"tr-TR", selected:"true" }, ["Türkçe (TR)"]),
-              el("option", { value:"en-US" }, ["İngilizce (EN)"])
-            ])
-          ]),
-          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
-            el("button", { class:"primary", id:"ttsBtn", style:"width:fit-content;" }, ["Oluştur"]),
-            el("span", { class:"badge", id:"ttsStatus" }, ["Hazır"])
-          ]),
-          el("div", { id:"ttsOut", style:"margin-top:10px;" })
-        ])
-      ]);
-
-      setTimeout(() => {
-        $("#ttsBtn").onclick = async () => {
-          const text = ($("#ttsText")?.value || "").trim();
-          const lang = ($("#ttsLang")?.value || "tr-TR");
-          if(!text){ toast("error","Metin boş olamaz."); return; }
-
-          try{
-            $("#ttsStatus").textContent = "Üretiliyor…";
-            setStatus("Ses üretiliyor…");
-
-            let audioSrc = null;
-            if(window.puter?.ai?.txt2speech){
-              const res = await window.puter.ai.txt2speech(text, { language: lang, model: state.model || undefined });
-              audioSrc = (res?.src || res?.url || res);
-            }else{
-              await new Promise(r => setTimeout(r, 800));
-            }
-
-            const out = $("#ttsOut");
-            out.innerHTML = "";
-            out.appendChild(el("div", { style:"font-weight:800; margin-bottom:8px;" }, ["Çıktı"]));
-            if(audioSrc){
-              const a = el("audio", { controls:"true", style:"width:100%;" });
-              a.src = audioSrc;
-              out.appendChild(a);
-            }else{
-              out.appendChild(el("div", { style:"color:var(--muted);" }, [
-                "Demo mod: Puter.js txt2speech bağlı değil. Puter aktifse audio player burada görünür."
-              ]));
-            }
-
-            $("#ttsStatus").textContent = "Tamam";
-            clearStatus();
-          }catch(e){
-            clearStatus();
-            $("#ttsStatus").textContent = "Hata";
-            toast("error","Ses üretimi başarısız.");
+    function setupDubbingTab(){
+      const btn = $("#dubBtn");
+      if(!btn) return;
+      btn.onclick = async () => {
+        const file = $("#dubFile")?.files?.[0];
+        const voice = $("#dubVoice")?.value || "varsayilan";
+        if(!file){ toast("error","Ses dosyası seç."); return; }
+        try{
+          $("#dubStatus").textContent = "Dönüştürülüyor…";
+          setStatus("Dublaj yapılıyor…");
+          let audioSrc = null;
+          if(window.puter?.ai?.speech2speech){
+            const res = await window.puter.ai.speech2speech(file, { voice, model: state.model || undefined });
+            audioSrc = (res?.src || res?.url || res);
+          }else{
+            await new Promise(r => setTimeout(r, 900));
           }
-        };
-      }, 0);
-
-      return card;
-    }
-
-    function renderDubbingPage(){
-      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
-        el("div", { class:"card" }, [
-          el("h3", { html:"Dublaj" }),
-          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
-            "Ses dosyası yükle ve “Dönüştür”e bas. (Demo: speech2speech bağlanabilir.)"
-          ]),
-          el("div", { class:"field" }, [
-            el("label", {}, ["Ses dosyası"]),
-            el("input", { id:"dubFile", type:"file", accept:".mp3,.wav" })
-          ]),
-          el("div", { class:"field" }, [
-            el("label", {}, ["Hedef ses"]),
-            el("select", { id:"dubVoice" }, [
-              el("option", { value:"varsayilan" }, ["Varsayılan"]),
-              el("option", { value:"daha-resmi" }, ["Daha Resmi"]),
-              el("option", { value:"daha-enerjik" }, ["Daha Enerjik"])
-            ])
-          ]),
-          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
-            el("button", { class:"primary", id:"dubBtn", style:"width:fit-content;" }, ["Dönüştür"]),
-            el("span", { class:"badge", id:"dubStatus" }, ["Hazır"])
-          ]),
-          el("div", { id:"dubOut", style:"margin-top:10px;" })
-        ])
-      ]);
-
-      setTimeout(() => {
-        $("#dubBtn").onclick = async () => {
-          const file = $("#dubFile")?.files?.[0];
-          const voice = $("#dubVoice")?.value || "varsayilan";
-          if(!file){ toast("error","Ses dosyası seç."); return; }
-
-          try{
-            $("#dubStatus").textContent = "Dönüştürülüyor…";
-            setStatus("Dublaj yapılıyor…");
-
-            let audioSrc = null;
-            if(window.puter?.ai?.speech2speech){
-              const res = await window.puter.ai.speech2speech(file, { voice, model: state.model || undefined });
-              audioSrc = (res?.src || res?.url || res);
-            }else{
-              await new Promise(r => setTimeout(r, 900));
-            }
-
-            const out = $("#dubOut");
-            out.innerHTML = "";
-            out.appendChild(el("div", { style:"font-weight:800; margin-bottom:8px;" }, ["Çıktı"]));
-            if(audioSrc){
-              const a = el("audio", { controls:"true", style:"width:100%;" });
-              a.src = audioSrc;
-              out.appendChild(a);
-              out.appendChild(el("div", { style:"margin-top:8px; display:flex; justify-content:flex-end;" }, [
-                el("button", { class:"ghost", onclick: async()=>{ await navigator.clipboard.writeText(audioSrc); toast("ok","Link kopyalandı."); } }, ["Kopyala link"])
-              ]));
-            }else{
-              out.appendChild(el("div", { style:"color:var(--muted);" }, [
-                "Demo mod: Puter.js speech2speech bağlı değil. Puter aktifse audio player burada görünür."
-              ]));
-            }
-
-            $("#dubStatus").textContent = "Tamam";
-            clearStatus();
-          }catch(e){
-            clearStatus();
-            $("#dubStatus").textContent = "Hata";
-            toast("error","Dublaj başarısız.");
+          const out = $("#dubOut");
+          out.innerHTML = "";
+          if(audioSrc){
+            const a = el("audio", { controls:"true", style:"width:100%;" });
+            a.src = audioSrc;
+            out.appendChild(a);
+          }else{
+            out.appendChild(el("div", { style:"color:var(--muted);" }, ["Demo mod: Puter.js speech2speech bağlı değil."]));
           }
-        };
-      }, 0);
-
-      return card;
+          $("#dubStatus").textContent = "Tamam";
+          clearStatus();
+        }catch(_){
+          clearStatus();
+          $("#dubStatus").textContent = "Hata";
+          toast("error","Dublaj başarısız.");
+        }
+      };
     }
 
-    function renderCodingPage(){
-      const card = el("div", { style:"padding:16px; display:flex; flex-direction:column; gap:12px;" }, [
-        el("div", { class:"card" }, [
-          el("h3", { html:"Kodlama" }),
-          el("div", { style:"color:var(--muted); font-size:13px; line-height:1.55;" }, [
-            "Kodlama açıkken sağdaki “Kod Düzenleyici” paneli otomatik açılır. Chat içinde kod blokları özel stillenir."
-          ]),
-          el("div", { style:"display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;" }, [
-            el("span", { class:"badge" }, ["Canvas Panel Açık"]),
-            el("button", { class:"ghost", onclick: ()=> { setRoute("chat"); } }, ["Chat’e dön"])
-          ])
-        ])
-      ]);
+    function setupModelSecTab(){
+      const backBtn = $("#codingBackToChatBtn");
+      if(backBtn) backBtn.onclick = () => setRoute("chat");
+    }
 
-      return card;
+    function setupRouteAfterLoad(route){
+      if(route === "chat") setupChatTab();
+      else if(route === "video") setupVideoTab();
+      else if(route === "gorsel") setupImageTab();
+      else if(route === "ses") setupTtsTab();
+      else if(route === "dublaj") setupDubbingTab();
+      else if(route === "kodlama") setupModelSecTab();
     }
 
     function renderProjectsPage(){
@@ -3110,6 +2940,7 @@ def merhaba_dünya():
 
       await loadShellFragment("globalHeaderMount", "/header.html");
       await loadShellFragment("globalFooterMount", "/footer.html");
+      await loadAiToolsPanel();
       wireShellAdminActions();
 
       bindEvents();

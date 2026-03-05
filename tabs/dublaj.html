@@ -1,0 +1,23 @@
+<div id="tab-dublaj-root" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+  <div class="card">
+    <h3>Dublaj</h3>
+    <div style="color:var(--muted); font-size:13px; line-height:1.55;">Ses dosyası yükle ve “Dönüştür”e bas.</div>
+    <div class="field">
+      <label>Ses dosyası</label>
+      <input id="dubFile" type="file" accept=".mp3,.wav" />
+    </div>
+    <div class="field">
+      <label>Hedef ses</label>
+      <select id="dubVoice">
+        <option value="varsayilan">Varsayılan</option>
+        <option value="daha-resmi">Daha Resmi</option>
+        <option value="daha-enerjik">Daha Enerjik</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      <button class="primary" id="dubBtn" style="width:fit-content;">Dönüştür</button>
+      <span class="badge" id="dubStatus">Hazır</span>
+    </div>
+    <div id="dubOut" style="margin-top:10px;"></div>
+  </div>
+</div>
