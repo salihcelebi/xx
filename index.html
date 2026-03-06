@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <!-- INDEX-1 MAIN: INDEX.HTML TAM SAYFA UYGULAMA KABUĞU, HEADER, ANA SAHNE, CEREZ VE DİĞER BİLEŞENLER İÇİN ANA ÇATI OLARAK KODLANDI. -->
+  <!-- INDEX-2 MAIN: INDEX.HTML ANA GİRİŞ, YÖNLENDİRME VE ETKİLEŞİM MERKEZİ OLARAK KURGULANDI. -->
+  <!-- INDEX-4 MAIN: CHATGPT WEB’E YAKIN, NÖTR, KOYU, MODERN VE PREMIUM GÖRSEL DİL SEO VE HIZ GÖZETİLEREK KODLANDI. -->
+  <!-- INDEX-11 MAIN: TÜM GÖRÜNEN METİNLER TÜRKÇE VE KULLANICI DOSTU DİLLE KURGULANDI. -->
+  <!-- INDEX-13 MAIN: ETKİLEŞİMLER HAFİF, TEPKİSEL VE HIZLI KALACAK ŞEKİLDE TASARLANDI. -->
+  <!-- INDEX-14 MAIN: SAYFA, HEADER.HTML + MODELCATALOG.JS + MODEL_FIYAT.JS + ALT HTML DOSYALARIYLA UYUMLU ANA REFERANS KABUKTUR. -->
+
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- INDEX-1 ALT-2: TAM SAYFA YÜKSEKLİĞİ, ÜSTTE HEADER, ORTADA SCROLL EDİLEBİLEN GÖVDE YAPISI İÇİN TEMEL META AYARI. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO / PERFORMANS -->
+  <!-- INDEX-14 ALT-2: CHATGPT WEB’E YAKIN GÖRÜNÜM + TÜRKÇE ARAYÜZ + HEADER YÖNETİMİ + GENİŞLETİLEBİLİR DOSYA YAPISI İÇİN SEO VE HIZ TEMELLERİ KURULDU. -->
+  <title>ANASAYFA | YAPAY ZEKA CHAT, VİDEO, SES, GÖRSEL VE MÜZİK ARAÇLARI</title>
+  <meta name="description" content="Chat, video, ses, görsel ve müzik üretimini tek yerden yöneten hızlı, modern ve SEO uyumlu yapay zeka anasayfası." />
+  <meta name="keywords" content="yapay zeka, chat, metinden video, sesten metne, metni seslendirme, görsel oluşturma, müzik üretme, anasayfa" />
+  <meta name="author" content="Salih Celebi" />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="canonical" href="https://example.com/app/index.html" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="tr_TR" />
+  <meta property="og:title" content="ANASAYFA | YAPAY ZEKA CHAT, VİDEO, SES, GÖRSEL VE MÜZİK ARAÇLARI" />
+  <meta property="og:description" content="Chat, video, ses, görsel ve müzik üretimini tek yerden yöneten hızlı ve modern yapay zeka platformu." />
+  <meta property="og:url" content="https://example.com/app/index.html" />
+  <meta property="og:site_name" content="Yapay Zeka Paneli" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ANASAYFA | YAPAY ZEKA PANELİ" />
+  <meta name="twitter:description" content="Chat, video, ses, görsel ve müzik araçlarını tek yerden yönet." />
+
+  <!-- INDEX-10 MAIN: PATH VE DOSYA ORGANİZASYONU NET OLSUN DİYE PRELOAD/PREFETCH STRATEJİSİ KURGULANDI. -->
+  <!-- INDEX-10 ALT-1: HEADER / SERVICE YOLLARININ TUTARLI KULLANIMI İÇİN DOSYA ORGANİZASYONU REFERANSI SAĞLANDI. -->
+  <link rel="prefetch" href="./header.html" as="fetch" crossorigin="anonymous" />
+  <link rel="prefetch" href="./cerez.html" as="fetch" crossorigin="anonymous" />
+
+  <!-- INDEX-4 MAIN + INDEX-13 MAIN: HIZLI AÇILIŞ, AZ BAĞIMLILIK, HAFİF CSS, CHATGPT WEB’E YAKIN TEMİZ STİL. -->
+  <style>
+    :root{
+      --bg:#0f1115;
+      --bg-2:#13161c;
+      --panel:#161a21;
+      --panel-2:#1b2028;
+      --panel-3:#202632;
+      --line:rgba(255,255,255,.08);
+      --line-strong:rgba(255,255,255,.12);
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.72);
+      --muted-2:rgba(255,255,255,.56);
+      --success:#21c58b;
+      --shadow:0 18px 50px rgba(0,0,0,.22);
+      --radius-xl:28px;
+      --radius-lg:22px;
+      --radius-md:18px;
+      --radius-sm:14px;
+      --shell-max:1440px;
+      --content-max:1120px;
+      --sidebar-w:280px;
+      --header-space:14px;
+      --ease:cubic-bezier(.2,.8,.2,1);
+      --hero-grad:
+        radial-gradient(circle at top center, rgba(255,255,255,.06), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,.02), transparent 20%);
+    }
+
+    *{ box-sizing:border-box; }
+    html{ scroll-behavior:smooth; }
+    body{
+      margin:0;
+      min-height:100vh;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      text-rendering:optimizeLegibility;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow-x:hidden;
+    }
+
+    img{ max-width:100%; display:block; }
+    a{ color:inherit; text-decoration:none; }
+    button,input,textarea{ font:inherit; }
+
+    /* INDEX-3 MAIN: HEADER ENTEGRASYONU İÇİN SHELL ÜST BÖLGE VE GÜVENLİ ALAN OLUŞTURULDU. */
+    .app-shell{
+      position:relative;
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(255,255,255,.05), transparent 24%),
+        linear-gradient(180deg, #0f1115 0%, #11151b 100%);
+    }
+
+    .shell-noise{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.05;
+      background-image:
+        linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size:28px 28px;
+      mask-image:linear-gradient(180deg, rgba(0,0,0,.6), transparent 85%);
+    }
+
+    .skip-link{
+      position:absolute;
+      left:-9999px;
+      top:auto;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
+    .skip-link:focus{
+      left:16px;
+      top:16px;
+      width:auto;
+      height:auto;
+      padding:10px 14px;
+      z-index:9999;
+      border-radius:12px;
+      background:#fff;
+      color:#000;
+    }
+
+    .container{
+      width:min(calc(100% - 24px), var(--shell-max));
+      margin:0 auto;
+    }
+
+    /* INDEX-3 ALT-1: HEADER YÜKLENENE KADAR ISKELET / LOADING ALANI KODLANDI. */
+    .header-slot{
+      position:sticky;
+      top:0;
+      z-index:90;
+      padding-top:var(--header-space);
+      backdrop-filter:saturate(120%) blur(0px);
+    }
+
+    .header-skeleton{
+      display:grid;
+      grid-template-columns:160px 1fr 48px;
+      align-items:center;
+      gap:16px;
+      min-height:86px;
+      padding:12px 16px;
+      border:1px solid var(--line);
+      border-radius:26px;
+      background:rgba(22,26,33,.82);
+      box-shadow:var(--shadow);
+      animation:pulse 1.4s infinite ease-in-out;
+    }
+
+    .sk{
+      height:14px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.12), rgba(255,255,255,.05));
+      background-size:200% 100%;
+      animation:shimmer 1.4s linear infinite;
+    }
+    .sk.logo{ width:130px; height:24px; }
+    .sk.nav{ width:100%; }
+    .sk.btn{ width:42px; height:42px; border-radius:14px; justify-self:end; }
+
+    @keyframes shimmer{
+      0%{ background-position:200% 0; }
+      100%{ background-position:-200% 0; }
+    }
+    @keyframes pulse{
+      0%,100%{ opacity:1; }
+      50%{ opacity:.88; }
+    }
+
+    /* INDEX-4 MAIN + INDEX-5 MAIN: ANA GÖVDE ORTALANMIŞ, FERAH, CHATGPT WEB’E YAKIN YERLEŞİM. */
+    .layout{
+      display:grid;
+      grid-template-columns:var(--sidebar-w) minmax(0,1fr);
+      gap:18px;
+      padding:18px 0 40px;
+      align-items:start;
+    }
+
+    /* INDEX-9 MAIN: İSTEĞE BAĞLI KAPANABİLİR SOL PANEL TASARLANDI. */
+    .sidebar{
+      position:sticky;
+      top:112px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      max-height:calc(100vh - 132px);
+      overflow:auto;
+      padding:16px;
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:rgba(22,26,33,.86);
+      box-shadow:var(--shadow);
+      transition:transform .22s var(--ease), opacity .22s var(--ease), width .22s var(--ease), padding .22s var(--ease), border-color .22s var(--ease);
+    }
+
+    .sidebar.is-collapsed{
+      width:0;
+      padding:0;
+      opacity:0;
+      overflow:hidden;
+      border-color:transparent;
+      pointer-events:none;
+      transform:translateX(-12px);
+    }
+
+    .sidebar-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .side-title{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:#fff;
+    }
+
+    .side-toggle{
+      min-width:38px;
+      height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      border-radius:12px;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .side-toggle:hover{ background:rgba(255,255,255,.08); }
+
+    .side-section{
+      display:grid;
+      gap:8px;
+    }
+
+    .side-section-label{
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.11em;
+      text-transform:uppercase;
+      color:var(--muted-2);
+      padding:2px 4px;
+    }
+
+    .side-link{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-height:42px;
+      padding:0 12px;
+      border-radius:14px;
+      border:1px solid transparent;
+      background:rgba(255,255,255,.03);
+      color:#fff;
+      transition:.18s ease;
+      font-size:13px;
+      font-weight:700;
+      letter-spacing:.03em;
+    }
+    .side-link:hover{
+      background:rgba(255,255,255,.06);
+      border-color:var(--line);
+      transform:translateY(-1px);
+    }
+
+    .side-dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:rgba(255,255,255,.4);
+      flex:0 0 8px;
+    }
+
+    .main-column{
+      min-width:0;
+      display:grid;
+      gap:18px;
+    }
+
+    /* INDEX-6 MAIN: ANA KARŞILAMA SAHNESİ KODLANDI. */
+    .hero{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:30px;
+      background:var(--hero-grad), rgba(22,26,33,.88);
+      box-shadow:var(--shadow);
+      padding:40px 24px 24px;
+    }
+
+    .hero-inner{
+      width:min(100%, 920px);
+      margin:0 auto;
+      display:grid;
+      gap:20px;
+      justify-items:center;
+      text-align:center;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      min-height:30px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(34px, 5vw, 58px);
+      line-height:1.03;
+      letter-spacing:-.03em;
+      font-weight:900;
+      text-wrap:balance;
+    }
+
+    .hero-text{
+      margin:0;
+      max-width:780px;
+      color:var(--muted);
+      font-size:clamp(15px, 2vw, 18px);
+      line-height:1.65;
+      text-wrap:pretty;
+    }
+
+    /* INDEX-8 MAIN: CHATGPT BENZERİ BÜYÜK PROMPT GİRİŞ PANELİ KODLANDI. */
+    .prompt-shell{
+      width:min(100%, 860px);
+      display:grid;
+      gap:12px;
+      padding:16px;
+      border-radius:24px;
+      border:1px solid var(--line-strong);
+      background:rgba(15,17,21,.58);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+    }
+
+    .prompt-textarea{
+      width:100%;
+      min-height:128px;
+      resize:vertical;
+      border:0;
+      outline:0;
+      border-radius:18px;
+      background:transparent;
+      color:#fff;
+      font-size:16px;
+      line-height:1.6;
+      padding:8px 4px 0;
+    }
+    .prompt-textarea::placeholder{ color:rgba(255,255,255,.42); }
+
+    .prompt-actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .chip{
+      min-height:36px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:#fff;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.04em;
+      transition:.18s ease;
+    }
+    .chip:hover{
+      background:rgba(255,255,255,.08);
+      transform:translateY(-1px);
+    }
+
+    .prompt-cta{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      min-height:42px;
+      padding:0 16px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      color:#fff;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      transition:.18s ease;
+    }
+    .btn:hover{
+      background:rgba(255,255,255,.08);
+      transform:translateY(-1px);
+    }
+    .btn-primary{
+      background:#fff;
+      color:#101216;
+      border-color:#fff;
+    }
+    .btn-primary:hover{
+      background:#f3f3f3;
+      color:#101216;
+    }
+
+    /* INDEX-7 MAIN: HIZLI BAŞLANGIÇ KARTLARI KODLANDI. */
+    .quick-grid{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:12px;
+      width:min(100%, 1040px);
+      margin:0 auto;
+    }
+
+    .quick-card{
+      display:grid;
+      gap:10px;
+      min-height:164px;
+      padding:18px;
+      border-radius:22px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      color:#fff;
+      box-shadow:var(--shadow);
+      transition:transform .18s ease, border-color .18s ease, background .18s ease;
+      will-change:transform;
+    }
+    .quick-card:hover{
+      transform:translateY(-2px);
+      border-color:var(--line-strong);
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+    }
+
+    .quick-icon{
+      width:42px;
+      height:42px;
+      display:grid;
+      place-items:center;
+      border-radius:14px;
+      background:rgba(255,255,255,.07);
+      font-size:20px;
+    }
+
+    .quick-title{
+      margin:0;
+      font-size:15px;
+      font-weight:900;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+
+    .quick-desc{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    .quick-link{
+      margin-top:auto;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#fff;
+    }
+
+    /* INDEX-5 ALT-1 + INDEX-5 ALT-2: ORTA SAHNE GENİŞ, DENGELİ VE MOBİLDE TEK SÜTUN. */
+    .section-card{
+      border:1px solid var(--line);
+      border-radius:26px;
+      background:rgba(22,26,33,.82);
+      box-shadow:var(--shadow);
+      padding:22px;
+    }
+
+    .section-head{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+
+    .section-title{
+      margin:0;
+      font-size:18px;
+      line-height:1.2;
+      font-weight:900;
+      letter-spacing:-.02em;
+      color:#fff;
+    }
+
+    .section-copy{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.6;
+      max-width:760px;
+    }
+
+    .feature-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:14px;
+    }
+
+    .feature{
+      padding:18px;
+      border-radius:20px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      display:grid;
+      gap:10px;
+    }
+
+    .feature h3{
+      margin:0;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+
+    .feature p{
+      margin:0;
+      font-size:13px;
+      line-height:1.6;
+      color:var(--muted);
+    }
+
+    .trust-row{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:12px;
+    }
+
+    .trust{
+      min-height:84px;
+      padding:16px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      display:grid;
+      align-content:center;
+      gap:6px;
+    }
+
+    .trust strong{
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+    }
+
+    .trust span{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    /* INDEX-3 MAIN + INDEX-9 MAIN: HEADER YÜKLENDİĞİNDE VE SOL PANEL KAPANDIĞINDA DÜZEN AKIŞI KORUNUYOR. */
+    .shell-toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .toolbar-left,
+    .toolbar-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      min-height:34px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .hidden{ display:none !important; }
+
+    /* INDEX-12 MAIN: CEREZ KATI İÇİN ALT / OVERLAY UYUMLU KONTEYNER KODLANDI. */
+    .cookie-slot{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:120;
+      padding:14px;
+      pointer-events:none;
+    }
+
+    /* INDEX-13 ALT-1: SKELETON VE HAFİF GEÇİŞLERLE ŞIK YÜKLEME DURUMU KODLANDI. */
+    .fade-in{
+      animation:fadeIn .22s var(--ease);
+    }
+    @keyframes fadeIn{
+      from{ opacity:0; transform:translateY(6px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+
+    .visually-muted{
+      color:var(--muted);
+    }
+
+    footer{
+      padding:24px 0 50px;
+      color:var(--muted-2);
+      font-size:12px;
+      text-align:center;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1180px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+      .sidebar{
+        position:relative;
+        top:0;
+        max-height:none;
+      }
+      .quick-grid{
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+      }
+      .trust-row{
+        grid-template-columns:repeat(2, minmax(0,1fr));
+      }
+    }
+
+    @media (max-width: 820px){
+      .hero{
+        padding:28px 16px 18px;
+      }
+      .quick-grid,
+      .feature-grid{
+        grid-template-columns:1fr 1fr;
+      }
+      .section-card{
+        padding:18px;
+      }
+      .header-skeleton{
+        grid-template-columns:110px 1fr 42px;
+        min-height:74px;
+      }
+    }
+
+    @media (max-width: 560px){
+      .container{ width:min(calc(100% - 16px), var(--shell-max)); }
+      .quick-grid,
+      .feature-grid,
+      .trust-row{
+        grid-template-columns:1fr;
+      }
+      .hero-inner{
+        gap:16px;
+      }
+      .prompt-shell{
+        padding:12px;
+      }
+      .prompt-actions,
+      .shell-toolbar{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .toolbar-left,
+      .toolbar-right{
+        width:100%;
+        justify-content:space-between;
+      }
+      .btn,
+      .chip{
+        width:100%;
+        justify-content:center;
+      }
+      .chips{
+        display:grid;
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *,
+      *::before,
+      *::after{
+        animation:none !important;
+        transition:none !important;
+        scroll-behavior:auto !important;
+      }
+    }
+  </style>
+
+  <!-- INDEX-14 MAIN + SEO: STRUCTURED DATA İLE ARAMA MOTORU UYUMLULUĞU GÜÇLENDİRİLDİ. -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"WebSite",
+    "name":"Yapay Zeka Paneli",
+    "url":"https://example.com/app/index.html",
+    "inLanguage":"tr-TR",
+    "description":"Chat, video, ses, görsel ve müzik araçlarını tek yerden yöneten yapay zeka anasayfası.",
+    "potentialAction":{
+      "@type":"SearchAction",
+      "target":"https://example.com/app/index.html?q={search_term_string}",
+      "query-input":"required name=search_term_string"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- INDEX-1 MAIN + INDEX-2 MAIN: ANA UYGULAMA KABUĞU BAŞLADI. -->
+  <a class="skip-link" href="#mainContent">Ana içeriğe geç</a>
+
+  <div class="app-shell">
+    <div class="shell-noise" aria-hidden="true"></div>
+
+    <div class="container">
+      <!-- INDEX-3 MAIN: HEADER ROOT ALANI; HEADER.HTML BURAYA ENJEKTE EDİLECEK. -->
+      <div class="header-slot" id="headerHost">
+        <!-- INDEX-3 ALT-1: HEADER YÜKLENMEDEN ÖNCE SKELETON ALANI. -->
+        <div id="headerSkeleton" class="header-skeleton" aria-hidden="true">
+          <div class="sk logo"></div>
+          <div class="sk nav"></div>
+          <div class="sk btn"></div>
+        </div>
+
+        <!-- INDEX-3 MAIN + INDEX-10 MAIN: HEADER.HTML PARÇASI BURAYA YÜKLENİR. -->
+        <div id="headerRoot" class="fade-in" aria-label="Header alanı"></div>
+      </div>
+
+      <!-- INDEX-5 MAIN: ANA YERLEŞİM KURGUSU. -->
+      <div class="layout">
+        <!-- INDEX-9 MAIN: KAPANABİLİR SOL PANEL. -->
+        <aside class="sidebar" id="sidebar" aria-label="Yan panel">
+          <div class="sidebar-head">
+            <div class="side-title">HIZLI GEÇİŞLER</div>
+            <button type="button" class="side-toggle" id="sidebarToggle" aria-label="Yan paneli kapat">‹</button>
+          </div>
+
+          <!-- INDEX-9 ALT-1: SON KULLANILANLAR / POPÜLER / HIZLI GEÇİŞ BAŞLIKLARI. -->
+          <section class="side-section" aria-labelledby="sideRecent">
+            <div id="sideRecent" class="side-section-label">SON KULLANILANLAR</div>
+            <a class="side-link" href="./app/chat.html"><span class="side-dot"></span><span>CHAT OTURUMU</span></a>
+            <a class="side-link" href="./app/metinden_video_olusturma.html"><span class="side-dot"></span><span>METİNDEN VİDEO</span></a>
+            <a class="side-link" href="./app/metni-seslendirme.html"><span class="side-dot"></span><span>METNİ SESLENDİRME</span></a>
+          </section>
+
+          <section class="side-section" aria-labelledby="sidePopular">
+            <div id="sidePopular" class="side-section-label">POPÜLER ARAÇLAR</div>
+            <a class="side-link" href="./app/metinden-fotograf-resim-gorsel-olustur.html"><span class="side-dot"></span><span>METİNDEN GÖRSEL</span></a>
+            <a class="side-link" href="./app/sesten-metne-cevirme.html"><span class="side-dot"></span><span>SESTEN METNE</span></a>
+            <a class="side-link" href="./app/muzik.html"><span class="side-dot"></span><span>MÜZİK ÜRET</span></a>
+          </section>
+
+          <section class="side-section" aria-labelledby="sideShortcuts">
+            <div id="sideShortcuts" class="side-section-label">KISAYOLLAR</div>
+            <a class="side-link" href="#hero"><span class="side-dot"></span><span>ANA SAHNE</span></a>
+            <a class="side-link" href="#categories"><span class="side-dot"></span><span>KATEGORİLER</span></a>
+            <a class="side-link" href="#nedenBiz"><span class="side-dot"></span><span>NEDEN BU PANEL</span></a>
+          </section>
+        </aside>
+
+        <main class="main-column" id="mainContent">
+          <!-- INDEX-6 MAIN: ANA KARŞILAMA SAHNESİ -->
+          <section class="hero fade-in" id="hero" aria-labelledby="heroTitle">
+            <div class="hero-inner">
+              <div class="eyebrow">ANASAYFA • CHAT • VİDEO • SES • GÖRSEL • MÜZİK</div>
+
+              <!-- INDEX-11 ALT-1: TÜRKÇE, KISA, GÜÇLÜ ANA BAŞLIK. -->
+              <h1 id="heroTitle">NE ÜRETMEK İSTİYORSUN?</h1>
+
+              <!-- INDEX-6 ALT-1 + INDEX-11 ALT-2: KISA, NET, İŞLEV ODAKLI ALT METİN. -->
+              <p class="hero-text">
+                Chat, video, ses, görsel ve müzik üretimini tek yerden yönet. 
+                Doğru kategoriyi seç, uygun modeli gör, fiyatı karşılaştır ve hızlı başla.
+              </p>
+
+              <!-- INDEX-8 MAIN: CHAT BENZERİ PROMPT GİRİŞ ALANI. -->
+              <section class="prompt-shell" aria-label="Hızlı başlangıç istem alanı">
+                <label class="visually-muted" for="quickPrompt" style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">
+                  HIZLI BAŞLANGIÇ
+                </label>
+                <textarea
+                  id="quickPrompt"
+                  class="prompt-textarea"
+                  placeholder="ÖRNEK: ÜRÜN TANITIMI İÇİN KISA VİDEO OLUŞTUR, METNİ SESLENDİR, ESKİ FOTOĞRAFI ONAR VE SOSYAL MEDYA İÇİN GÖRSEL HAZIRLA."
+                  aria-label="Hızlı istem giriş alanı"
+                ></textarea>
+
+                <!-- INDEX-8 ALT-1: ÖRNEK PROMPT ÇİPLERİ KODLANDI. -->
+                <div class="prompt-actions">
+                  <div class="chips" aria-label="Örnek istemler">
+                    <button type="button" class="chip" data-fill="METİNDEN VİDEO OLUŞTUR">METİNDEN VİDEO OLUŞTUR</button>
+                    <button type="button" class="chip" data-fill="SESTEN METNE ÇEVİR">SESTEN METNE ÇEVİR</button>
+                    <button type="button" class="chip" data-fill="ESKİ FOTOĞRAFI ONAR">ESKİ FOTOĞRAFI ONAR</button>
+                    <button type="button" class="chip" data-fill="MÜZİK ÜRET">MÜZİK ÜRET</button>
+                  </div>
+
+                  <div class="prompt-cta">
+                    <a class="btn" href="./app/chat.html">CHAT’E GİT</a>
+                    <button type="button" class="btn btn-primary" id="quickStartBtn">HIZLI BAŞLAT</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <!-- INDEX-7 MAIN: HIZLI BAŞLANGIÇ KARTLARI -->
+          <section class="section-card fade-in" id="categories" aria-labelledby="catTitle">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title" id="catTitle">KATEGORİLER</h2>
+                <p class="section-copy">
+                  İhtiyacın olan akışı tek tıkla başlat. Tüm alanlar header ve model sistemiyle aynı mantıkta çalışır.
+                </p>
+              </div>
+            </div>
+
+            <div class="quick-grid">
+              <!-- INDEX-7 ALT-1: CHAT / VİDEO / SES / GÖRSEL / MÜZİK KARTLARI. -->
+              <a class="quick-card" href="./app/chat.html" aria-label="Chat sayfasına git">
+                <div class="quick-icon">💬</div>
+                <h3 class="quick-title">CHAT</h3>
+                <p class="quick-desc">Akıllı yazışma, içerik üretimi, soru cevap ve genel üretkenlik akışları.</p>
+                <span class="quick-link">CHAT’E GİT</span>
+              </a>
+
+              <a class="quick-card" href="./app/video.html" aria-label="Video sayfasına git">
+                <div class="quick-icon">🎬</div>
+                <h3 class="quick-title">VİDEO</h3>
+                <p class="quick-desc">Metinden video, görselden video, efekt ve süre dönüştürme araçları.</p>
+                <span class="quick-link">VİDEO ARAÇLARI</span>
+              </a>
+
+              <a class="quick-card" href="./app/ses.html" aria-label="Ses sayfasına git">
+                <div class="quick-icon">🔊</div>
+                <h3 class="quick-title">SES</h3>
+                <p class="quick-desc">TTS, STT, dublaj, ses klonlama ve ses temizleme araçları.</p>
+                <span class="quick-link">SES ARAÇLARI</span>
+              </a>
+
+              <a class="quick-card" href="./app/metinden-fotograf-resim-gorsel-olustur.html" aria-label="Görsel sayfasına git">
+                <div class="quick-icon">🖼️</div>
+                <h3 class="quick-title">GÖRSEL</h3>
+                <p class="quick-desc">Metinden görsel, düzenleme, restorasyon, kalite artırma ve yüz değişimi.</p>
+                <span class="quick-link">GÖRSEL ARAÇLARI</span>
+              </a>
+
+              <a class="quick-card" href="./app/muzik.html" aria-label="Müzik sayfasına git">
+                <div class="quick-icon">🎵</div>
+                <h3 class="quick-title">MÜZİK</h3>
+                <p class="quick-desc">Parça üretimi, yaratıcı müzik denemeleri ve hızlı beste akışları.</p>
+                <span class="quick-link">MÜZİK ARAÇLARI</span>
+              </a>
+            </div>
+          </section>
+
+          <!-- INDEX-2 ALT-1 + INDEX-6 ALT-2: SAYFA BROŞÜR DEĞİL, ETKİLEŞİM BAŞLATAN BİR UYGULAMA ANA SAHNESİDİR. -->
+          <section class="section-card fade-in" id="nedenBiz" aria-labelledby="whyTitle">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title" id="whyTitle">BU PANEL NEDEN DAHA HIZLI?</h2>
+                <p class="section-copy">
+                  Kategori, model ve fiyat katmanlarını tek yerde birleştirir. Kullanıcı ne yapacağını kaybetmeden ilerler.
+                </p>
+              </div>
+              <!-- INDEX-9 ALT-2: SOL PANEL KAPATMAK İSTEYEN KULLANICI İÇİN TEK TIK KONTROLÜ BURADA DA SUNULDU. -->
+              <div class="shell-toolbar">
+                <div class="toolbar-left">
+                  <span class="status-pill">SEO UYUMLU</span>
+                  <span class="status-pill">HIZLI AÇILIŞ</span>
+                </div>
+                <div class="toolbar-right">
+                  <button type="button" class="btn" id="altSidebarToggle">YAN PANELİ AÇ / KAPAT</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- INDEX-4 ALT-2 + INDEX-13 ALT-2: HAFİF, DENGELİ, MODERN KART DİLİ. -->
+            <div class="feature-grid">
+              <article class="feature">
+                <h3>KATEGORİ ÖNCE</h3>
+                <p>Chat, video, ses, görsel ve müzik ayrımı ilk ekrandan nettir. Kullanıcı yönünü hemen bulur.</p>
+              </article>
+              <article class="feature">
+                <h3>MODEL SONRA</h3>
+                <p>Header altında çıkan modeller bağlama göre filtrelenir. Yanlış model kalabalığı oluşmaz.</p>
+              </article>
+              <article class="feature">
+                <h3>FİYAT ŞEFFAF</h3>
+                <p>Model fiyat katmanı bağlandığında kullanıcı tahmini maliyeti tek bakışta görür.</p>
+              </article>
+            </div>
+          </section>
+
+          <!-- INDEX-12 MAIN: CEREZ İLE UYUMLU ANA SAYFA KURGU BİLGİSİ; INDEX-4 MAIN: MODERN VE DÜZENLİ KARTLAR. -->
+          <section class="section-card fade-in" aria-labelledby="trustTitle">
+            <div class="section-head">
+              <div>
+                <h2 class="section-title" id="trustTitle">ANA SAYFA TASARIM İLKELERİ</h2>
+                <p class="section-copy">
+                  Hız, okunabilirlik, kategori disiplini ve güven veren ürün hissi aynı anda korunur.
+                </p>
+              </div>
+            </div>
+
+            <div class="trust-row">
+              <div class="trust">
+                <strong>STICKY HEADER</strong>
+                <span>Üst gezinme her zaman görünür kalarak bağlamı korur.</span>
+              </div>
+              <div class="trust">
+                <strong>ORTALANMIŞ SAHNE</strong>
+                <span>Ana odak her zaman ortadadır; sayfa dağınık hissettirmez.</span>
+              </div>
+              <div class="trust">
+                <strong>KOYU NÖTR TEMA</strong>
+                <span>Modern, ciddi ve ChatGPT web’e yakın temiz görünüm sunar.</span>
+              </div>
+              <div class="trust">
+                <strong>GENİŞLETİLEBİLİR YAPI</strong>
+                <span>Yeni HTML sayfaları ve araçlar aynı sistemle büyüyebilir.</span>
+              </div>
+            </div>
+          </section>
+                  </main>
+      </div>
+
+      <footer>
+        <!-- INDEX-11 MAIN: TÜRKÇE VE TEMİZ METİN DİLİYLE ALT BİLGİ. -->
+        ANASAYFA • CHAT • VİDEO • SES • GÖRSEL • MÜZİK • HIZLI VE SEO UYUMLU UYGULAMA KABUĞU
+      </footer>
+    </div>
+
+    <!-- INDEX-12 MAIN + INDEX-12 ALT-1: CEREZ BİLEŞENİ İÇİN ALT KATMAN ALANI. -->
+    <div class="cookie-slot" id="cookieSlot" aria-live="polite"></div>
+  </div>
+
+  <!-- INDEX-3 MAIN + INDEX-10 MAIN: HEADER VE CEREZ BİLEŞENLERİNİ FETCH İLE ENTEGRE EDEN HAFİF VE HIZLI JS. -->
+  <!-- INDEX-13 MAIN: ETKİLEŞİMLER SAKİN VE HIZLI KALACAK ŞEKİLDE KISA VE ETKİLİ JS KODLANDI. -->
+  <script>
+    // INDEX-3 MAIN: HEADER.HTML BİLEŞENİNİ INDEX.HTML İÇİNE ENJEKTE ETMEK İÇİN KOD.
+    // INDEX-3 ALT-2: HEADER İÇİN PATH TUTARLILIĞI SAĞLANARAK ./header.html ÜZERİNDEN FETCH KURGULANDI.
+    // INDEX-10 MAIN: DOSYA ORGANİZASYONU TUTARLILIĞI İÇİN TEK MERKEZDEN YOL TANIMI.
+    const APP_PATHS = {
+      header: './header.html',
+      cookie: './cerez.html',
+      chat: './app/chat.html',
+      video: './app/video.html',
+      audio: './app/ses.html',
+      image: './app/metinden-fotograf-resim-gorsel-olustur.html',
+      music: './app/muzik.html'
+    };
+
+    const ui = {
+      headerRoot: document.getElementById('headerRoot'),
+      headerSkeleton: document.getElementById('headerSkeleton'),
+      cookieSlot: document.getElementById('cookieSlot'),
+      sidebar: document.getElementById('sidebar'),
+      sidebarToggle: document.getElementById('sidebarToggle'),
+      altSidebarToggle: document.getElementById('altSidebarToggle'),
+      quickPrompt: document.getElementById('quickPrompt'),
+      quickStartBtn: document.getElementById('quickStartBtn'),
+      chips: Array.from(document.querySelectorAll('.chip'))
+    };
+
+    // INDEX-13 ALT-1: YÜKLEME DURUMLARI İÇİN HAFİF HELPERS.
+    function show(el){ if(el) el.classList.remove('hidden'); }
+    function hide(el){ if(el) el.classList.add('hidden'); }
+
+    // INDEX-3 MAIN: FETCH İLE PARÇA HTML YÜKLEME.
+    async function fetchFragment(url){
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if(!res.ok) throw new Error('PARÇA YÜKLENEMEDİ: ' + url);
+      return await res.text();
+    }
+
+    // INDEX-3 MAIN + INDEX-14 MAIN: FETCH İLE GELEN HEADER.HTML İÇİNDEKİ SCRIPT’LERİN ÇALIŞMASINI SAĞLAYAN GÜVENLİ ENJEKSİYON.
+    async function mountFragment(target, html){
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html.trim();
+
+      // NORMAL DÜĞÜMLERİ EKLE
+      const scripts = Array.from(tpl.content.querySelectorAll('script'));
+      scripts.forEach(s => s.remove());
+
+      target.innerHTML = '';
+      target.appendChild(tpl.content.cloneNode(true));
+
+      // SCRIPT’LERİ AYRI AYRI YENİDEN ÇALIŞTIR
+      for (const oldScript of scripts) {
+        const newScript = document.createElement('script');
+        for (const attr of oldScript.attributes) newScript.setAttribute(attr.name, attr.value);
+        newScript.textContent = oldScript.textContent;
+        target.appendChild(newScript);
+      }
+    }
+
+    // INDEX-3 ALT-1: HEADER SKELETON’I GÖSTER, YÜKLENDİĞİNDE KALDIR.
+    async function loadHeader(){
+      try{
+        show(ui.headerSkeleton);
+        const html = await fetchFragment(APP_PATHS.header);
+        await mountFragment(ui.headerRoot, html);
+      }catch(error){
+        ui.headerRoot.innerHTML = `
+          <div style="padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:22px;background:rgba(22,26,33,.88);color:rgba(255,255,255,.82);font-size:13px;font-weight:700;">
+            HEADER YÜKLENEMEDİ. DOSYA YOLUNU KONTROL ET: <strong>${APP_PATHS.header}</strong>
+          </div>
+        `;
+        console.error(error);
+      }finally{
+        hide(ui.headerSkeleton);
+      }
+    }
+
+    // INDEX-12 MAIN + INDEX-12 ALT-2: ÇEREZ BİLEŞENİNİ AYRI PARÇA OLARAK YÜKLEME, YOKSA YEREL FALLBACK GÖSTERME.
+    async function loadCookie(){
+      const accepted = localStorage.getItem('cookieAccepted') === '1';
+      if(accepted) return;
+
+      try{
+        const html = await fetchFragment(APP_PATHS.cookie);
+        ui.cookieSlot.innerHTML = html;
+        ui.cookieSlot.style.pointerEvents = 'auto';
+        wireCookieFallbackButtons();
+      }catch(error){
+        ui.cookieSlot.innerHTML = `
+          <div style="max-width:920px;margin:0 auto;padding:14px 16px;border:1px solid rgba(255,255,255,.10);border-radius:18px;background:rgba(22,26,33,.94);box-shadow:0 18px 40px rgba(0,0,0,.24);pointer-events:auto;">
+            <div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;">
+              <div style="min-width:260px;flex:1 1 360px;">
+                <div style="font-size:12px;font-weight:900;letter-spacing:.10em;text-transform:uppercase;color:#fff;margin-bottom:8px;">ÇEREZ TERCİHLERİ</div>
+                <div style="font-size:13px;line-height:1.6;color:rgba(255,255,255,.76);">
+                  Bu site deneyimi iyileştirmek için çerez kullanır. Kabul edebilir, sadece zorunlu çerezleri seçebilir veya tercihleri yönetebilirsin.
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button data-cookie-action="required" style="min-height:40px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#fff;font-weight:800;cursor:pointer;">SADECE ZORUNLU</button>
+                <button data-cookie-action="accept" style="min-height:40px;padding:0 14px;border-radius:12px;border:1px solid #fff;background:#fff;color:#111;font-weight:900;cursor:pointer;">KABUL ET</button>
+              </div>
+            </div>
+          </div>
+        `;
+        ui.cookieSlot.style.pointerEvents = 'auto';
+        wireCookieFallbackButtons();
+        console.warn(error);
+      }
+    }
+
+    function wireCookieFallbackButtons(){
+      ui.cookieSlot.querySelectorAll('[data-cookie-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          localStorage.setItem('cookieAccepted', '1');
+          ui.cookieSlot.innerHTML = '';
+          ui.cookieSlot.style.pointerEvents = 'none';
+        });
+      });
+    }
+
+    // INDEX-9 MAIN + INDEX-9 ALT-2: KAPANABİLİR SOL PANEL.
+    function wireSidebar(){
+      const toggle = () => {
+        ui.sidebar.classList.toggle('is-collapsed');
+        const collapsed = ui.sidebar.classList.contains('is-collapsed');
+        ui.sidebarToggle.textContent = collapsed ? '›' : '‹';
+        ui.sidebarToggle.setAttribute('aria-label', collapsed ? 'Yan paneli aç' : 'Yan paneli kapat');
+      };
+      ui.sidebarToggle?.addEventListener('click', toggle);
+      ui.altSidebarToggle?.addEventListener('click', toggle);
+    }
+
+    // INDEX-8 ALT-1: ÖRNEK İSTEM ÇİPLERİ PROMPT ALANINI DOLDURUR.
+    function wirePromptChips(){
+      ui.chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          ui.quickPrompt.value = chip.dataset.fill || '';
+          ui.quickPrompt.focus();
+        });
+      });
+    }
+
+    // INDEX-8 MAIN + INDEX-6 MAIN: HIZLI BAŞLAT KULLANICIYI BAĞLAMA GÖRE DOĞRU SAYFAYA GÖNDERİR.
+    function wireQuickStart(){
+      ui.quickStartBtn?.addEventListener('click', () => {
+        const value = (ui.quickPrompt.value || '').toLowerCase();
+
+        if(/video|klip|efekt|reel/.test(value)) location.href = APP_PATHS.video;
+        else if(/ses|konuş|dublaj|metne|tts|stt/.test(value)) location.href = APP_PATHS.audio;
+        else if(/görsel|resim|fotoğraf|fotograf|yüz|arka plan|renklendir/.test(value)) location.href = APP_PATHS.image;
+        else if(/müzik|muzik|şarkı|sarki|beste|parça/.test(value)) location.href = APP_PATHS.music;
+        else location.href = APP_PATHS.chat;
+      });
+    }
+<div id="customer-service-root"></div>
+    // INDEX-13 MAIN: HAFİF BAŞLANGIÇ VE GEREKSİZ AĞIRLIK OLMADAN İLK AÇILIŞ.
+    async function boot(){
+      wireSidebar();
+      wirePromptChips();
+      wireQuickStart();
+
+      // HEADER HEMEN YÜKLENSİN
+      await loadHeader();
+
+      // ÇEREZ KATI ENGEL OLMADAN ARKADAN GELSİN
+      requestIdleCallbackSafe(loadCookie);
+    }
+
+    function requestIdleCallbackSafe(fn){
+      if('requestIdleCallback' in window){
+        window.requestIdleCallback(() => fn(), { timeout: 1200 });
+      }else{
+        setTimeout(fn, 260);
+      }
+    }
+
+    // INDEX-13 MAIN: HIZLI İLK BOOT.
+    boot();
+  </script>
+  <script src="../src/services/musteri_hizmetleri.js"></script>
+  <script>
+    if (window.createMusteriHizmetleriWidget && document.getElementById("customer-service-root")) {
+      window.createMusteriHizmetleriWidget({
+        mountSelector: "#customer-service-root"
+      });
+    }
+  </script>
+</body>
+</html>
